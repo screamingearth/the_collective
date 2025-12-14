@@ -1,0 +1,48 @@
+name: Validate the_collective
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Code Quality & Tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install Root Dependencies
+        run: npm ci
+
+      - name: Build Memory Server
+        working-directory: .collective/memory-server
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build Gemini Bridge
+        working-directory: .collective/gemini-bridge
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run Memory Server Tests
+        working-directory: .collective/memory-server
+        run: npm test
+
+      - name: Run Gemini Bridge Tests
+        working-directory: .collective/gemini-bridge
+        run: npm test
+
+      - name: Validate Code Quality
+        run: npm run validate

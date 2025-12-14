@@ -1,0 +1,263 @@
+/**
+  * VSCode Tasks Configuration
+  * 
+  * Part of the_collective by screamingearth (Apache 2.0 licensed, see NOTICE file).
+**/
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Health Check (Quick)",
+      "type": "shell",
+      "command": "npm run check -- --quick",
+      "group": {
+        "kind": "test"
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      }
+    },
+    {
+      "label": "Start Memory Server",
+      "type": "shell",
+      "command": "cd .collective/memory-server && npm run build && node dist/index.js",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "never",
+        "panel": "dedicated"
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "problemMatcher": {
+        "pattern": {
+          "regexp": ".*",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "listening on"
+        }
+      }
+    },
+    {
+      "label": "Start Gemini Bridge",
+      "type": "shell",
+      "command": "cd .collective/gemini-bridge && npm run build && node dist/mcp-server.js",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "never",
+        "panel": "dedicated"
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "problemMatcher": {
+        "pattern": {
+          "regexp": ".*",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "listening on"
+        }
+      }
+    },
+    {
+      "label": "Build Framework",
+      "type": "shell",
+      "command": "npm run check -- --build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [
+        "$tsc"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Start Filesystem Server",
+      "type": "shell",
+      "command": "npx -y @modelcontextprotocol/server-filesystem ${workspaceFolder}",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "never",
+        "panel": "dedicated"
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "problemMatcher": {
+        "pattern": {
+          "regexp": ".*",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "listening on"
+        }
+      }
+    },
+    {
+      "label": "Build Memory Server",
+      "type": "shell",
+      "command": "cd .collective/memory-server && npm run build",
+      "group": {
+        "kind": "build"
+      },
+      "problemMatcher": [
+        "$tsc"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Build Gemini Bridge",
+      "type": "shell",
+      "command": "cd .collective/gemini-bridge && npm run build",
+      "group": {
+        "kind": "build"
+      },
+      "problemMatcher": [
+        "$tsc"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Bootstrap Memories",
+      "type": "shell",
+      "command": "cd .collective/memory-server && npm run bootstrap",
+      "dependsOn": [
+        "Build Memory Server"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Validate TypeScript",
+      "type": "shell",
+      "command": "cd .collective/memory-server && npm run validate && cd ../gemini-bridge && npm run validate",
+      "problemMatcher": [
+        "$tsc"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Test Memory System",
+      "type": "shell",
+      "command": "cd .collective/memory-server && npm run test",
+      "dependsOn": [
+        "Build Memory Server"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Run Framework Validation",
+      "type": "shell",
+      "command": "npm test",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Full Setup (Fresh Clone)",
+      "type": "shell",
+      "command": "./setup.sh",
+      "problemMatcher": [
+        "$tsc"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Clean All",
+      "type": "shell",
+      "command": "npm run clean",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Update Dependencies",
+      "type": "shell",
+      "command": "npm run update",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Rebuild Native Modules",
+      "type": "shell",
+      "command": "npm run rebuild",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Verify Memory System",
+      "type": "shell",
+      "command": "npm run check -- --memory",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Verify All Systems",
+      "type": "shell",
+      "command": "npm run check",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    }
+  ]
+}

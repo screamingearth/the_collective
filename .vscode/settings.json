@@ -1,0 +1,217 @@
+{ /**
+  * VS Code Settings
+  * 
+  * Part of the_collective by screamingearth (Apache 2.0 licensed, see NOTICE file).
+**/
+  // ═══════════════════════════════════════════════════════════════════
+  // EDITOR CORE SETTINGS
+  // ═══════════════════════════════════════════════════════════════════
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  "editor.rulers": [
+    80,
+    120
+  ],
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": true,
+  "editor.inlineSuggest.enabled": true,
+  "editor.suggest.preview": true,
+  "editor.suggest.showStatusBar": true,
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": true,
+    "strings": true
+  },
+  // ═══════════════════════════════════════════════════════════════════
+  // FILE MANAGEMENT
+  // ═══════════════════════════════════════════════════════════════════
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/node_modules": true,
+    "**/dist": false,
+    "**/*.pyc": true,
+    "**/__pycache__": true,
+    "**/.mcp/*.duckdb": true,
+    "**/.mcp/*.duckdb.wal": true
+  },
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/.mcp/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.git": true,
+    "**/package-lock.json": true,
+    "**/.mcp/*.duckdb": true
+  },
+  // ═══════════════════════════════════════════════════════════════════
+  // GITHUB COPILOT CONFIGURATION
+  // ═══════════════════════════════════════════════════════════════════
+  "github.copilot.enable": {
+    "*": true,
+    "yaml": true,
+    "markdown": true,
+    "plaintext": true,
+    "jsonc": true,
+    "json": true
+  },
+  // Enable Copilot chat features
+  "github.copilot.chat.localeOverride": "en",
+  "github.copilot.chat.runCommand.enabled": true,
+  "github.copilot.chat.terminalChatLocation": "quickChat",
+  // Agent configuration (official VS Code settings - v1.107 December 2025)
+  "chat.agent.enabled": true,
+  "chat.agent.maxRequests": 69,
+  "github.copilot.chat.agent.autoFix": true,
+  // Agent sessions (v1.107)
+  "chat.viewSessions.enabled": true,
+  "chat.viewSessions.orientation": "auto",
+  // Enable all customization features
+  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+  "chat.promptFiles": true,
+  "chat.useAgentsMdFile": true,
+  "chat.useNestedAgentsMdFiles": false,
+  "chat.promptFilesRecommendations": {},
+  // Custom agent support (v1.107 experimental)
+  "github.copilot.chat.customAgents.showOrganizationAndEnterpriseAgents": true,
+  "github.copilot.chat.cli.customAgents.enabled": true,
+  // Custom instructions for specific scenarios (reference our guidelines)
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    {
+      "text": "Use conventional commits format (feat:, fix:, docs:, refactor:, test:, chore:). Keep subject under 50 chars. Add body if change is complex."
+    }
+  ],
+  "github.copilot.chat.reviewSelection.instructions": [
+    {
+      "file": ".github/prompts/review.prompt.md"
+    }
+  ],
+  // ═══════════════════════════════════════════════════════════════════
+  // MCP SERVER CONFIGURATION
+  // ═══════════════════════════════════════════════════════════════════
+  // Auto-start MCP servers: "newAndOutdated" (default) restarts servers when config changes
+  // "manual" requires manual server startup. Experimental feature.
+  "chat.mcp.autoStart": "newAndOutdated",
+  // Enable MCP server gallery for discovery in Extensions
+  "chat.mcp.gallery.enabled": true,
+  // Allow MCP server access (enables trust prompts for first-time server startup)
+  "chat.mcp.access": "all",
+  // GitHub MCP Server (v1.107 built-in preview)
+  "github.copilot.chat.githubMcpServer.enabled": true,
+  "github.copilot.chat.githubMcpServer.readonly": false,
+  // MCP server sampling configuration - allow all servers to use all models
+  // Note: Server names must match those defined in .vscode/mcp.json
+  "chat.mcp.serverSampling": {
+    "github": {
+      "allowedModels": [
+        "*"
+      ]
+    },
+    "memory": {
+      "allowedModels": [
+        "*"
+      ]
+    },
+    "gemini": {
+      "allowedModels": [
+        "*"
+      ]
+    },
+    "filesystem": {
+      "allowedModels": [
+        "*"
+      ]
+    }
+  },
+  // ═══════════════════════════════════════════════════════════════════
+  // TERMINAL CONFIGURATION
+  // ═══════════════════════════════════════════════════════════════════
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.scrollback": 10000,
+  "terminal.integrated.enablePersistentSessions": true,
+  // ═══════════════════════════════════════════════════════════════════
+  // TYPESCRIPT / JAVASCRIPT
+  // ═══════════════════════════════════════════════════════════════════
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "javascript.preferences.importModuleSpecifier": "relative",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.suggest.completeFunctionCalls": true,
+  "typescript.inlayHints.parameterNames.enabled": "all",
+  "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
+  "javascript.suggest.completeFunctionCalls": true,
+  // ═══════════════════════════════════════════════════════════════════
+  // LANGUAGE-SPECIFIC FORMATTERS
+  // ═══════════════════════════════════════════════════════════════════
+  "[typescript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features",
+    "editor.formatOnSave": true
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.formatOnSave": true
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[markdown]": {
+    "editor.formatOnSave": false,
+    "editor.wordWrap": "on",
+    "editor.quickSuggestions": {
+      "other": true,
+      "comments": true,
+      "strings": true
+    }
+  },
+  "[yaml]": {
+    "editor.autoIndent": "advanced",
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  },
+  // ═══════════════════════════════════════════════════════════════════
+  // PROBLEMS & DIAGNOSTICS
+  // ═══════════════════════════════════════════════════════════════════
+  "problems.showCurrentInStatus": true,
+  "problems.decorations.enabled": true,
+  // ═══════════════════════════════════════════════════════════════════
+  // GIT CONFIGURATION
+  // ═══════════════════════════════════════════════════════════════════
+  "git.autofetch": true,
+  "git.enableSmartCommit": true,
+  "git.confirmSync": false,
+  "git.suggestSmartCommit": true,
+  // ═══════════════════════════════════════════════════════════════════
+  // TESTING
+  // ═══════════════════════════════════════════════════════════════════
+  "testing.automaticallyOpenPeekView": "failureInVisibleDocument",
+  "testing.showCoverageInExplorer": true,
+  // ═══════════════════════════════════════════════════════════════════
+  // EXPERIMENTAL FEATURES (v1.107 December 2025)
+  // ═══════════════════════════════════════════════════════════════════
+  // Inline chat v2 (optimized for single-file edits)
+  "inlineChat.enableV2": true,
+  // Subagent support with custom agents
+  "chat.customAgentInSubagent.enabled": true,
+  // Claude Skills support
+  "chat.useClaudeSkills": false,
+  // Agent thinking display
+  "chat.agent.thinkingStyle": "fixedScrolling",
+  "chat.agent.thinking.collapsedTools": "always",
+  // Chat view improvements
+  "chat.viewTitle.enabled": true,
+  "chat.viewWelcome.enabled": true,
+  "chat.viewRestorePreviousSession": true
+}

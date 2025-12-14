@@ -1,0 +1,30 @@
+{
+  "servers": {
+    "memory": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/.collective/memory-server/dist/index.js"
+      ],
+      "env": {
+        "MEMORY_DB_PATH": "${workspaceFolder}/.mcp/collective_memory.duckdb"
+      }
+    },
+    "gemini": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/.collective/gemini-bridge/dist/mcp-server.js"
+      ]
+    },
+    "filesystem": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "${workspaceFolder}"
+      ]
+    }
+  }
+}

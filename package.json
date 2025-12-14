@@ -1,0 +1,48 @@
+{
+  "name": "the-collective-workspace",
+  "version": "0.1.0",
+  "description": "A multi-agent AI collaboration framework for VS Code Copilot",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=11.0.0"
+  },
+  "packageManager": "npm@11.7.0",
+  "scripts": {
+    "check": "node scripts/check.cjs",
+    "commit": "node scripts/commit.cjs",
+    "clean": "node scripts/clean.cjs",
+    "update": "node scripts/update.cjs",
+    "rebuild": "node scripts/update.cjs",
+    "help": "node scripts/help.cjs",
+    "validate": "node scripts/validate.cjs",
+    "reset:memories": "node scripts/reset-memories.cjs"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "copilot",
+    "collaboration",
+    "vscode",
+    "multi-agent",
+    "mcp",
+    "semantic-memory"
+  ],
+  "author": "screamingearth",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/screamingearth/the_collective.git"
+  },
+  "bugs": {
+    "url": "https://github.com/screamingearth/the_collective/issues"
+  },
+  "homepage": "https://github.com/screamingearth/the_collective#readme",
+  "dependencies": {
+    "@modelcontextprotocol/server-filesystem": "2025.11.25"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "eslint": "^9.39.2"
+  }
+}

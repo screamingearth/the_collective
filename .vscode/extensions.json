@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    // Core AI experience
+    "github.copilot",
+    "github.copilot-chat",
+    // Code quality
+    "dbaeumer.vscode-eslint",
+    // Container management
+    "ms-vscode.remote-containers",
+  ]
+}

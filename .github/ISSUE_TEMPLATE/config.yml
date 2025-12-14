@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📚 Documentation
+    url: https://github.com/screamingearth/the_collective/tree/main/docs
+    about: Check the docs first
+  - name: ⚡ Quick Start
+    url: https://github.com/screamingearth/the_collective/blob/main/QUICKSTART.md
+    about: Setup instructions

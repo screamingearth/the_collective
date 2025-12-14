@@ -1,0 +1,3 @@
+collective_memory.duckdb
+*.duckdb.wal
+test_memory.duckdb
