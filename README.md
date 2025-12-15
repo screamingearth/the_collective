@@ -54,9 +54,7 @@ npm run check  # verify installation
 | **cassandra** | breaker | security & risk analysis | skeptical, thorough |
 | **apollo** | polisher | optimization & quality | perfectionist, elegant |
 
-**ai models:** Claude (Sonnet 4.5 default: implementation, orchestration) + Gemini (research, validation, cognitive diversity)
-
-**model selection:** see [CLAUDE.md](./CLAUDE.md) for detailed guidance on Haiku 4.5 (fast), Sonnet 4.5 (balanced, recommended), and Opus 4.5 (deep reasoning)
+**ai models:** the-collective is best utilised by Claude models - Haiku 4.5 (fast), Sonnet 4.5 (balanced, recommended), and Opus 4.5 (deep reasoning)
 
 ---
 
