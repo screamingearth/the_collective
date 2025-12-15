@@ -78,13 +78,12 @@ npm run check  # verify installation
 
 ## 🚀 features
 
-- ✅ **local-first memory** // semantic vector database never leaves your machine
-- ✅ **4-agent team** // specialized personas that debate your code in real-time
-- ✅ **MCP servers** // memory, gemini research tools, filesystem access (extensible)
-- ✅ **auto-startup** // MCP servers launch on workspace open (VS Code 1.107+)
-- ✅ **org-level agents** // share agents across GitHub organizations
-- ✅ **zero tracking** // Apache 2.0 licensed, no telemetry, no vendor lock-in
-- ✅ **2025 ready** // TypeScript 5.7+, ESLint 10+, native MCP support
+- **local-first memory** // semantic vector database never leaves your machine
+- **4-agent team** // specialized personas that debate your code in real-time
+- **MCP servers** // memory, gemini research tools, filesystem access (extensible)
+- **auto-startup** // MCP servers launch on workspace open (VS Code 1.107+)
+- **org-level agents** // share agents across GitHub organizations
+- **zero tracking** // Apache 2.0 licensed, no telemetry, no vendor lock-in
 
 <br>
 
