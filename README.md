@@ -33,7 +33,8 @@ The setup automatically:
 - Bootstraps core AI memories
 - Configures VS Code MCP integration
 
-restart VS Code after setup. open copilot chat, say `hey nyx`.
+restart VS Code after setup - open copilot chat with the_collective, 
+> hey guys, I'd like to make...
 
 ### manual install
 
@@ -72,6 +73,8 @@ npm run check  # verify installation
 > 
 > Opus 4.5 (deep reasoning)
 
+<h6>>but of course, you can use whatever you want!</h6>
+
 <br>
 
 ## 🧠 how it works
@@ -86,11 +89,10 @@ npm run check  # verify installation
 
 ## 🚀 features
 
-- **local-first memory** // semantic vector database never leaves your machine
+- **local memory** // semantic vector database never leaves your machine
 - **4-agent team** // specialized personas that debate your code in real-time
-- **MCP servers** // memory, gemini research tools, filesystem access (extensible)
+- **local MCP servers** // memory, gemini research tools, filesystem access (extensible)
 - **auto-startup** // MCP servers launch on workspace open (VS Code 1.107+)
-- **org-level agents** // share agents across GitHub organizations
 - **zero tracking** // Apache 2.0 licensed, no telemetry, no vendor lock-in
 
 <br>
@@ -113,9 +115,9 @@ npm run check  # verify installation
 ## 📋 requirements
 
 **core:**
-- **VS Code 1.107+** ([download](https://code.visualstudio.com/)) with **GitHub Copilot** subscription or free tier
+- **VS Code 1.107+** ([download](https://code.visualstudio.com/)) with **GitHub Copilot** subscription or free account
 - **Node.js 20+** (auto-installed by setup script if missing)
-- **macOS, Linux, or Windows** (Windows 10/11 via native setup.bat)
+- **macOS, Linux, or Windows**
 
 **recommended:**
 - VS Code **Insiders** build for seamless MCP auto-startup
@@ -138,7 +140,6 @@ npm run check  # verify installation
 - **[QUICKSTART.md](./QUICKSTART.md)** // detailed setup & troubleshooting
 - **[AGENTS.md](./AGENTS.md)** // team workflows, interaction patterns, protocols
 - **[docs/](./docs/)** // architecture, MCP servers, memory system, security
-- **[.github/copilot-instructions.md](./.github/copilot-instructions.md)** // Copilot configuration
 
 <br>
 
@@ -176,7 +177,7 @@ See [QUICKSTART.md](./QUICKSTART.md#troubleshooting) for detailed troubleshootin
 
 - **GitHub Issues** // [report bugs](https://github.com/screamingearth/the_collective/issues/new/choose)
 - **Discussions** // [ideas, questions, show your work](https://github.com/screamingearth/the_collective/discussions)
-- **Reddit** // [r/vscode](https://reddit.com/r/vscode), [r/programming](https://reddit.com/r/programming)
+- **Reddit** // [r/vscode](https://reddit.com/r/vscode), [r/githubcopilot](https://reddit.com/r/githubcopilot)
 - **Documentation** // start with [QUICKSTART.md](./QUICKSTART.md)
   
 <br>
