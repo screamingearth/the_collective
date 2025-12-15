@@ -18,7 +18,7 @@ Different AI model = different perspective = catches blind spots. The team uses 
 ### 1. Install Dependencies
 
 ```bash
-cd gemini-bridge
+cd .collective/gemini-bridge
 npm install
 ```
 
@@ -138,7 +138,7 @@ export GEMINI_API_KEY="your-key-from-aistudio.google.com"
 | Problem | Fix |
 |---------|-----|
 | **"not authenticated"** | Run `npm run auth` |
-| **"command not found"** | Run `cd gemini-bridge && npm install` |
+| **"command not found"** | Run `cd .collective/gemini-bridge && npm install` |
 | **Timeout errors** | Gemini typically 2-5s. Check network connection |
 | **Rate limit errors** | Free tier: 60 req/min, 1000 req/day. Wait or upgrade |
 

@@ -330,11 +330,11 @@ the_collective uses autonomous memory—agents decide when to remember without e
 ./setup.sh
 
 # Test memory system
-cd memory-server && npm run test
+cd .collective/memory-server && npm run test
 
 # Bootstrap fresh memories
-cd memory-server
-rm -f ../.mcp/collective_memory.duckdb*
+cd .collective/memory-server
+rm -f ../../.mcp/collective_memory.duckdb*
 npm run bootstrap
 ```
 
@@ -343,8 +343,8 @@ npm run bootstrap
 | Problem              | Fix                                                                            |
 | -------------------- | ------------------------------------------------------------------------------ |
 | No embeddings        | First run downloads ~50MB models                                               |
-| Database corruption  | `rm .mcp/collective_memory.duckdb* && cd memory-server && npm run bootstrap`   |
-| TypeScript errors    | `cd memory-server && rm -rf dist node_modules && npm install && npm run build` |
+| Database corruption  | `rm .mcp/collective_memory.duckdb* && cd .collective/memory-server && npm run bootstrap`   |
+| TypeScript errors    | `cd .collective/memory-server && rm -rf dist node_modules && npm install && npm run build` |
 | Reranker not loading | Check memory—cross-encoder needs ~200MB RAM                                    |
 
 ---

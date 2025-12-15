@@ -21,5 +21,5 @@ For security vulnerabilities, open a GitHub issue or contact the maintainers dir
 
 ```bash
 rm -f .mcp/collective_memory.duckdb*
-cd memory-server && npm run bootstrap
+cd .collective/memory-server && npm run bootstrap
 ```

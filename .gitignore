@@ -1,4 +1,6 @@
 # === Secrets & Environment ===
+# CRITICAL: .env files contain sensitive API keys and must never be committed
+# See SECURITY.md for handling secrets properly
 .env
 .env.*
 .env.local

@@ -1,0 +1,13 @@
+diff --git a/node_modules/eslint/lib/cli-engine/formatters/html.js b/node_modules/eslint/lib/cli-engine/formatters/html.js
+index ef8d445..89498a0 100644
+--- a/node_modules/eslint/lib/cli-engine/formatters/html.js
++++ b/node_modules/eslint/lib/cli-engine/formatters/html.js
+@@ -244,7 +244,7 @@ function messageTemplate(it) {
+     <td class="clr-${severityNumber}">${severityName}</td>
+     <td>${encodeHTML(message)}</td>
+     <td>
+-        <a href="${ruleUrl ? ruleUrl : ""}" target="_blank" rel="noopener noreferrer">${ruleId ? ruleId : ""}</a>
++        <a href="${encodeHTML(ruleUrl ? ruleUrl : "")}" target="_blank" rel="noopener noreferrer">${encodeHTML(ruleId ? ruleId : "")}</a>
+     </td>
+ </tr>
+ `.trimStart();

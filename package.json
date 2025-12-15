@@ -16,7 +16,8 @@
     "rebuild": "node scripts/update.cjs",
     "help": "node scripts/help.cjs",
     "validate": "node scripts/validate.cjs",
-    "reset:memories": "node scripts/reset-memories.cjs"
+    "reset:memories": "node scripts/reset-memories.cjs",
+    "postinstall": "patch-package"
   },
   "keywords": [
     "ai",
@@ -43,6 +44,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "eslint": "^9.39.2"
+    "eslint": "^9.39.2",
+    "patch-package": "^8.0.1",
+    "postinstall-postinstall": "^2.1.0"
   }
 }

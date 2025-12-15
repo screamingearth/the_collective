@@ -5,6 +5,8 @@
     "github.copilot-chat",
     // Code quality
     "dbaeumer.vscode-eslint",
+    // CI/CD
+    "github.vscode-github-actions",
     // Container management
     "ms-vscode.remote-containers",
   ]

@@ -134,6 +134,18 @@ This makes **Nyx, Prometheus, Cassandra, and Apollo** available to your entire t
 - "Explain how the memory system works"
 - "Help me debug this race condition"
 
+## choosing your claude model
+
+The agents work best with Claude models. You can select which Claude model to use in your Copilot chat settings:
+
+| Model | Speed | Best For | When to Use |
+|-------|-------|----------|------------|
+| **Claude Haiku 4.5** | ⚡⚡⚡ Fast (instant) | Quick answers, chat | "I need an answer right now" |
+| **Claude Sonnet 4.5** | ⚡⚡ Medium (1-3s) | Most work (default) | Balanced speed + quality, implementation |
+| **Claude Opus 4.5** | ⚡ Slow (3-5s) | Deep analysis | Security review, complex architecture, hard problems |
+
+**Quick recommendation:** Start with **Sonnet 4.5**. It's fast enough for real-time chat and smart enough for complex problems. Switch to Haiku if you want instant responses, or Opus if you're doing security analysis or complex architecture.
+
 ## memory system
 
 Agents automatically store and retrieve:
@@ -199,8 +211,8 @@ For detailed troubleshooting, see [docs/README.md](docs/README.md#troubleshootin
 ```
 .github/copilot-instructions.md    ← Framework configuration
 AGENTS.md                          ← Team workflows and protocols
-memory-server/                     ← Vector memory (DuckDB + semantic search)
-gemini-bridge/                     ← Gemini research tools (optional MCP server)
+.collective/memory-server/         ← Vector memory (DuckDB + semantic search)
+.collective/gemini-bridge/         ← Gemini research tools (optional MCP server)
 .vscode/mcp.json                   ← MCP server configuration
 .vscode/settings.json              ← VS Code settings (v1.107)
 .vscode/tasks.json                 ← Build and test tasks
@@ -220,7 +232,7 @@ gemini tools provide access to Google's Gemini (gemini-2.5-flash) for independen
 **to enable gemini tools:**
 
 ```bash
-cd gemini-bridge
+cd .collective/gemini-bridge
 npm install
 npm run auth     # opens browser for google oauth
 npm run build

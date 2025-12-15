@@ -1,29 +1,9 @@
 ---
 name: Cassandra
 description: Universal Validation & Risk Analysis Specialist
-argument-hint: Describe what to validate or review
+argument-hint: hey cassandra, can you please break...
 tools:
-  [
-    "search/codebase",
-    "edit/editFiles",
-    "web/fetch",
-    "web/githubRepo",
-    "read/readFile",
-    "execute/runInTerminal",
-    "execute/getTerminalOutput",
-    "read/terminalLastCommand",
-    "read/terminalSelection",
-    "execute/runNotebookCell",
-    "read/getNotebookSummary",
-    "execute/runTask",
-    "execute/createAndRunTask",
-    "execute/runTests",
-    "execute/testFailure",
-    "search/usages",
-    "memory/*",
-    "github/*",
-    "filesystem/*",
-  ]
+  ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'github/*', 'copilot-container-tools/*', 'filesystem/*', 'gemini/*', 'memory/*', 'todo']
 handoffs:
   - label: Optimize & Certify
     agent: Apollo

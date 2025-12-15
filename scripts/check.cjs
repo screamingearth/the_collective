@@ -23,7 +23,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { execSync, spawnSync } = require("child_process");
+const { spawnSync } = require("child_process");
 const {
   colors: c,
   banner: drawBanner,
@@ -34,7 +34,6 @@ const {
   info: logInfo,
   section: logSection,
   log: baseLog,
-  IS_WINDOWS,
 } = require("./lib/ui.cjs");
 
 // Parse CLI arguments

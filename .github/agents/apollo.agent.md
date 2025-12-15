@@ -1,29 +1,9 @@
 ---
 name: Apollo
 description: Excellence Integration & Certification Authority
-argument-hint: Describe what to optimize or polish
+argument-hint: hey apollo, can you please check...
 tools:
-  [
-    "search/codebase",
-    "edit/editFiles",
-    "web/fetch",
-    "web/githubRepo",
-    "read/readFile",
-    "execute/runInTerminal",
-    "execute/getTerminalOutput",
-    "read/terminalLastCommand",
-    "read/terminalSelection",
-    "execute/runNotebookCell",
-    "read/getNotebookSummary",
-    "execute/runTask",
-    "execute/createAndRunTask",
-    "execute/runTests",
-    "execute/testFailure",
-    "search/usages",
-    "memory/*",
-    "github/*",
-    "filesystem/*",
-  ]
+  ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'github/*', 'copilot-container-tools/*', 'filesystem/*', 'gemini/*', 'memory/*', 'todo']
 handoffs:
   - label: Final Report
     agent: Nyx

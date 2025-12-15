@@ -1,29 +1,9 @@
 ---
 name: Nyx
 description: Mission Control & Strategic Orchestration
-argument-hint: Describe your goal or question
+argument-hint: hey nyx, can you please...
 tools:
-  [
-    "search/codebase",
-    "edit/editFiles",
-    "web/fetch",
-    "web/githubRepo",
-    "read/readFile",
-    "execute/runInTerminal",
-    "execute/getTerminalOutput",
-    "read/terminalLastCommand",
-    "read/terminalSelection",
-    "execute/runNotebookCell",
-    "read/getNotebookSummary",
-    "execute/runTask",
-    "execute/createAndRunTask",
-    "execute/runTests",
-    "execute/testFailure",
-    "search/usages",
-    "memory/*",
-    "github/*",
-    "filesystem/*",
-  ]
+  ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'github/*', 'copilot-container-tools/*', 'filesystem/*', 'gemini/*', 'memory/*', 'todo']
 handoffs:
   - label: Implement Solution
     agent: Prometheus

@@ -112,24 +112,41 @@ check_node() {
 install_node() {
     info "Installing Node.js ${PREFERRED_NODE_VERSION}..."
 
+    # Validate curl is available (needed for node installation)
+    if ! command -v curl &> /dev/null; then
+        error "curl not found - required for Node.js installation"
+        error "Install curl first: https://curl.se/"
+        exit 1
+    fi
+
     # Try nvm first (most common for devs)
     if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
         info "Found nvm, using it..."
         source "$HOME/.nvm/nvm.sh"
-        nvm install $PREFERRED_NODE_VERSION
-        nvm use $PREFERRED_NODE_VERSION
-        nvm alias default $PREFERRED_NODE_VERSION
-        success "Node.js installed via nvm"
+        nvm install $PREFERRED_NODE_VERSION || {
+            error "Failed to install Node.js via nvm"
+            exit 1
+        }
+        nvm use $PREFERRED_NODE_VERSION || {
+            error "Failed to activate Node.js"
+            exit 1
+        }
+        nvm alias default $PREFERRED_NODE_VERSION || warn "Failed to set nvm default (non-critical)"
         return 0
     fi
 
     # Try fnm
     if command -v fnm &> /dev/null; then
         info "Found fnm, using it..."
-        fnm install $PREFERRED_NODE_VERSION
-        fnm use $PREFERRED_NODE_VERSION
-        fnm default $PREFERRED_NODE_VERSION
-        success "Node.js installed via fnm"
+        fnm install $PREFERRED_NODE_VERSION || {
+            error "Failed to install Node.js via fnm"
+            exit 1
+        }
+        fnm use $PREFERRED_NODE_VERSION || {
+            error "Failed to activate Node.js"
+            exit 1
+        }
+        fnm default $PREFERRED_NODE_VERSION || warn "Failed to set fnm default (non-critical)"
         return 0
     fi
 
@@ -138,8 +155,11 @@ install_node() {
         macos)
             if [[ "$PKG_MANAGER" == "brew" ]]; then
                 info "Installing via Homebrew..."
-                brew install node@$PREFERRED_NODE_VERSION
-                brew link node@$PREFERRED_NODE_VERSION --force --overwrite 2>/dev/null || true
+                brew install node@$PREFERRED_NODE_VERSION || {
+                    error "Failed to install Node.js via Homebrew"
+                    exit 1
+                }
+                brew link node@$PREFERRED_NODE_VERSION --force --overwrite 2>/dev/null || warn "Homebrew link warning (non-critical)"
             else
                 install_nvm
             fi
@@ -147,18 +167,34 @@ install_node() {
         fedora|rhel)
             info "Installing via dnf..."
             sudo dnf module install -y nodejs:$PREFERRED_NODE_VERSION/common 2>/dev/null || {
-                curl -fsSL https://rpm.nodesource.com/setup_${PREFERRED_NODE_VERSION}.x | sudo bash -
-                sudo dnf install -y nodejs
+                info "Trying NodeSource RPM..."
+                curl -fsSL https://rpm.nodesource.com/setup_${PREFERRED_NODE_VERSION}.x | sudo bash - || {
+                    error "Failed to setup NodeSource repository"
+                    exit 1
+                }
+                sudo dnf install -y nodejs || {
+                    error "Failed to install Node.js via dnf"
+                    exit 1
+                }
             }
             ;;
         debian)
             info "Installing via apt..."
-            curl -fsSL https://deb.nodesource.com/setup_${PREFERRED_NODE_VERSION}.x | sudo -E bash -
-            sudo apt-get install -y nodejs
+            curl -fsSL https://deb.nodesource.com/setup_${PREFERRED_NODE_VERSION}.x | sudo -E bash - || {
+                error "Failed to setup NodeSource repository"
+                exit 1
+            }
+            sudo apt-get install -y nodejs || {
+                error "Failed to install Node.js via apt"
+                exit 1
+            }
             ;;
         arch)
             info "Installing via pacman..."
-            sudo pacman -S --noconfirm nodejs npm
+            sudo pacman -S --noconfirm nodejs npm || {
+                error "Failed to install Node.js via pacman"
+                exit 1
+            }
             ;;
         *)
             install_nvm
@@ -170,14 +206,28 @@ install_node() {
 
 install_nvm() {
     info "Installing nvm (Node Version Manager)..."
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash || {
+        error "Failed to install nvm"
+        exit 1
+    }
 
     export NVM_DIR="$HOME/.nvm"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" || {
+        error "Failed to source nvm.sh"
+        exit 1
+    }
 
-    nvm install $PREFERRED_NODE_VERSION
-    nvm use $PREFERRED_NODE_VERSION
-    nvm alias default $PREFERRED_NODE_VERSION
+    nvm install $PREFERRED_NODE_VERSION || {
+        error "Failed to install Node.js via nvm"
+        exit 1
+    }
+    
+    nvm use $PREFERRED_NODE_VERSION || {
+        error "Failed to activate Node.js"
+        exit 1
+    }
+    
+    nvm alias default $PREFERRED_NODE_VERSION || warn "Failed to set nvm default (non-critical)"
 
     success "nvm and Node.js installed"
     warn "You may need to restart your terminal after setup completes"
@@ -188,38 +238,84 @@ install_nvm() {
 # -----------------------------------------------------------------------------
 
 install_dependencies() {
-    npm install
+    npm install || {
+        error "Failed to install root dependencies"
+        exit 1
+    }
     success "Root dependencies installed"
 
-    cd memory-server
-    npm install
-    npm rebuild 2>/dev/null || true
+    cd .collective/memory-server || {
+        error "Failed to enter memory-server directory"
+        exit 1
+    }
+    npm install || {
+        error "Failed to install memory-server dependencies"
+        exit 1
+    }
+    npm rebuild 2>/dev/null || warn "npm rebuild had issues (non-critical)"
     success "Memory server dependencies installed"
-    cd ..
+    cd ../.. || {
+        error "Failed to return to root directory"
+        exit 1
+    }
 
-    cd gemini-bridge
-    npm install 2>/dev/null || true
+    cd .collective/gemini-bridge || {
+        error "Failed to enter gemini-bridge directory"
+        exit 1
+    }
+    npm install 2>/dev/null || warn "Gemini bridge install had issues (optional)"
     success "Gemini bridge dependencies installed"
-    cd ..
+    cd ../.. || {
+        error "Failed to return to root directory"
+        exit 1
+    }
 }
 
 build_projects() {
-    cd memory-server
-    npm run build
-    cd ..
+    cd .collective/memory-server || {
+        error "Failed to enter memory-server directory"
+        exit 1
+    }
+    npm run build || {
+        error "Failed to build memory-server"
+        exit 1
+    }
+    cd ../.. || {
+        error "Failed to return to root directory"
+        exit 1
+    }
     success "Memory server compiled"
 
-    cd gemini-bridge
-    npm run build 2>/dev/null || true
-    cd ..
+    cd .collective/gemini-bridge || {
+        error "Failed to enter gemini-bridge directory"
+        exit 1
+    }
+    npm run build 2>/dev/null || warn "Gemini bridge build had issues (optional)"
+    cd ../.. || {
+        error "Failed to return to root directory"
+        exit 1
+    }
     success "Gemini bridge compiled"
 }
 
 bootstrap_memories() {
-    mkdir -p .mcp
-    cd memory-server
-    npm run bootstrap
-    cd ..
+    mkdir -p .mcp || {
+        error "Failed to create .mcp directory"
+        exit 1
+    }
+    
+    cd .collective/memory-server || {
+        error "Failed to enter memory-server directory"
+        exit 1
+    }
+    npm run bootstrap || {
+        error "Failed to bootstrap memories"
+        exit 1
+    }
+    cd ../.. || {
+        error "Failed to return to root directory"
+        exit 1
+    }
     success "Core memories loaded"
 }
 
@@ -248,17 +344,30 @@ setup_gemini_optional() {
     echo -e "${CYAN}${BOLD}Optional: Gemini Research Tools${NC}"
     echo -e "${DIM}Enable cognitive diversity via Google's Gemini (different AI model)${NC}"
     echo ""
-    read -p "$(echo -e ${BLUE}Enable Gemini tools? [y/N]: ${NC})" -n 1 -r
+    # Use printf for better cross-platform compatibility instead of echo -e with read
+    printf "%s" "$(printf "${BLUE}Enable Gemini tools? [y/N]: ${NC}")"
+    read -r -n 1 REPLY
     echo
     
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         info "Setting up Gemini authentication..."
-        cd gemini-bridge
-        npm run auth
-        cd ..
-        success "Gemini tools configured"
+        cd .collective/gemini-bridge || {
+            error "Failed to enter gemini-bridge directory"
+            exit 1
+        }
+        
+        # Set timeout for auth (some systems might hang)
+        timeout 120 npm run auth 2>/dev/null || {
+            warn "Gemini authentication did not complete (you can run it later)"
+        }
+        
+        cd ../.. || {
+            error "Failed to return to root directory"
+            exit 1
+        }
+        success "Gemini tools setup attempted"
     else
-        info "Skipping Gemini setup (you can run 'cd gemini-bridge && npm run auth' later)"
+        info "Skipping Gemini setup (you can run 'cd .collective/gemini-bridge && npm run auth' later)"
     fi
 }
 
@@ -273,13 +382,19 @@ print_success() {
     echo -e "   2. Open Copilot Chat and say \"${MAGENTA}hey nyx${NC}\""
     echo ""
     echo -e "   ${DIM}Verify anytime: npm run check${NC}"
-    echo -e "   ${DIM}Enable Gemini later: cd gemini-bridge && npm run auth${NC}"
+    echo -e "   ${DIM}Enable Gemini later: cd .collective/gemini-bridge && npm run auth${NC}"
     echo ""
 }
 
 clone_if_needed() {
     # If running via curl | bash, we need to clone the repo first
     if [[ ! -f "package.json" ]]; then
+        if ! command -v git &> /dev/null; then
+            error "Git not found - required for cloning repository"
+            error "Install Git: https://git-scm.com/downloads"
+            exit 1
+        fi
+
         if [[ ! -d "the_collective" ]]; then
             info "Cloning the_collective repository..."
             git clone https://github.com/screamingearth/the_collective.git || {
@@ -287,7 +402,17 @@ clone_if_needed() {
                 exit 1
             }
         fi
-        cd the_collective
+        cd the_collective || {
+            error "Failed to enter the_collective directory"
+            exit 1
+        }
+        
+        # Verify critical directories exist
+        if [[ ! -d ".collective" ]]; then
+            error ".collective directory missing in cloned repository"
+            exit 1
+        fi
+        
         success "Repository ready"
     fi
 }

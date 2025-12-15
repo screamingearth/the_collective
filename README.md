@@ -54,7 +54,9 @@ npm run check  # verify installation
 | **cassandra** | breaker | security & risk analysis | skeptical, thorough |
 | **apollo** | polisher | optimization & quality | perfectionist, elegant |
 
-**gemini tools:** cognitive diversity via Google's Gemini (different AI model for independent validation)
+**ai models:** Claude (Sonnet 4.5 default: implementation, orchestration) + Gemini (research, validation, cognitive diversity)
+
+**model selection:** see [CLAUDE.md](./CLAUDE.md) for detailed guidance on Haiku 4.5 (fast), Sonnet 4.5 (balanced, recommended), and Opus 4.5 (deep reasoning)
 
 ---
 

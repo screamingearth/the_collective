@@ -6,81 +6,18 @@ Part of the_collective by screamingearth (Apache 2.0 licensed, see NOTICE file).
 
 ## The Universal Workflow
 
-The development process follows a dynamic four-stage orchestration:
+The development process follows a dynamic four-stage orchestration powered by Claude models:
 
 1. **Mission Control (`Nyx`):** Strategic orchestration, requirement synthesis, and stakeholder interface
 2. **Implementation (`Prometheus`):** Advanced solution development with multi-domain expertise
 3. **Adversarial Analysis (`Cassandra`):** Comprehensive validation, risk assessment, and edge case discovery
 4. **Excellence Certification (`Apollo`):** Solution optimization, integration, and quality certification
 
-### Research Tools
+### AI Models & Tools
 
-- **Gemini MCP Tools:** Research, code analysis, and validation via Google's Gemini (different AI model for cognitive diversity)
+**Core Models:** Claude (Haiku 4.5, Sonnet 4.5, Opus 4.5) - see [.github/copilot-instructions.md](.github/copilot-instructions.md) for model selection guide
 
-> ⚡ **Gemini tools provide cognitive diversity.** Different AI model = different perspective = catches blind spots. Use for major decisions.
-
-## Gemini Research Tools
-
-The team has access to Google's Gemini (gemini-2.5-flash) via MCP tools. These provide independent research and validation from a different AI model.
-
-**Available Tools:**
-
-- **`mcp_gemini_query`**: Research, documentation lookup, best practices
-- **`mcp_gemini_analyze_code`**: Code review, issue identification, explanations
-- **`mcp_gemini_validate`**: Second opinions on proposals and decisions
-
-**Key Benefits:**
-
-- **Cognitive Diversity**: Different model = different perspective = catches blind spots
-- **Extended Context**: 128k token window for substantial analysis
-- **Fast Research**: 2-5 second response times (free tier: 60 req/min, 1000 req/day)
-- **Independent Validation**: Second opinion from genuinely different intelligence
-
-### When to Use Gemini Tools
-
-| Situation | Tool |
-|-----------|------|
-| Architecture decisions | `mcp_gemini_validate` - independent second opinion |
-| Technology choices | `mcp_gemini_query` - research alternatives |
-| Security-sensitive code | `mcp_gemini_analyze_code` - different model's review |
-| "Best way to do X" questions | `mcp_gemini_query` - current best practices |
-| Code review needed | `mcp_gemini_analyze_code` - fresh perspective |
-| Stuck on a problem | `mcp_gemini_validate` - breaks deadlock |
-
-### Usage Pattern
-
-The team invokes these tools internally and synthesizes results:
-
-```
-**Nyx:** let me check current best practices...
-[invokes: mcp_gemini_query]
-**Nyx:** [synthesizes response with team knowledge]
-**Nyx:** [to user] here's our recommendation...
-```
-
-User only sees unified response - Gemini consultation happens behind the scenes.
-
-### Error Handling
-
-If Gemini tools fail:
-
-1. **Check auth:** User may need to run `cd gemini-bridge && npm run auth`
-2. **Retry with backoff:** Wait 2s, retry. If fail, wait 4s, retry. Max 3 attempts.
-3. **Proceed without:** If Gemini is unavailable, note it explicitly and proceed with team consensus
-4. **Don't block:** Gemini tools are valuable but shouldn't be a single point of failure
-
-**Circuit Breaker Pattern:** If Gemini tools fail 3 consecutive times in a session, skip automatic invocation for the next 5 minutes. User can still explicitly request Gemini consultation.
-
-### Input Validation
-
-Before invoking Gemini tools, ensure:
-
-1. **Prompt length:** Keep prompts under 30,000 characters for flash model
-2. **Sanitize sensitive data:** Never send API keys, passwords, or PII to Gemini
-3. **Clear context:** Include relevant file paths and code snippets, not entire codebases
-4. **Specific questions:** Vague prompts get vague answers - be precise
-
-**Remember:** If you completed a non-trivial task without consulting Gemini tools, you missed an opportunity for cognitive diversity.
+**Research Tools:** Gemini MCP tools (`mcp_gemini_query`, `mcp_gemini_analyze_code`, `mcp_gemini_validate`) provide cognitive diversity from different AI model - see [.github/copilot-instructions.md](.github/copilot-instructions.md) for usage details
 
 ## Agent Interaction Matrix
 

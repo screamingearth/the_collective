@@ -1,29 +1,9 @@
 ---
 name: Prometheus
 description: Universal Solution Implementation Specialist
-argument-hint: Describe what to implement or architect
+argument-hint: hey prometheus, please implement...
 tools:
-  [
-    "search/codebase",
-    "edit/editFiles",
-    "web/fetch",
-    "web/githubRepo",
-    "read/readFile",
-    "execute/runInTerminal",
-    "execute/getTerminalOutput",
-    "read/terminalLastCommand",
-    "read/terminalSelection",
-    "execute/runNotebookCell",
-    "read/getNotebookSummary",
-    "execute/runTask",
-    "execute/createAndRunTask",
-    "execute/runTests",
-    "execute/testFailure",
-    "search/usages",
-    "memory/*",
-    "github/*",
-    "filesystem/*",
-  ]
+  ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'github/*', 'copilot-container-tools/*', 'filesystem/*', 'gemini/*', 'memory/*', 'todo']
 handoffs:
   - label: Validate Implementation
     agent: Cassandra

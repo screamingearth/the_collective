@@ -42,7 +42,7 @@ Servers are defined in `.vscode/mcp.json`:
     "gemini": {
       "type": "stdio",
       "command": "node",
-      "args": ["${workspaceFolder}/gemini-bridge/dist/mcp-server.js"]
+      "args": ["${workspaceFolder}/.collective/gemini-bridge/dist/mcp-server.js"]
     },
     "filesystem": {
       "type": "stdio",
@@ -101,7 +101,7 @@ Add more servers to `.vscode/mcp.json` as needed:
 | Problem | Fix |
 |---------|-----|
 | **Servers not auto-starting** | Check `chat.mcp.autostart: "newAndOutdated"` in `.vscode/settings.json` |
-| **Memory server not starting** | `cd memory-server && npm install && npm run build` |
+| **Memory server not starting** | `cd .collective/memory-server && npm install && npm run build` |
 | **Servers not loading** | Run `MCP: List Servers` command, restart any stopped servers |
 | **Trust dialog appears** | Click "Allow" when prompted—stored for future sessions |
 | **"database locked" error** | Normal! Close VS Code and retry. MCP servers hold locks while open |

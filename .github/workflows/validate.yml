@@ -10,16 +10,25 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     name: Code Quality & Tests
+    permissions:
+      contents: read
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout Code
+        # Using inline git commands instead of actions/checkout to avoid external dependencies
+        run: |
+          cd $GITHUB_WORKSPACE
+          git init
+          git remote add origin https://github.com/${{ github.repository }}.git
+          git fetch origin main --depth=1
+          git checkout main
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
+      - name: Verify Node.js
+        run: |
+          which node
+          which npm
+          node --version
+          npm --version
 
       - name: Install Root Dependencies
         run: npm ci

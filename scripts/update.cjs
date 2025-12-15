@@ -77,17 +77,13 @@ function run(command, options = {}) {
     log(`${c.dim}$ ${command}${c.reset}`);
   }
 
-  try {
-    execSync(command, {
-      cwd,
-      stdio: "inherit",
-      shell: true,
-      env: { ...process.env, FORCE_COLOR: "1" },
-    });
-    return true;
-  } catch (err) {
-    throw err;
-  }
+  execSync(command, {
+    cwd,
+    stdio: "inherit",
+    shell: true,
+    env: { ...process.env, FORCE_COLOR: "1" },
+  });
+  return true;
 }
 
 /**

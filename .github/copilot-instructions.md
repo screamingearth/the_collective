@@ -11,9 +11,57 @@ Part of the_collective by screamingearth (Apache 2.0 licensed, see NOTICE file).
 - **Cassandra:** Validation & risk analysis.
 - **Apollo:** Optimization & certification.
 
-### Research Tools
+### AI Models
 
+- **Claude Models:** Core implementation via Anthropic's Claude (Haiku 4.5 for speed, Sonnet 4.5 for balance, Opus 4.5 for depth)
 - **Gemini MCP Tools:** Research, code analysis, and validation via Google's Gemini (different AI model for cognitive diversity)
+
+---
+
+## Model Recommendations
+
+**the_collective is optimized for Claude models.** Here's the selection guide:
+
+### Claude Models Overview
+
+| Model | Speed | Reasoning | Best For |
+|-------|-------|-----------|----------|
+| **Claude Haiku 4.5** | ⚡⚡⚡ Fast | Good | Quick decisions, real-time iteration, Copilot chat |
+| **Claude Sonnet 4.5** | ⚡⚡ Medium | Excellent | **DEFAULT** - implementation, orchestration, most tasks |
+| **Claude Opus 4.5** | ⚡ Slow | Superior | Deep analysis, architecture, complex reasoning |
+
+**Quick Start:** Use **Sonnet 4.5** as your default. It's the optimal balance of speed and intelligence for the_collective.
+
+### Model Capabilities
+
+**Claude Haiku 4.5**
+- Sub-second responses
+- Excellent for chat and quick Q&A
+- Good at coding and creative tasks
+- Perfect for fast iteration and brainstorming
+- *Use when speed matters, task is straightforward*
+
+**Claude Sonnet 4.5** (RECOMMENDED)
+- 1-3 second responses
+- Excellent reasoning and coding
+- Balanced for all the_collective agents
+- Strong at architecture and implementation
+- *Use for Nyx (orchestration), Prometheus (implementation), general work*
+
+**Claude Opus 4.5**
+- 3-5 second responses
+- Unmatched reasoning capability
+- Excels at complex problem-solving
+- Best for security analysis and optimization
+- *Use for Cassandra (security), Apollo (optimization), hard problems*
+
+### Gemini Complementarity
+
+**Gemini (gemini-2.5-flash)** provides cognitive diversity:
+- **Claude:** Implementation, orchestration, coding
+- **Gemini:** Research, second opinions, independent validation
+
+Use both together: Claude for building, Gemini for validation.
 
 ---
 
@@ -113,7 +161,7 @@ Technology moves fast. The patterns in a codebase might be outdated. The "right"
 ### Error Handling
 
 If Gemini tools fail:
-1. Check auth status (user may need to run `cd gemini-bridge && npm run auth`)
+1. Check auth status (user may need to run `cd .collective/gemini-bridge && npm run auth`)
 2. Retry once after 2s delay
 3. Proceed without if unavailable - note limitation to user
 4. Gemini is valuable but not required - don't block on it

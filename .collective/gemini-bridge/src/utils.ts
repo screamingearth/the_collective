@@ -169,9 +169,9 @@ export function spawnGemini(
     // Setup timeout
     const timeoutId = options.timeout
       ? setTimeout(() => {
-          timedOut = true;
-          proc.kill("SIGTERM");
-        }, options.timeout)
+        timedOut = true;
+        proc.kill("SIGTERM");
+      }, options.timeout)
       : null;
 
     proc.stdout?.on("data", (data: Buffer) => {
@@ -213,11 +213,11 @@ export function spawnGemini(
  */
 export async function checkAuthStatus(): Promise<EchoStatus> {
   try {
-    // Check if OAuth credentials file exists (more reliable than API call)
+    // Check if OAuth credentials file exists (fast, no API calls)
     const { existsSync } = await import('fs');
     const { homedir } = await import('os');
     const { join } = await import('path');
-    
+
     const credsPath = join(homedir(), '.gemini', 'oauth_creds.json');
     if (existsSync(credsPath)) {
       return {
@@ -229,37 +229,14 @@ export async function checkAuthStatus(): Promise<EchoStatus> {
       };
     }
 
-    // Fallback: try to run a simple command to check auth
-    const result = await spawnGemini(["-p", "respond with just the word AUTHENTICATED", "--output-format", "json"], {
-      timeout: 10000, // Reduced timeout
-    });
-
-    if (result.exitCode === 0) {
-      // Response parsed successfully - we're authenticated
-      parseJsonResponse(result.stdout); // Validate JSON format
-      return {
-        installed: true,
-        authenticated: true,
-        authMethod: "oauth",
-        version: undefined,
-        executablePath: getGeminiCliPath(),
-      };
-    }
-
-    // Check for auth-related errors
-    const output = result.stdout + result.stderr;
-    if (output.includes("not authenticated") || output.includes("login") || output.includes("API key")) {
-      return {
-        installed: true,
-        authenticated: false,
-        error: "Gemini CLI is not authenticated. Run 'npm run auth' in gemini-bridge/",
-      };
-    }
-
+    // No credentials file - assume not authenticated
+    // (Don't make API calls on startup - they're slow and expensive)
     return {
-      installed: true,
+      installed: false,
       authenticated: false,
-      error: `Unknown error: ${output.slice(0, 200)}`,
+      authMethod: undefined,
+      version: undefined,
+      executablePath: getGeminiCliPath(),
     };
   } catch (err) {
     const error = err as Error;

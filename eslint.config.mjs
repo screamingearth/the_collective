@@ -55,10 +55,10 @@ export default [
   },
   {
     ignores: [
-      "node_modules/",
-      ".collective/memory-server/", // Has its own eslint config
-      "dist/",
-      ".mcp/",
+      "node_modules/**",
+      ".collective/**", // Has its own eslint configs
+      "**/dist/**", // Compiled output
+      ".mcp/**", // Database files
     ],
   },
 ];

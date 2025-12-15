@@ -10,9 +10,9 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
-    CallToolRequestSchema,
-    ListToolsRequestSchema,
-    Tool,
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { GeminiJsonResponse } from "./types.js";
 import { buildArgs, checkAuthStatus, spawnGemini } from "./utils.js";
@@ -180,11 +180,17 @@ async function executeGemini(
  * Main server setup
  */
 async function main() {
-  // Check auth status on startup
+  // Check auth status on startup (non-blocking)
+  // We just warn but don't fail - let individual tool calls fail with proper errors
   const authStatus = await checkAuthStatus();
   if (!authStatus.authenticated) {
-    console.error("Gemini CLI not authenticated. Run: cd gemini-bridge && npm run auth");
-    process.exit(1);
+    console.error(
+      "⚠️ Warning: Gemini CLI may not be authenticated. " +
+      "If Gemini tools fail, run: cd gemini-bridge && npm run auth"
+    );
+    // Don't exit - let the server start and let individual tool calls fail gracefully
+  } else {
+    console.error("✓ Gemini CLI authenticated and ready");
   }
 
   const server = new Server(

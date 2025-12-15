@@ -103,7 +103,7 @@ function npx(command, options = {}) {
   return run(`${npxCmd} ${command}`, options);
 }
 
-function npm(command, options = {}) {
+function _npm(command, options = {}) {
   const npmCmd = IS_WINDOWS ? "npm.cmd" : "npm";
   return run(`${npmCmd} ${command}`, options);
 }
@@ -126,7 +126,7 @@ function step(title, fn) {
     } else {
       success(title);
     }
-  } catch (err) {
+  } catch (_err) {
     error(`${title} failed`);
     errors++;
   }
