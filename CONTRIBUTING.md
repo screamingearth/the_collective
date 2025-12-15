@@ -6,10 +6,18 @@ We welcome improvements, bug fixes, and new features.
 
 ## Setup
 
+**macOS / Linux:**
 ```bash
 git clone https://github.com/YOUR_USERNAME/the_collective.git
 cd the_collective
 ./setup.sh
+```
+
+**Windows:**
+```batch
+git clone https://github.com/YOUR_USERNAME/the_collective.git
+cd the_collective
+setup.bat
 ```
 
 ## Making Changes

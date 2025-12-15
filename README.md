@@ -16,32 +16,40 @@
 
 ### one-liner (recommended)
 
-**macOS / Linux / Windows (Git Bash or WSL)**
+**macOS / Linux:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.sh | bash
 ```
 
-### install into existing project
-
-run from your project directory:
-```bash
-curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.sh | bash
+**Windows:**
+```batch
+curl -L -o setup.bat https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.bat && setup.bat
 ```
 
-the script detects existing files and offers three options:
-- **backup** — saves your files to `.collective/backups/` before installing
-- **merge** — intelligently merges configs (package.json, .gitignore, mcp.json)
-- **overwrite** — replaces conflicting files (use with caution)
+The setup automatically:
+- Detects and installs Node.js 20+ if needed
+- Installs all dependencies
+- Builds the memory and Gemini servers
+- Bootstraps core AI memories
+- Configures VS Code MCP integration
+
+restart VS Code after setup. open copilot chat, say `hey nyx`.
 
 ### manual install
 
+**macOS / Linux:**
 ```bash
 git clone https://github.com/screamingearth/the_collective.git
 cd the_collective
 ./setup.sh
 ```
 
-restart VS Code after setup. open copilot chat, say `hey nyx`.
+**Windows:**
+```batch
+git clone https://github.com/screamingearth/the_collective.git
+cd the_collective
+setup.bat
+```
 
 ```bash
 npm run check  # verify installation
@@ -106,8 +114,8 @@ npm run check  # verify installation
 
 **core:**
 - **VS Code 1.107+** ([download](https://code.visualstudio.com/)) with **GitHub Copilot** subscription or free tier
-- **Node.js 20+** (auto-installed by setup.sh if missing)
-- **macOS, Linux, or Windows** (Git Bash or WSL on Windows)
+- **Node.js 20+** (auto-installed by setup script if missing)
+- **macOS, Linux, or Windows** (Windows 10/11 via native setup.bat)
 
 **recommended:**
 - VS Code **Insiders** build for seamless MCP auto-startup

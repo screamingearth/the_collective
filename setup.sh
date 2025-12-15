@@ -20,6 +20,59 @@
 
 set -e
 
+# ==========================================
+# 1. OS DETECTION & CONFIGURATION
+# ==========================================
+OS_TYPE="$(uname -s)"
+case "${OS_TYPE}" in
+    CYGWIN*|MINGW32*|MSYS*|MINGW*)
+        echo "Detected OS: Windows (Git Bash)"
+        IS_WINDOWS=1
+        ;;
+    Darwin*)
+        echo "Detected OS: macOS"
+        IS_WINDOWS=0
+        ;;
+    Linux*)
+        echo "Detected OS: Linux"
+        IS_WINDOWS=0
+        ;;
+    *)
+        echo "Unknown OS: ${OS_TYPE}"
+        IS_WINDOWS=0
+        ;;
+esac
+
+# ==========================================
+# 2. DEFINE PLATFORM-SPECIFIC COMMANDS
+# ==========================================
+if [ "$IS_WINDOWS" -eq 1 ]; then
+    # Windows/Git Bash specific settings
+    PYTHON_CMD="python"    # Windows usually registers 'python', not 'python3'
+    PIP_CMD="pip"
+    OPEN_CMD="explorer"    # To open folders/files
+    
+    # Define a dummy 'sudo' function because Git Bash runs as the current user
+    # and doesn't have sudo. If admin is needed, the user must run the .bat as Admin.
+    sudo() {
+        "$@"
+    }
+else
+    # Linux/Mac specific settings
+    PYTHON_CMD="python3"
+    PIP_CMD="pip3"
+    
+    if [[ "$OS_TYPE" == "Darwin"* ]]; then
+        OPEN_CMD="open"
+    else
+        OPEN_CMD="xdg-open"
+    fi
+fi
+
+# ==========================================
+# 3. YOUR MAIN LOGIC STARTS HERE
+# ==========================================
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -32,8 +85,13 @@ BOLD='\033[1m'
 DIM='\033[2m'
 
 # Setup logging (after colors defined)
-mkdir -p .collective/.logs 2>/dev/null || true
-LOG_FILE=".collective/.logs/setup.log"
+LOG_DIR=".collective/.logs"
+mkdir -p "$LOG_DIR" 2>/dev/null || {
+    # Fallback if .collective directory doesn't exist or has permission issues
+    LOG_DIR="/tmp/the_collective_logs"
+    mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="."
+}
+LOG_FILE="$LOG_DIR/setup.log"
 exec 1> >(tee -a "$LOG_FILE")
 exec 2>&1
 
@@ -68,10 +126,17 @@ step() {
 }
 
 # -----------------------------------------------------------------------------
-# OS Detection
+# OS Detection (Linux/Mac Package Manager)
 # -----------------------------------------------------------------------------
 
 detect_os() {
+    # Skip if Windows - package management is different
+    if [ "$IS_WINDOWS" -eq 1 ]; then
+        OS="windows"
+        PKG_MANAGER="winget"
+        return
+    fi
+    
     if [[ "$OSTYPE" == "darwin"* ]]; then
         OS="macos"
         if command -v brew &> /dev/null; then
@@ -121,7 +186,40 @@ install_node() {
     # Validate curl is available (needed for node installation)
     if ! command -v curl &> /dev/null; then
         error "curl not found - required for Node.js installation"
-        error "Install curl first: https://curl.se/"
+        error "Install curl: https://curl.se/"
+        exit 1
+    fi
+
+    # Windows-specific Node installation
+    if [ "$IS_WINDOWS" -eq 1 ]; then
+        info "Windows detected - checking for Node version managers..."
+        
+        # Try fnm (cross-platform)
+        if command -v fnm &> /dev/null; then
+            info "Found fnm, using it..."
+            fnm install $PREFERRED_NODE_VERSION || {
+                error "Failed to install Node.js via fnm"
+                exit 1
+            }
+            fnm use $PREFERRED_NODE_VERSION || {
+                error "Failed to activate Node.js"
+                exit 1
+            }
+            fnm default $PREFERRED_NODE_VERSION || warn "Failed to set fnm default (non-critical)"
+            return 0
+        fi
+        
+        # Fallback: try nvm-windows (Windows-native)
+        if [[ -d "$APPDATA/nvm" ]]; then
+            info "Found nvm-windows, skipping installation"
+            warn "Please run: nvm install $PREFERRED_NODE_VERSION && nvm use $PREFERRED_NODE_VERSION"
+            return 0
+        fi
+        
+        error "Neither fnm nor nvm-windows found on Windows"
+        error "Please install Node.js manually: https://nodejs.org"
+        error "Or install fnm: https://github.com/Schniz/fnm#installation"
+        error "Or install nvm-windows: https://github.com/coreybutler/nvm-windows"
         exit 1
     fi
 

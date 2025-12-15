@@ -33,9 +33,12 @@ cd the_collective
 ./setup.sh
 ```
 
-**Windows:** Use Git Bash (comes with Git for Windows) or WSL.
+**Windows:**
+```batch
+curl -L -o setup.bat https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.bat && setup.bat
+```
 
-**One-liner:**
+**One-liner (macOS/Linux):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.sh | bash
 ```
@@ -48,6 +51,22 @@ Setup automatically:
 - Configures MCP servers
 
 Then open the folder in VS Code.
+
+**Windows Setup Details:**
+
+The Windows bootstrapper (`setup.bat`) handles:
+- **Git auto-install:** Uses Winget to install Git if missing
+- **Custom location:** Prompts for installation directory
+- **Git Bash handoff:** Launches the universal setup script via Git Bash
+- **Node.js detection:** Installs Node.js 22 if outdated/missing
+
+No admin elevation required—everything runs as your current user. Setup time is 5-10 minutes depending on internet speed.
+
+**Troubleshooting Windows:**
+- **"Git not found":** Restart Command Prompt after auto-install
+- **"Bash not found":** Same—restart to refresh PATH
+- **Permission errors:** Try running Command Prompt as Administrator
+- **Custom Python paths:** Setup detects `python` (not `python3`) on Windows automatically
 
 ## automatic mcp server startup
 
