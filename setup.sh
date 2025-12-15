@@ -377,6 +377,68 @@ setup_gemini_optional() {
     fi
 }
 
+reinit_git_optional() {
+    echo ""
+    echo -e "${CYAN}${BOLD}Optional: Fresh Repository${NC}"
+    echo -e "${DIM}Replace git history with a new repository${NC}"
+    echo ""
+    printf "%s" "$(printf "${BLUE}Initialize fresh git repo? [y/N]: ${NC}")"
+    read -r -n 1 REPLY
+    echo
+    
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        info "Creating fresh repository..."
+        
+        # Backup original remote info
+        ORIGINAL_REMOTE=$(git remote get-url origin 2>/dev/null || echo "")
+        
+        # Remove old git history
+        rm -rf .git || {
+            error "Failed to remove .git directory"
+            return 1
+        }
+        
+        # Initialize fresh repo
+        git init || {
+            error "Failed to initialize git repository"
+            return 1
+        }
+        git add . || {
+            error "Failed to add files to git"
+            return 1
+        }
+        
+        # Prompt for custom commit message
+        echo ""
+        echo -e "${CYAN}Initial commit message:${NC}"
+        printf "  Default: ${DIM}Initial commit from the_collective template${NC}\n"
+        printf "%s" "  Enter custom message (or press Enter for default): "
+        read -r COMMIT_MSG
+        echo
+        
+        if [[ -z "$COMMIT_MSG" ]]; then
+            COMMIT_MSG="Initial commit from the_collective template"
+        fi
+        
+        git commit -m "$COMMIT_MSG" || {
+            error "Failed to create initial commit"
+            return 1
+        }
+        
+        # Optionally set default branch
+        git branch -M main 2>/dev/null || true
+        
+        success "Fresh repository created"
+        
+        if [[ -n "$ORIGINAL_REMOTE" ]]; then
+            info "Original remote was: $ORIGINAL_REMOTE"
+            info "Add your remote: git remote add origin <your-repo-url>"
+        fi
+    else
+        info "Keeping existing git history"
+    fi
+}
+
 print_success() {
     echo ""
     echo -e "${GREEN}════════════════════════════════════════════════${NC}"
@@ -441,7 +503,7 @@ main() {
     # Determine total steps based on whether we need to install Node
     if check_node; then
         success "Node.js v$(get_node_version) detected"
-        TOTAL_STEPS=5
+        TOTAL_STEPS=6
         STEP=0
 
         step "$((++STEP))" "$TOTAL_STEPS" "Installing dependencies"
@@ -458,6 +520,9 @@ main() {
 
         step "$((++STEP))" "$TOTAL_STEPS" "Gemini tools (optional)"
         setup_gemini_optional
+
+        step "$((++STEP))" "$TOTAL_STEPS" "Fresh repository (optional)"
+        reinit_git_optional
     else
         if command -v node &> /dev/null; then
             warn "Node.js v$(get_node_version) is too old (need v${MIN_NODE_VERSION}+)"
@@ -465,7 +530,7 @@ main() {
             warn "Node.js not found"
         fi
 
-        TOTAL_STEPS=6
+        TOTAL_STEPS=7
         STEP=0
 
         step "$((++STEP))" "$TOTAL_STEPS" "Installing Node.js"
@@ -497,6 +562,9 @@ main() {
 
         step "$((++STEP))" "$TOTAL_STEPS" "Gemini tools (optional)"
         setup_gemini_optional
+
+        step "$((++STEP))" "$TOTAL_STEPS" "Fresh repository (optional)"
+        reinit_git_optional
     fi
 
     print_success
