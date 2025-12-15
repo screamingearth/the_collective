@@ -1,4 +1,4 @@
-<div align="center">
+<div align="center" id="the_collective">
 
 ![the_collective banner](.collective/.assets/the_collective-banner.png)
 
@@ -7,14 +7,16 @@
 [![Node.js: 20+](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js)](https://nodejs.org/)
 [![TypeScript: 5.7+](https://img.shields.io/badge/TypeScript-5.7%2B-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![MCP: 2025-11-25](https://img.shields.io/badge/MCP-2025--11--25-FF6B6B)](https://modelcontextprotocol.io/)
+  
+<h3>vision:// enable humans to harness the power of AI and bring their ideas to life</h3>
 
-</div>
+</div><br>
 
 ## ⚡ quick start
 
 ### one-liner (recommended)
 
-**macOS / Linux / Windows (Git Bash or WSL):**
+**macOS / Linux / Windows (Git Bash or WSL)**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.sh | bash
 ```
@@ -44,8 +46,7 @@ restart VS Code after setup. open copilot chat, say `hey nyx`.
 ```bash
 npm run check  # verify installation
 ```
-
----
+<br>
 
 ## 🤖 the team
 
@@ -56,34 +57,36 @@ npm run check  # verify installation
 | **cassandra** | breaker | security & risk analysis | skeptical, thorough |
 | **apollo** | polisher | optimization & quality | perfectionist, elegant |
 
-**ai models:** the-collective is best utilised by Claude models - Haiku 4.5 (fast), Sonnet 4.5 (balanced, recommended), and Opus 4.5 (deep reasoning)
+**the_collective is best utilized by Claude models:**
+> Haiku 4.5 (fast)
+> 
+> Sonnet 4.5 (default)
+> 
+> Opus 4.5 (deep reasoning)
 
----
+<br>
 
 ## 🧠 how it works
 
-**memory system**  
-Local vector database (DuckDB + semantic embeddings) with retriever-reranker pipeline. your preferences, decisions, architectural choices, and project context persist across sessions. encrypted locally, never sent to cloud.
+**memory system** // Local vector database (DuckDB + semantic embeddings) with retriever-reranker pipeline. your preferences, decisions, architectural choices, and project context persist across sessions. encrypted locally, never sent to cloud.
 
-**agents**  
-One language model, four specialized personas. address them directly in chat (`cassandra, review this`) or use team mode to watch them collaborate in real-time.
+**agents** // One language model, four specialized personas. address them directly in chat (`cassandra, review this`) or use team mode to watch them collaborate in real-time.
 
-**team mode**  
-Switch to `the_collective` in Copilot chat. watch Nyx orchestrate while Prometheus builds, Cassandra breaks things, and Apollo polishes. friction creates quality.
+**team mode** // Switch to `the_collective` in Copilot chat. watch Nyx orchestrate while Prometheus builds, Cassandra breaks things, and Apollo polishes. friction creates quality.
 
----
+<br>
 
 ## 🚀 features
 
-- ✅ **local-first memory** — semantic vector database never leaves your machine
-- ✅ **4-agent team** — specialized personas that actually debate your code
-- ✅ **MCP servers** — memory, gemini research tools, filesystem access (extensible)
-- ✅ **auto-startup** — MCP servers launch on workspace open (VS Code 1.107+)
-- ✅ **org-level agents** — share agents across GitHub organizations
-- ✅ **zero tracking** — apache 2.0 licensed, no telemetry, no vendor lock-in
-- ✅ **december 2025 ready** — typescript 7.0 compatible, ESLint 10 compatible, native MCP support
+- ✅ **local-first memory** // semantic vector database never leaves your machine
+- ✅ **4-agent team** // specialized personas that debate your code in real-time
+- ✅ **MCP servers** // memory, gemini research tools, filesystem access (extensible)
+- ✅ **auto-startup** // MCP servers launch on workspace open (VS Code 1.107+)
+- ✅ **org-level agents** // share agents across GitHub organizations
+- ✅ **zero tracking** // Apache 2.0 licensed, no telemetry, no vendor lock-in
+- ✅ **2025 ready** // TypeScript 5.7+, ESLint 10+, native MCP support
 
----
+<br>
 
 ## 🔧 commands
 
@@ -98,7 +101,7 @@ Switch to `the_collective` in Copilot chat. watch Nyx orchestrate while Promethe
 | `npm run clean` | remove build artifacts |
 | `npm run help` | show all available commands |
 
----
+<br>
 
 ## 📋 requirements
 
@@ -118,23 +121,22 @@ Switch to `the_collective` in Copilot chat. watch Nyx orchestrate while Promethe
 |---------|----------|--------|
 | **MCP auto-startup** | ✅ automatic | ⚠️ manual (1 task) |
 | **Agent defaults** | ✅ immediate | ⚠️ ~1 setup step |
-| **Experimental features** | ✅ all enabled | ✅ stable features |
+| **Experimental features** | ✅ yes | ✅ stable |
 | **Release cycle** | daily | monthly |
 
----
+<br>
 
 ## 📖 documentation
 
-- **[QUICKSTART.md](./QUICKSTART.md)** — detailed setup guide with troubleshooting
-- **[AGENTS.md](./AGENTS.md)** — team workflows, interaction patterns, protocols
-- **[docs/](./docs/)** — deep dives on architecture, MCP servers, memory system, security
-- **[.github/copilot-instructions.md](./.github/copilot-instructions.md)** — framework configuration for Copilot
+- **[QUICKSTART.md](./QUICKSTART.md)** // detailed setup & troubleshooting
+- **[AGENTS.md](./AGENTS.md)** // team workflows, interaction patterns, protocols
+- **[docs/](./docs/)** // architecture, MCP servers, memory system, security
+- **[.github/copilot-instructions.md](./.github/copilot-instructions.md)** // Copilot configuration
 
----
+<br>
 
 ## 🆘 troubleshooting
 
-**quick diagnostics:**
 ```bash
 npm run check              # full health check
 npm run check -- --quick   # fast validation
@@ -148,47 +150,45 @@ npm run check -- --memory  # memory system only
 | MCP servers not starting | VS Code Stable: run task "Start MCP Servers" (Ctrl+Shift+P) |
 | memory not loading | `cd .collective/memory-server && npm run build && npm run bootstrap` |
 | database locked | close VS Code, retry |
-| agents not responding | check `npm run check`, ensure Copilot subscription is active |
+| agents not responding | check `npm run check`, ensure Copilot subscription active |
 | memory reset needed | `rm .mcp/collective_memory.duckdb* && npm run bootstrap` |
 
 See [QUICKSTART.md](./QUICKSTART.md#troubleshooting) for detailed troubleshooting.
 
----
+<br>
 
 ## 🌐 community & support
 
-- **GitHub Issues** — [report bugs](https://github.com/screamingearth/the_collective/issues/new/choose)
-- **Discussions** — [ideas, questions, show your work](https://github.com/screamingearth/the_collective/discussions)
-- **Reddit** — [r/vscode](https://reddit.com/r/vscode), [r/programming](https://reddit.com/r/programming)
-- **Documentation** — start with [QUICKSTART.md](./QUICKSTART.md)
-
----
+- **GitHub Issues** // [report bugs](https://github.com/screamingearth/the_collective/issues/new/choose)
+- **Discussions** // [ideas, questions, show your work](https://github.com/screamingearth/the_collective/discussions)
+- **Reddit** // [r/vscode](https://reddit.com/r/vscode), [r/programming](https://reddit.com/r/programming)
+- **Documentation** // start with [QUICKSTART.md](./QUICKSTART.md)
+  
+<br>
 
 ## 📄 license & attribution
 
 **the_collective** is licensed under the **[Apache License 2.0](./LICENSE)** with additional terms in [NOTICE](./NOTICE).
 
-### Commercial Use - YES ✅
+### commercial use - YES ✅
 
-**you can absolutely sell stuff built with the_collective.** 
+**you can absolutely sell stuff with the_collective.**
 
-Examples of acceptable commercial use:
-
+**allowed:**
 - Building a SaaS service powered by the_collective ✅
 - Selling applications that use the_collective ✅
 - Integrating the_collective into proprietary software ✅
 
-What you cannot do:
-
-- Sell the_collective itself as your product ❌
-- Claim you created the_collective agents ❌
-- Rebrand and resell the framework as proprietary ❌ 
+**not allowed:**
+- Selling the_collective itself as your product ❌
+- Claiming you created the_collective agents ❌
+- Rebranding and reselling as proprietary ❌ 
 
 ### third-party packages
 
 See [THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md) for all open-source attributions and licenses of dependencies.
 
----
+<br>
 
 ## 🤝 contributing
 
@@ -198,22 +198,7 @@ Contributions welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for:
 - PR guidelines
 - Issue labels & triage
 
----
-
-## 🙏 credits
-
-**Built by:** [screamingearth](https://github.com/screamingearth) & contributors
-
-**Powered by:**
-- [VS Code](https://code.visualstudio.com/) — editor & extension platform
-- [Model Context Protocol](https://modelcontextprotocol.io/) — agent-aware AI standards
-- [GitHub Copilot](https://github.com/features/copilot) — AI coding assistant
-- [Node.js](https://nodejs.org/) — runtime
-- [TypeScript](https://www.typescriptlang.org/) — language
-- [DuckDB](https://duckdb.org/) + [VSS](https://github.com/duckdb/vss) — embeddings & vector search
-- [ESLint](https://eslint.org/) — code quality
-
----
+<br>
 
 <div align="center">
   
