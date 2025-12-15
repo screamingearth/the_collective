@@ -1,3 +1,5 @@
+<div align="center">
+
 ![the_collective banner](.collective/.assets/the_collective-banner.png)
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -6,7 +8,7 @@
 [![TypeScript: 5.7+](https://img.shields.io/badge/TypeScript-5.7%2B-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![MCP: 2025-11-25](https://img.shields.io/badge/MCP-2025--11--25-FF6B6B)](https://modelcontextprotocol.io/)
 
----
+</div>
 
 ## ⚡ quick start
 
@@ -218,8 +220,8 @@ Contributions welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for:
 ---
 
 <div align="center">
-
-**Built with intent. Built to last. Built by the collective.**
+  
+built with 🖤 by the_collective
 
 [⬆ back to top](#the_collective)
 
