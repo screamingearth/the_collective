@@ -36,6 +36,18 @@ const {
   log: baseLog,
 } = require("./lib/ui.cjs");
 
+// Setup logging
+const logDir = path.join(process.cwd(), ".collective/.logs");
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+}
+const checkLogFile = path.join(logDir, "check.log");
+const logStream = fs.createWriteStream(checkLogFile, { flags: "a" });
+
+function writeLog(msg) {
+  logStream.write(`[${new Date().toISOString()}] ${msg}\n`);
+}
+
 // Parse CLI arguments
 const args = process.argv.slice(2);
 const flags = {
@@ -121,19 +133,23 @@ function success(msg) {
   if (!flags.quiet) {
     logSuccess(msg);
   }
+  writeLog(`SUCCESS: ${msg}`);
 }
 
 function warn(msg, hint = "") {
   warnings++;
+  writeLog(`WARN: ${msg}`);
   logWarn(msg, !flags.quiet ? hint : "");
 }
 
 function error(msg, hint = "") {
   errors++;
+  writeLog(`ERROR: ${msg}`);
   logError(msg, !flags.quiet ? hint : "");
 }
 
 function info(msg) {
+  writeLog(`INFO: ${msg}`);
   if (!flags.quiet) {
     logInfo(msg);
   }
@@ -401,7 +417,9 @@ function printSummary() {
 
   if (errors === 0 && warnings === 0) {
     log(`\n${c.green}${c.bold}✅ All checks passed!${c.reset} Framework is ready.\n`);
-    process.exit(0);
+    writeLog("CHECK RESULT: PASSED");
+    logStream.end(() => process.exit(0));
+    return;
   }
 
   if (warnings > 0) {
@@ -410,18 +428,23 @@ function printSummary() {
 
   if (errors > 0) {
     log(`${c.red}✗  ${errors} error(s)${c.reset} - please fix before using\n`);
-    process.exit(1);
+    writeLog("CHECK RESULT: FAILED (errors)");
+    logStream.end(() => process.exit(1));
+    return;
   }
 
   // In strict mode, warnings are failures
   if (flags.strict && warnings > 0) {
     log(`\n${c.dim}Strict mode: warnings treated as errors${c.reset}`);
-    process.exit(1);
+    writeLog("CHECK RESULT: FAILED (strict mode)");
+    logStream.end(() => process.exit(1));
+    return;
   }
 
   log(`\n${c.dim}Framework should still work despite warnings${c.reset}`);
   log(`${c.dim}Run 'npm run help' for available commands${c.reset}\n`);
-  process.exit(0);
+  writeLog("CHECK RESULT: PASSED (with warnings)");
+  logStream.end(() => process.exit(0));
 }
 
 // Run appropriate check

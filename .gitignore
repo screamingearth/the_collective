@@ -37,6 +37,7 @@ yarn-error.log*
 *.log
 lerna-debug.log*
 npm-shrinkwrap.json
+.collective/.logs/
 
 # === Testing ===
 coverage/

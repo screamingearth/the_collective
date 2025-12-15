@@ -143,6 +143,14 @@ npm run check -- --quick   # fast validation
 npm run check -- --memory  # memory system only
 ```
 
+**logs & diagnostics:**
+
+All setup and check operations are logged to `.collective/.logs/` for troubleshooting:
+- `setup.log` — recorded during `./setup.sh`
+- `check.log` — recorded during `npm run check`
+
+When reporting issues, include the relevant log file from `.collective/.logs/`.
+
 **common issues:**
 
 | issue | solution |

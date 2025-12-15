@@ -31,6 +31,12 @@ NC='\033[0m'
 BOLD='\033[1m'
 DIM='\033[2m'
 
+# Setup logging (after colors defined)
+mkdir -p .collective/.logs 2>/dev/null || true
+LOG_FILE=".collective/.logs/setup.log"
+exec 1> >(tee -a "$LOG_FILE")
+exec 2>&1
+
 # Node.js version requirements
 MIN_NODE_VERSION=20
 PREFERRED_NODE_VERSION=22
@@ -423,6 +429,7 @@ clone_if_needed() {
 
 main() {
     print_banner
+    info "Setup log: $LOG_FILE"
 
     # Detect OS
     detect_os
