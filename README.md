@@ -168,25 +168,21 @@ See [QUICKSTART.md](./QUICKSTART.md#troubleshooting) for detailed troubleshootin
 
 **the_collective** is licensed under the **[Apache License 2.0](./LICENSE)** with additional terms in [NOTICE](./NOTICE).
 
-### what you can do
+### Commercial Use - YES ✅
 
-✅ **Commercial use** — use in closed-source products  
-✅ **Modify** — fork and customize the framework  
-✅ **Redistribute** — share modified versions  
-✅ **Private projects** — no public disclosure required  
-✅ **Patent protection** — Apache 2.0 includes explicit patent grant  
+**you can absolutely sell stuff built with the_collective.** 
 
-### what you must do
+Examples of acceptable commercial use:
 
-ℹ️ **Include license** — copy of Apache 2.0 license with distributions  
-ℹ️ **Include notice** — NOTICE file and copyright attributions  
-ℹ️ **Document changes** — if you modify, indicate what changed  
+- Building a SaaS service powered by the_collective ✅
+- Selling applications that use the_collective ✅
+- Integrating the_collective into proprietary software ✅
 
-### what you can't do
+What you cannot do:
 
-❌ **No warranty** — framework provided "as is"  
-❌ **No liability** — authors not liable for damages  
-❌ **No trademark** — can't use "the_collective" branding for derivatives  
+- Sell the_collective itself as your product ❌
+- Claim you created the_collective agents ❌
+- Rebrand and resell the framework as proprietary ❌ 
 
 ### third-party packages
 
