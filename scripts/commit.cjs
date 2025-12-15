@@ -108,8 +108,10 @@ function escapeCommitMessage(msg) {
   }
   
   if (IS_WINDOWS) {
-    // Windows cmd.exe: escape double quotes, percent signs, and carets
+    // Windows cmd.exe: escape backslashes FIRST, then double quotes, percent signs, and carets
+    // Order is critical: backslash must be escaped first to avoid double-escaping other escapes
     return msg
+      .replace(/\\/g, "\\\\")
       .replace(/"/g, "\\\"")
       .replace(/%/g, "%%")
       .replace(/\^/g, "^^");
