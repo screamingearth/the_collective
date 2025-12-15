@@ -172,7 +172,7 @@ See [QUICKSTART.md](./QUICKSTART.md#troubleshooting) for detailed troubleshootin
 
 ### commercial use - YES ✅
 
-**you can absolutely sell stuff with the_collective.**
+**you can absolutely sell stuff made with the_collective.**
 
 **allowed:**
 - Building a SaaS service powered by the_collective ✅
