@@ -1,8 +1,15 @@
-# the_collective
+<!--
+  This file is licensed under the Mozilla Public License 2.0 (MPL 2.0).
+  See https://www.mozilla.org/en-US/MPL/2.0/ for license terms.
+  
+  Modifications to this file must be released under MPL 2.0 and must disclose changes.
+  Copyright © screamingearth. All rights reserved.
+-->
+# >the_collective
 
-universal AI collaborative intelligence framework. this document outlines the agents and their orchestration.
+Universal AI collaborative intelligence framework. This document outlines the agents and their orchestration.
 
-Part of the_collective by screamingearth (Apache 2.0 licensed, see NOTICE file).
+Part of >the_collective by screamingearth (Apache 2.0 licensed, see NOTICE file).
 
 ## The Universal Workflow
 
@@ -80,7 +87,7 @@ The development process follows a dynamic four-stage orchestration powered by Cl
 
 ## Universal Context Protocol
 
-To ensure seamless collaboration across different AI models and sessions, the_collective adheres to the following context persistence rules:
+To ensure seamless collaboration across different AI models and sessions, >the_collective adheres to the following context persistence rules:
 
 1.  **Memory is the Source of Truth:** All critical decisions, architectural choices, and user preferences must be committed to the MCP memory system.
 2.  **Model Agnosticism:** Agents must not rely on model-specific quirks. Instructions should be clear, explicit, and robust enough for any high-reasoning model (GPT-4, Claude, Gemini) to execute.

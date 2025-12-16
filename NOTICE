@@ -1,103 +1,171 @@
 # NOTICE
 
-**the_collective** — Multi-agent AI framework  
-Copyright © 2025 screamingearth  
-Licensed under Apache License 2.0
+### License
 
----
+This software is dual-licensed under:
 
-## Trademark & Brand
+1. **Apache License, Version 2.0** - for all code and framework files
+2. **Mozilla Public License, Version 2.0** - for specific components (see LICENSE file for details)
 
-The following are protected trademarks/service marks of screamingearth:
+You may obtain copies of these licenses at:
+- Apache 2.0: http://www.apache.org/licenses/LICENSE-2.0
+- MPL 2.0: https://www.mozilla.org/en-US/MPL/2.0/
 
-- **the_collective** - the framework name and overall brand
-- **Nyx** - Strategic Orchestration Agent
-- **Prometheus** - Implementation Agent  
-- **Cassandra** - Validation & Security Agent
-- **Apollo** - Optimization Agent
+Unless required by applicable law or agreed to in writing, software distributed under these licenses is provided on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
-Per Apache License 2.0 Section 6: This license does NOT grant permission to use these trademarks except as required for reasonable and customary use in describing the origin of the Work and reproducing this NOTICE file.
+### Trademark & Agent IP Notice
 
----
+**">the_collective"** is a trademark of screamingearth.
 
-## What You Can Do (Licensed Under Apache 2.0)
+### Agent Names (Public Domain)
 
-You can use the_collective framework to:
+The agent names **"Nyx"**, **"Prometheus"**, **"Cassandra"**, and **"Apollo"** are drawn from mythology. These names themselves are **not protected** and you are free to:
 
-- ✅ **Build and sell applications** powered by the_collective
-- ✅ **Fork and modify** the framework for your own use
-- ✅ **Integrate with your projects** commercially or non-commercially
-- ✅ **Distribute modified versions** as long as you follow Apache 2.0 terms
+- ✅ Create your own custom agents with these names
+- ✅ Write your own system prompts for the agents
 
-## What You Cannot Do (Trademark Protection)
+### Agent System Prompts (Protected IP)
 
-You cannot:
+However, the **specific character configurations, system prompts, dialogue styles, and prompt engineering** associated with these agent identities **as implemented in this software** are the intellectual property of screamingearth and protected by copyright law.
 
-- ❌ **Rebrand as your own.** You cannot claim the_collective as your original creation
-- ❌ **Sell "the_collective" itself** as a standalone product
-- ❌ **Mislead users** about the origin of the software
-- ❌ **Suggest endorsement** by screamingearth for your products
+If you use the actual system prompts, personality matrices, or architectural patterns from \>the_collective, you must provide proper attribution and follow the license terms.
 
-## Attribution Requirements
+## Permissions & Rights
 
-When you use the_collective, you must:
+### What You CAN Do (Licensed Under Apache 2.0 / MPL 2.0)
 
-1. **Include the LICENSE file** (Apache 2.0)
-2. **Maintain copyright notices** in the source code
-3. **Provide clear attribution** in your product documentation or source code
+✅ **Use the framework** - Build applications and systems powered by >the_collective  
+✅ **Modify the code** - Fork and customize the framework for your own use  
+✅ **Integrate commercially** - Use in proprietary or commercial products  
+✅ **Sell products** - Monetize applications built with >the_collective  
 
-### Attribution Examples
+### What You CANNOT Do (Trademark & IP Protection)
+
+❌ **Rebrand the software** - Do not claim \>the_collective as your original creation  
+❌ **Sell the framework itself** - Do not resell "\>the_collective" as a standalone product under your own name  
+❌ **Misrepresent origin** - Do not mislead users about who created \>the_collective  
+❌ **Claim endorsement** - Do not suggest screamingearth endorses your specific products  
+
+## Commercial Use
+
+**Commercial use is explicitly permitted.** You may:
+
+- ✅ Build and sell SaaS services powered by \>the_collective
+- ✅ Integrate \>the_collective into proprietary software
+- ✅ Sell applications that use \>the_collective
+- ✅ License applications built with \>the_collective
+
+You may NOT:
+
+- ❌ Sell "\>the_collective" itself as your proprietary product
+- ❌ Rebrand and resell the framework under a different name
+- ❌ Claim you created the agent system or its components
+
+## Intellectual Property Clarification
+
+### Core Agent Framework Files (MPL 2.0 License)
+
+The following files are licensed under **Mozilla Public License 2.0**:
+
+- `.github/copilot-instructions.md`
+- `.github/agents/nyx.agent.md`
+- `.github/agents/prometheus.agent.md`
+- `.github/agents/cassandra.agent.md`
+- `.github/agents/apollo.agent.md`
+- `.github/agents/the_collective.agent.md`
+- `.collective/*`
+- `GEMINI.md`
+- `AGENTS.md`
+
+
+### Agent System & Prompts (Trademark Protected)
+
+- **>the_collective framework architecture** is protected intellectual property
+- **Agent personas** (Nyx, Prometheus, Cassandra, Apollo) and their associated system prompts are **NOT** in the public domain
+- **Cannot be rebranded** as original work
+- **Require attribution** when used
+- **Cannot claim ownership** of the agent designs or their system prompts
+
+## Requirements
+
+When using >the_collective or any of its protected components, you must:
+
+1. Copy the LICENSE file to your project
+2. Include this NOTICE file in your distribution
+3. Add a clear attribution in your README or documentation
+4. Preserve all existing copyright notices in the code
+
+### Acceptable Attribution Examples
 
 **Best:**
-> "built with 🖤 by the_collective"
+```markdown
+<br><div align="center">
+  
+built with 🖤 by [>the_collective](https://github.com/screamingearth/the_collective)
 
-**Also Good:**
-> "Powered by the_collective
-> "Created using the_collective, an open source multi-agent AI framework"
+[⬆ uppies]([id])
 
-**Not Allowed:**
-> "the_collective by [Your Company]" ❌
-> "Our proprietary the_collective implementation" ❌
+</div>
+```
+or
 
----
+```markdown
+built with 🖤 by [>the_collective](https://github.com/screamingearth/the_collective)
+```
 
-## Commercial Use - YES ✅
+**OK:**
+- "Built with >the_collective multi-agent framework"
+- "Powered by >the_collective"
 
-**you can absolutely sell products built with the_collective.** 
+**Also Acceptable:**
+- Include the NOTICE file in your distribution
+- Link to https://github.com/screamingearth/the_collective in documentation
 
-Examples of acceptable commercial use:
+### Unacceptable Attribution
 
-- Building a SaaS service powered by the_collective ✅
-- Selling applications that use the_collective ✅
-- Integrating the_collective into proprietary software (with attribution) ✅
+❌ ">the_collective by [Your Company]"  
+❌ "Our proprietary >the_collective implementation"  
+❌ "Custom >the_collective framework"  
+❌ Omitting attribution entirely  
 
-What you cannot do:
+### Modifying >the_collective
 
-- Sell the_collective itself as your product ❌
-- Claim you created the_collective agents ❌
-- Rebrand and resell the framework as proprietary ❌
+1. Follow Apache 2.0 and MPL 2.0 requirements for modifications
+2. Document your changes (particularly for MPL 2.0-licensed components)
+3. Retain all original copyright & license notices and license text
+4. Do not rebrand modified versions as your original work
 
----
+## Disclaimer
+
+This software is provided on an "AS IS" basis without warranties of any kind. The authors and copyright holders assume no liability for any damages or issues arising from use of this software.
+
+For full legal terms, see the LICENSE file included with this software.
 
 ## Questions?
 
-**Can you make money using this?** Yes.  
-**Can you sell products built with this?** Yes.  
-**Can you modify it for your needs?** Yes.  
-**Can you claim the_collective is yours?** No.  
-**Can you sell "the_collective" itself?** No, not without being the copyright holder.
+**Q: Can I make money using this?**  
+A: Yes. You can build and sell products that use >the_collective.
 
----
+**Q: Can I modify the code?**  
+A: Yes. You can fork, modify, and customize it per Apache 2.0 and MPL 2.0 terms.
 
-## License
+**Q: Can I sell ">the_collective" itself?**  
+A: No. You cannot resell >the_collective framework as a standalone product. You can only sell products/services built WITH it.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+**Q: Can I rebrand the agent personas?**  
+A: No. The agent names and their specific character configurations are trademarked and cannot be claimed as original work. You can create your own custom agents with those names, but not as a derived work of >the_collective unless you provide proper attribution.
 
-    http://www.apache.org/licenses/LICENSE-2.0
+**Q: Do I need to attribute >the_collective?**  
+A: Yes. Attribution is a license requirement and just a kind of "good neighbor" practice.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the LICENSE file for the full terms and conditions.
+**Q: Can I use this commercially without attribution?**  
+A: No. Both the Apache 2.0 and MPL 2.0 licenses require attribution and copyright notice retention depending on your implementation.
+
+## Contact
+
+For questions about licensing, trademark use, commercial arrangements, or anything else reasonably related, please reach out:
+- email: screamingearth69@gmail.com
+- github: https://github.com/screamingearth
+
+**Last Updated:** December 15, 2025  
+**Copyright © screamingearth. All rights reserved.**

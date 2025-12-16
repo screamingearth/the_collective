@@ -2,7 +2,12 @@
 /* eslint-disable no-console */
 
 /*
-Run this after setting up the memory server to ensure basic operations work.
+ * This file is part of >the_collective.
+ * Copyright (c) 2025 screamingearth.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 import { existsSync, mkdirSync } from "node:fs";
@@ -16,17 +21,17 @@ import { MemoryStore } from "./memory-store.js";
 function validateDbPath(inputPath: string): string {
   const resolved = resolve(inputPath);
   const normalized = normalize(resolved);
-  
+
   // Security: Reject paths with null bytes (path truncation attack)
   if (inputPath.includes('\x00')) {
     throw new Error("Invalid null byte in database path");
   }
-  
+
   // Security: Warn if path looks suspicious (but allow for flexibility)
   if (normalized.includes('..') && !inputPath.startsWith('../.mcp')) {
     console.warn("⚠️  Warning: Database path contains parent directory reference");
   }
-  
+
   return resolved;
 }
 

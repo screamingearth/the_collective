@@ -1,7 +1,10 @@
-/**
- * gemini-bridge type definitions
+/*
+ * This file is part of >the_collective.
+ * Copyright (c) 2025 screamingearth.
  *
- * Types for interacting with Gemini CLI from the_collective
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 /**
@@ -32,13 +35,13 @@ export interface GeminiJsonResponse {
  */
 export interface GeminiStreamEvent {
   type:
-    | "start"
-    | "text"
-    | "tool_call"
-    | "tool_result"
-    | "error"
-    | "end"
-    | "thinking";
+  | "start"
+  | "text"
+  | "tool_call"
+  | "tool_result"
+  | "error"
+  | "end"
+  | "thinking";
   /** Text content (for 'text' type) */
   content?: string;
   /** Tool call information */

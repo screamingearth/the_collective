@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 
-/**
- * Bootstrap the_collective's core memories
+/*
+ * This file is part of >the_collective.
+ * Copyright (c) 2025 screamingearth.
  *
- * Run this after cloning from GitHub to populate essential knowledge.
- * Core memories are loaded from core-memories.json for easy maintenance.
- *
- * Uses console.log for user-facing CLI output.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 import { mkdirSync, readFileSync } from "node:fs";
@@ -35,15 +35,15 @@ interface CoreMemoriesFile {
  */
 function loadCoreMemories(): CoreMemory[] {
   const memoriesPath = resolve(__dirname, "core-memories.json");
-  
+
   try {
     const raw = readFileSync(memoriesPath, "utf-8");
     const data = JSON.parse(raw) as CoreMemoriesFile;
-    
+
     if (!data.memories || !Array.isArray(data.memories)) {
       throw new Error("Invalid core-memories.json: missing 'memories' array");
     }
-    
+
     console.log(`📁 Loaded ${data.memories.length} memories from core-memories.json (v${data.version})`);
     return data.memories;
   } catch (error) {

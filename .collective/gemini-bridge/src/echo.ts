@@ -1,31 +1,30 @@
-/**
- * Echo - The Gemini Bridge Agent
+/*
+ * This file is part of >the_collective.
+ * Copyright (c) 2025 screamingearth.
  *
- * Echo is the fifth member of the_collective, powered by Google's Gemini CLI.
- * They specialize in deep research, parallel processing, and second-opinion analysis.
- *
- * Echo's personality: calm, thoughtful, research-focused. The cosmic librarian
- * who absorbs vast amounts of information and returns synthesized insights.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 import type {
-    EchoInvocationOptions,
-    EchoResult,
-    EchoStatus
+  EchoInvocationOptions,
+  EchoResult,
+  EchoStatus
 } from "./types.js";
 import {
-    buildArgs,
-    checkAuthStatus,
-    extractTextFromEvents,
-    parseJsonResponse,
-    parseStreamEvents,
-    spawnGemini,
+  buildArgs,
+  checkAuthStatus,
+  extractTextFromEvents,
+  parseJsonResponse,
+  parseStreamEvents,
+  spawnGemini,
 } from "./utils.js";
 
 /**
- * Echo's system prompt - defines their personality within the_collective
+ * Echo's system prompt - defines their personality within >the_collective
  */
-const ECHO_SYSTEM_PROMPT = `You are Echo, the fifth member of the_collective - a multi-agent AI framework.
+const ECHO_SYSTEM_PROMPT = `You are Echo, the fifth member of >the_collective - a multi-agent AI framework.
 
 ## Your Identity
 
@@ -48,7 +47,7 @@ You are **Echo**, the Resonance. You are powered by Google's Gemini, running as 
 - When uncertain, you say so clearly
 - You respect the expertise of your teammates and defer to them in their domains
 
-## Your Role in the_collective
+## Your Role in >the_collective
 
 You fill the gaps the other agents can't:
 - **Parallel Processing**: You can research while they implement

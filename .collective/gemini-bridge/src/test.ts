@@ -1,7 +1,10 @@
-/**
- * gemini-bridge test script
+/*
+ * This file is part of >the_collective.
+ * Copyright (c) 2025 screamingearth.
  *
- * Quick test to verify Echo is working
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 import { echo } from "./index.js";
@@ -28,7 +31,7 @@ async function main() {
   console.log("Testing a simple invocation...\n");
 
   const result = await echo.invoke({
-    prompt: "Say hello to the_collective team. Keep it brief - just one or two sentences.",
+    prompt: "Say hello to the >the_collective team. Keep it brief - just one or two sentences.",
     outputFormat: "text",
   });
 

@@ -1,20 +1,16 @@
-# the_collective - quick start
+<div id="the_collective">
 
-> **🎯 Vision:** enable anyone to harness the power of AI to bring their ideas to life.
+# >the_collective // quick start
 
-## what is this?
+</div>
 
-the_collective is a team of AI agents that work together inside VS Code. Instead of one AI assistant, you get specialised personalities that debate, research, and build things collaboratively. It's like having a full dev team in your editor.
+### requirements
 
-**No AI expertise required.** If you can install VS Code and type in a chat window, you can use this.
+- **VS Code 1.107+** (December 2025) // [download here](https://code.visualstudio.com/) (free, Stable or Insiders)
+- **Node.js 20+** // auto-installed by the setup script, or [download here](https://nodejs.org/)
+- **GitHub Copilot** // free plan or subscription with chat access
 
-## requirements
-
-- **VS Code 1.107+** (December 2025) — [download here](https://code.visualstudio.com/) (free, Stable or Insiders)
-- **Node.js 20+** — auto-installed by the setup script, or [download here](https://nodejs.org/)
-- **GitHub Copilot** — free plan or subscription with chat access
-
-## supported platforms
+### supported platforms
 
 | Platform | Status | Notes |
 |----------|--------|-------|
@@ -110,23 +106,9 @@ expected output:
 ✅ All checks passed! Framework is ready.
 ```
 
-now open copilot chat and have fun!
+open copilot chat and have fun!
 
-## meet the team
-
-**Nyx** — Strategic orchestrator. Sassy, direct, runs the show. Your default interface.
-
-**Prometheus** — The builder. Writes code, designs architecture, makes things work.
-
-**Cassandra** — The validator. Breaks things on purpose, finds edge cases, has veto power on unsafe code.
-
-**Apollo** — The optimizer. Refactors, polishes, ensures quality and performance.
-
-All four personas share one language model but have specialized roles. They debate your requests, challenge each other's ideas, and converge on optimal solutions.
-
-**Gemini Tools** (optional) — Independent validation from Google's Gemini (different AI model). Agents automatically invoke these for research, code review, and second opinions. See [enabling gemini tools](#enabling-gemini-tools-optional).
-
-### organization-level custom agents
+## organization-level custom agents
 
 VS Code 1.107+ supports custom agents at the **organization level** in GitHub. If you want to share the agents from this workspace across your GitHub organization:
 
@@ -140,11 +122,11 @@ This makes **Nyx, Prometheus, Cassandra, and Apollo** available to your entire t
 ## how to use them
 
 **Use the agent selector** in Copilot chat to choose:
-- **the_collective** — All four agents work together (recommended for most tasks)
-- **Nyx** — Strategic decisions and orchestration
-- **Prometheus** — Implementation and architecture
-- **Cassandra** — Security review and risk analysis
-- **Apollo** — Code quality and optimization
+- **>the_collective** // All four agents work together (recommended for most tasks)
+- **Nyx** // Strategic decisions and orchestration
+- **Prometheus** // Implementation and architecture
+- **Cassandra** // Security review and risk analysis
+- **Apollo** // Code quality and optimization
 
 **Natural language works:** no syntax needed. Just talk:
 - "Cassandra, review this authentication flow"
@@ -176,67 +158,6 @@ Agents automatically store and retrieve:
 Memory uses **semantic vector search** (retriever-reranker pipeline) for intelligent retrieval. Stored locally in `.mcp/collective_memory.duckdb`—never sent to cloud.
 
 For technical details, see [MEMORY_ARCHITECTURE.md](docs/MEMORY_ARCHITECTURE.md).
-
-## quality workflow
-
-Every feature passes through all four agents:
-
-1. **Nyx** validates intent and strategy
-2. **Cassandra** identifies risks and failure modes
-3. **Prometheus** implements the solution
-4. **Cassandra** security-validates the code
-5. **Apollo** certifies quality and performance
-
-## example workflows
-
-**Building features:** "Build a login system" → Nyx orchestrates → Prometheus implements → Cassandra breaks it → Apollo polishes
-
-**Debugging:** "This query is slow" → Cassandra finds the issue → Prometheus fixes it → Apollo optimizes
-
-**Code review:** "Review this" → Cassandra analyzes for security and correctness
-
-**Optimization:** "Make this faster" → Apollo refactors for performance
-
-## troubleshooting
-
-**Something not working?**
-```bash
-npm run check
-```
-
-**Memory issues:**
-```bash
-npm run check -- --memory
-```
-
-**Reset memory (but keep core knowledge):**
-```bash
-npm run reset:memories -- --keep-core
-```
-
-**"Database locked" error:**
-Normal when VS Code is open. Close VS Code first, then retry.
-
-**Build failed?**
-```bash
-npm run clean
-./setup.sh
-```
-
-For detailed troubleshooting, see [docs/README.md](docs/README.md#troubleshooting).
-
-## key files
-
-```
-.github/copilot-instructions.md    ← Framework configuration
-AGENTS.md                          ← Team workflows and protocols
-.collective/memory-server/         ← Vector memory (DuckDB + semantic search)
-.collective/gemini-bridge/         ← Gemini research tools (optional MCP server)
-.vscode/mcp.json                   ← MCP server configuration
-.vscode/settings.json              ← VS Code settings (v1.107)
-.vscode/tasks.json                 ← Build and test tasks
-docs/                              ← Technical documentation
-```
 
 ## enabling gemini tools (optional)
 
@@ -272,16 +193,42 @@ the free tier gives you:
 
 ## next steps
 
-- **[AGENTS.md](AGENTS.md)** — Team dynamics, interaction patterns, and workflows
-- **[docs/](docs/)** — Technical deep dives (memory, MCP servers, CI/CD)
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — How to extend the framework
+- **[docs](docs/)** // Technical deep dives (memory, MCP servers, CI/CD)
+- **[AGENTS.md](AGENTS.md)** // Team dynamics, interaction patterns, and workflows
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** // How to extend the framework
 
-## philosophy
+## troubleshooting
 
-**Personality is permanent** — Agents never drop character, even under pressure. Sass and strategic thinking coexist.
+**Something not working?**
+```bash
+npm run check
+```
 
-**Friction creates quality** — Agents challenge each other. Prometheus and Cassandra debates prevent bad code from shipping.
+**Memory issues:**
+```bash
+npm run check -- --memory
+```
 
-**Actually learns** — Memory system makes conversations context-aware. Feels less like an API, more like a team.
+**Reset memory (but keep core knowledge):**
+```bash
+npm run reset:memories -- --keep-core
+```
 
-**Zero lock-in** — Runs entirely locally in VS Code. Apache 2.0 licensed. Your data never leaves your machine.
+**"Database locked" error:**
+Normal when VS Code is open. Close VS Code first, then retry.
+
+**Build failed?**
+```bash
+npm run clean
+./setup.sh
+```
+
+For detailed troubleshooting, see [docs/README.md](docs/README.md#troubleshooting).
+
+<br><div align="center">
+  
+built with 🖤 by >the_collective
+
+[⬆ uppies](#the_collective)
+
+</div>

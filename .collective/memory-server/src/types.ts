@@ -1,8 +1,10 @@
-/**
- * Type definitions for the_collective Memory Server
+/*
+ * This file is part of >the_collective.
+ * Copyright (c) 2025 screamingearth.
  *
- * Provides proper typing for external dependencies that lack type definitions,
- * and internal data structures used throughout the memory system.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 /**

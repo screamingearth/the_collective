@@ -2,7 +2,7 @@
 
 We welcome improvements, bug fixes, and new features.
 
-> By contributing, you agree that your contributions will be licensed under Apache License 2.0. See [NOTICE](NOTICE) for trademark guidelines.
+> By contributing, you agree that your contributions will be licensed under Apache License 2.0 or Mozilla Public License 2.0. See [NOTICE](NOTICE) for guidelines.
 
 ## Setup
 
@@ -24,19 +24,15 @@ setup.bat
 
 **Agent behavior:** Edit `.github/agents/*.agent.md`  
 **Memory system:** Edit `.collective/memory-server/src/`  
-**Core instructions:** Edit `.github/copilot-instructions.md`
+**Gemini integration:** Edit `.collective/gemini-bridge/src/`  
+**Core instructions:** Edit `.github/copilot-instructions.md`   
+**Documentation:** Edit `.md` files in root or `.github/`
 
 Restart VS Code after changes.
 
 ## Before You Push
 
-```bash
-npm run check        # Validate framework
-npm run validate     # Lint & type check
-npm run reset:memories -- --force --keep-core  # Clear project-specific context
-```
-
-> **Memory note:** Memories are local-only. This command clears your project context before pushing so you don't share unintended context.
+Double check `.gitignore` to avoid committing sensitive data. By default, the memory database and logs are ignored along with other commonly ignored files.
 
 ## Commits & PRs
 
@@ -59,7 +55,7 @@ Prefixes: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
 
 ## Versioning
 
-the_collective follows semantic versioning:
+>the_collective follows semantic versioning:
 
 | Level | When | Example |
 |-------|------|---------|
@@ -67,8 +63,6 @@ the_collective follows semantic versioning:
 | **Minor** | New features | 1.1.0 |
 | **Patch** | Bug fixes | 1.0.1 |
 
----
-
 ## Questions?
 
-Open a [GitHub issue](https://github.com/screamingearth/the_collective/issues).
+Open an [issue](https://github.com/screamingearth/the_collective/issues), join the [discussions](https://github.com/screamingearth/the_collective/discussions), or [contact me directly](NOTICE#contact)

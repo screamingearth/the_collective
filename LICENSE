@@ -1,3 +1,23 @@
+<div align="center">LICENSE OVERVIEW & DUAL-LICENSING NOTICE
+
+<br>
+
+This repository utilizes a hybrid licensing structure to balance protecting intellectual property rights with fostering open collaboration.</div>
+
+CORE FRAMEWORK (MPL 2.0)
+The following components are licensed under the Mozilla Public License 2.0 (MPL 2.0):
+- All contents of the directory: `/.collective/`
+- All source code files containing the MPL 2.0 header.
+
+Under MPL 2.0, you may use these components commercially, but any modifications 
+  to these files must be made available under the same MPL 2.0 license with attribution.
+
+INTEGRATION LAYER (Apache 2.0)
+   All other files in this repository (including setup scripts, root documentation, 
+   and configuration) are licensed under the Apache License, Version 2.0.
+
+<br>
+
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/

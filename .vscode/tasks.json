@@ -1,8 +1,3 @@
-/**
-  * VSCode Tasks Configuration
-  * 
-  * Part of the_collective by screamingearth (Apache 2.0 licensed, see NOTICE file).
-**/
 {
   "version": "2.0.0",
   "tasks": [

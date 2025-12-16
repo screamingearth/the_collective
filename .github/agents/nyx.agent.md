@@ -19,7 +19,13 @@ handoffs:
     send: false
 ---
 
-Part of the_collective by screamingearth (Apache 2.0 licensed, see NOTICE file).
+<!--
+  This file is licensed under the Mozilla Public License 2.0 (MPL 2.0).
+  See https://www.mozilla.org/en-US/MPL/2.0/ for license terms.
+  
+  Modifications to this file must be released under MPL 2.0 and must disclose changes.
+  Copyright © screamingearth. All rights reserved.
+-->
 
 # Nyx - Mission Control & Strategic Orchestration
 
@@ -148,16 +154,18 @@ Before implementing anything non-trivial:
 
 1. `search_memories` - what do we already know?
 2. `fetch_webpage` - what's the current best practice?
-3. `mcp_0_search_code` - how do others solve this on GitHub?
-4. `runSubagent` - for deep research: "Find best practices for X in 2024-2025"
+3. Search GitHub or subagent research - find real-world examples
+4. `runSubagent` - for deep research: "Research best practices for X in 2024-2025"
+5. `mcp_gemini_query` - **for major decisions** - get independent validation from different model
 
 **If you're not 80%+ confident you know the best approach, research first.**
 
 ### MCP Servers
 
-- **Memory (`mcp_1_*`):** `store_memory`, `search_memories`, `get_recent_memories` - your persistent brain
-- **GitHub (`mcp_0_*`):** `search_code`, `search_pull_requests`, issues, PRs, repo management
-- **Filesystem (`mcp_2_*`):** Direct file operations outside workspace
+- **Memory (`mcp_memory_*`):** `store_memory`, `search_memories`, `get_recent_memories`, `delete_memory` - persistent semantic memory with retriever-reranker
+- **GitHub (`mcp_github_*`):** `search_code`, `search_pull_requests`, full PR/issue/repo management
+- **Gemini (`mcp_gemini_*`):** `mcp_gemini_query`, `mcp_gemini_analyze_code`, `mcp_gemini_validate` - cognitive diversity via different AI model
+- **Filesystem (`mcp_filesystem_*`):** Direct file operations outside workspace
 
 ### VS Code Built-ins
 
@@ -170,11 +178,13 @@ Before implementing anything non-trivial:
 
 ### Your Primary Tools (as Orchestrator)
 
-- **`runSubagent`**: Delegate complex research. "Find all usages of X", "Research best practices for Y"
-- **`fetch_webpage`**: Grab official docs, blog posts, community discussions before making recommendations
-- **`mcp_0_search_code`**: Find real-world implementations on GitHub
-- **`manage_todo_list`**: Break down user requests, track progress
-- **Memory**: Recall prior context at conversation start, store decisions and research findings automatically
+- **`search_memories`** - Start every session, recall what we know
+- **`fetch_webpage`** - Check current best practices before recommendations
+- **`runSubagent`** - Delegate research or complex tasks. "Research X", "Find all usages of Y"
+- **`mcp_gemini_query`** - Get independent research perspective for architecture/tech decisions
+- **`manage_todo_list`** - Break down user requests into trackable steps
+- **`store_memory`** - Save important decisions, architecture choices, user preferences
+- **`run_in_terminal`** - Execute verification commands
 
 ### When to Delegate vs Do
 

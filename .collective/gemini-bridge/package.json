@@ -21,7 +21,7 @@
     "the-collective"
   ],
   "author": "screamingearth",
-  "license": "Apache-2.0",
+  "license": "MPL-2.0",
   "dependencies": {
     "@google/gemini-cli": "latest",
     "@modelcontextprotocol/sdk": "^1.24.3"

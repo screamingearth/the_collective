@@ -1,8 +1,4 @@
-{ /**
-  * VS Code Settings
-  * 
-  * Part of the_collective by screamingearth (Apache 2.0 licensed, see NOTICE file).
-**/
+{
   // ═══════════════════════════════════════════════════════════════════
   // EDITOR CORE SETTINGS
   // ═══════════════════════════════════════════════════════════════════
@@ -53,6 +49,10 @@
     "**/package-lock.json": true,
     "**/.mcp/*.duckdb": true
   },
+  "files.autoSave": "afterDelay",
+  "files.autoSaveWhenNoErrors": true,
+  "files.autoSaveWorkspaceFilesOnly": true,
+  "files.autoSaveDelay": 1000,
   // ═══════════════════════════════════════════════════════════════════
   // GITHUB COPILOT CONFIGURATION
   // ═══════════════════════════════════════════════════════════════════
@@ -158,7 +158,7 @@
     "editor.formatOnSave": true
   },
   "[javascript]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.defaultFormatter": "vscode.typescript-language-features",
     "editor.formatOnSave": true
   },
   "[json]": {
@@ -213,5 +213,5 @@
   // Chat view improvements
   "chat.viewTitle.enabled": true,
   "chat.viewWelcome.enabled": true,
-  "chat.viewRestorePreviousSession": true
+  "chat.viewRestorePreviousSession": true,
 }

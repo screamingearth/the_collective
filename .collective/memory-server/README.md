@@ -2,7 +2,9 @@
 
 **the_collective** — Multi-agent AI framework  
 Copyright © 2025 screamingearth  
-Licensed under Apache License 2.0
+Licensed under Mozilla Public License 2.0 (MPL 2.0)
+
+See LICENSE file in this directory for full terms.
 
 # memory-server
 

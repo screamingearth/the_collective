@@ -2,11 +2,13 @@
 
 **the_collective** — Multi-agent AI framework  
 Copyright © 2025 screamingearth  
-Licensed under Apache License 2.0
+Licensed under Mozilla Public License 2.0 (MPL 2.0)
+
+See LICENSE file in this directory for full terms.
 
 # gemini-bridge
 
-MCP server providing Google Gemini integration for the_collective.
+MCP server providing Google Gemini integration for >the_collective.
 
 See [docs/GEMINI_BRIDGE.md](../docs/GEMINI_BRIDGE.md) for full documentation.
 
@@ -28,7 +30,7 @@ npm test
 
 ## what is this?
 
-gemini-bridge provides **gemini research tools** for the_collective via MCP server. These tools give the core team access to Google's Gemini (via CLI) for research, code analysis, and validation.
+gemini-bridge provides **gemini research tools** for >the_collective via MCP server. These tools give the core team access to Google's Gemini (via CLI) for research, code analysis, and validation.
 
 **Key benefits:**
 - Different AI model = cognitive diversity
@@ -92,7 +94,7 @@ Run `npm run auth` and sign in via browser.
 
 All tools use `gemini-2.5-flash` for optimal speed/capability balance.
 
-## usage in the_collective
+## usage in >the_collective
 
 The core team (Nyx, Prometheus, Cassandra, Apollo) invokes these tools when they need:
 - **External research** - documentation, best practices, current approaches
@@ -104,4 +106,4 @@ These are **tools**, not a separate agent. The team uses them like they use `fet
 
 ## system instructions
 
-Gemini receives instructions from [GEMINI.md](../GEMINI.md) which defines its role as a research assistant for the_collective.
+Gemini receives instructions from [GEMINI.md](../GEMINI.md) which defines its role as a research assistant for >the_collective.

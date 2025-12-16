@@ -1,18 +1,29 @@
 #!/usr/bin/env node
 
-/**
+/*
  * the_collective - Memory Reset Script
  *
  * Resets the memory database for a fresh start.
- * Useful for:
- * - Preparing the framework for distribution
- * - Starting fresh on a new project
- * - Clearing sensitive project-specific memories
  *
  * Usage:
  *   npm run reset:memories              # Interactive prompt
  *   npm run reset:memories -- --force   # Skip confirmation
  *   npm run reset:memories -- --keep-core  # Keep core framework memories
+ * ============================================================================
+ * This file is part of >the_collective.
+ * Copyright (c) 2025 screamingearth.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 const fs = require("fs");
@@ -129,10 +140,10 @@ async function main() {
 
   // Check if database exists
   const dbStats = getDbStats();
-  
+
   if (!dbStats) {
     info("No memory database found. Nothing to reset.");
-    
+
     if (flags.keepCore) {
       log("\n📝 Bootstrapping core memories...\n");
       npm("run bootstrap", { cwd: MEMORY_SERVER });
@@ -152,7 +163,7 @@ ${c.bold}Current Memory Database:${c.reset}
   // Confirm unless --force
   if (!flags.force) {
     log(`${c.yellow}⚠️  This will permanently delete all stored memories!${c.reset}\n`);
-    
+
     const confirmed = await confirm("Are you sure you want to reset?");
     if (!confirmed) {
       info("Reset cancelled.");

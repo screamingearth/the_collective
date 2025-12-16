@@ -1,7 +1,10 @@
-/**
- * gemini-bridge utilities
+/*
+ * This file is part of >the_collective.
+ * Copyright (c) 2025 screamingearth.
  *
- * Helper functions for subprocess management and output parsing
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 import { ChildProcess, spawn } from "node:child_process";

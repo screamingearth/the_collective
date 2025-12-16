@@ -1,15 +1,12 @@
 #!/usr/bin/env node
 
-/**
- * the_collective Memory Server
- * 
- * Part of the_collective by screamingearth
- * Copyright © 2025 screamingearth. Licensed under Apache License 2.0.
- * the_collective, Nyx, Prometheus, Cassandra, and Apollo are trademarks of screamingearth.
- * See NOTICE and LICENSE files for details.
+/*
+ * This file is part of >the_collective.
+ * Copyright (c) 2025 screamingearth.
  *
- * MCP server providing semantic memory storage and retrieval.
- * Uses DuckDB with vector embeddings for similarity search.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";

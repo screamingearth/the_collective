@@ -8,13 +8,15 @@
 [![TypeScript: 5.7+](https://img.shields.io/badge/TypeScript-5.7%2B-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![MCP: 2025-11-25](https://img.shields.io/badge/MCP-2025--11--25-FF6B6B)](https://modelcontextprotocol.io/)
   
-<h3>vision:// enable humans to harness the power of AI and bring their ideas to life</h3>
+<h3>vision:// further enable humans to harness the power of AI and bring their ideas to life</h3>
 
-</div><br>
+\>the_collective is a team of AI agents that work together inside VS Code. instead of one AI assistant, you get specialised personalities that debate, research, and build things collaboratively using powerful tools. it's like having a full dev team in your editor.
 
-## ⚡ quick start
+**no AI expertise required:** if you can handle installing vscode and running a single terminal command, you're good to go.
 
-### one-liner (recommended)
+</div>
+
+### ⚡ quick start
 
 **macOS / Linux:**
 ```bash
@@ -65,15 +67,17 @@ npm run check  # verify installation
 | **prometheus** | builder | implementation & architecture | methodical, technical |
 | **cassandra** | breaker | security & risk analysis | skeptical, thorough |
 | **apollo** | polisher | optimization & quality | perfectionist, elegant |
+<br>
 
-**the_collective is best utilized by Claude models:**
-> Haiku 4.5 (fast)
-> 
-> Sonnet 4.5 (default)
-> 
-> Opus 4.5 (deep reasoning)
+**>the_collective is best utilized by Claude models:**
 
-<h6>>but of course, you can use whatever you want!</h6>
+\>Haiku 4.5 (fast)
+
+\>Sonnet 4.5 (default)
+
+\>Opus 4.5 (deep reasoning)
+
+<h5>but of course, you can use whatever you want!</h5>
 
 <br>
 
@@ -83,32 +87,19 @@ npm run check  # verify installation
 
 **agents** // One language model, four specialized personas. address them directly in chat (`cassandra, review this`) or use team mode to watch them collaborate in real-time.
 
-**team mode** // Switch to `the_collective` in Copilot chat. watch Nyx orchestrate while Prometheus builds, Cassandra breaks things, and Apollo polishes. friction creates quality.
+**team mode** // Switch to `>the_collective` in Copilot chat. Watch Nyx orchestrate while Prometheus builds, Cassandra breaks things, and Apollo polishes. Friction creates quality.
 
 <br>
 
 ## 🚀 features
 
 - **local memory** // semantic vector database never leaves your machine
-- **4-agent team** // specialized personas that debate your code in real-time
-- **local MCP servers** // memory, gemini research tools, filesystem access (extensible)
-- **auto-startup** // MCP servers launch on workspace open (VS Code 1.107+)
 - **zero tracking** // Apache 2.0 licensed, no telemetry, no vendor lock-in
-
-<br>
-
-## 🔧 commands
-
-| command | purpose |
-|---------|---------|
-| `./setup.sh` | first-time setup (or re-run to update) |
-| `./setup.sh --dry-run` | preview what would happen |
-| `./setup.sh --uninstall` | remove the_collective |
-| `./setup.sh -y` | non-interactive mode (CI/CD) |
-| `npm run check` | verify installation & health |
-| `npm run commit` | smart commit with changelog |
-| `npm run clean` | remove build artifacts |
-| `npm run help` | show all available commands |
+- **cognitive diversity** // use multiple LLM models for different perspectives
+- **real-time collaboration** // watch agents debate, build, and refine solutions
+- **extensible architecture** // add custom agents, tools, memories, and workflows
+- **dual-licensed** // Apache 2.0 for integration, MPL 2.0 for core framework
+- **open-source** // fully transparent, community-driven development
 
 <br>
 
@@ -116,7 +107,6 @@ npm run check  # verify installation
 
 **core:**
 - **VS Code 1.107+** ([download](https://code.visualstudio.com/)) with **GitHub Copilot** subscription or free account
-- **Node.js 20+** (auto-installed by setup script if missing)
 - **macOS, Linux, or Windows**
 
 **recommended:**
@@ -137,9 +127,13 @@ npm run check  # verify installation
 
 ## 📖 documentation
 
+- **[/docs/ (technical jargon)](./docs/)** // architecture, MCP servers, memory system
 - **[QUICKSTART.md](./QUICKSTART.md)** // detailed setup & troubleshooting
-- **[AGENTS.md](./AGENTS.md)** // team workflows, interaction patterns, protocols
-- **[docs/](./docs/)** // architecture, MCP servers, memory system, security
+
+- **[CHANGELOG.md](./CHANGELOG.md)** // release notes & version history 
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** // development setup, code of conduct, PR guidelines
+- **[THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md)** // open-source attributions & licenses
+- **[NOTICE](./NOTICE)** // licensing, trademark, and attribution guidelines
 
 <br>
 
@@ -182,29 +176,42 @@ See [QUICKSTART.md](./QUICKSTART.md#troubleshooting) for detailed troubleshootin
   
 <br>
 
-## 📄 license & attribution
+## ⚖️ License & Legal
 
-**the_collective** is licensed under the **[Apache License 2.0](./LICENSE)** with additional terms in [NOTICE](./NOTICE).
+This project is **Dual-Licensed** to protect the core framework while allowing easy integration.
 
-### commercial use - YES ✅
+### 🧠 The Core (MPL 2.0)
+The intelligence engine (`/.collective/`) and the Agent Personas (System Prompts) are licensed under the **[Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/)**. 
+*   **Commercial Use:** ✅ Allowed.
+*   **Modifications:** 📝 If you modify the core framework or agent prompts, you **must** open-source those specific changes and include required documentation.
 
-**you can absolutely sell stuff made with the_collective.**
+### 🔌 The Shell (Apache 2.0)
+The setup scripts, documentation, and integration code are licensed under the **[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)**.
+*   You are free to use, modify, and distribute these scripts as you see fit.
+
+### 🛡️ Attribution
+
+">the_collective" is the name of this framework. The agent names (Nyx, Prometheus, Cassandra, Apollo) are inspired by mythology and are not trademarked - feel free to use those names for your own custom agents. 
+
+What matters: if you use code from this project, respect the licenses (MPL 2.0 for core, Apache 2.0 for integration) and give proper attribution. See [NOTICE](./NOTICE) for details.
+
+### 💼 Commercial use - YES ✅
+
+*you can absolutely sell stuff made with >the_collective*
 
 **allowed:**
-- Building a SaaS service powered by the_collective ✅
-- Selling applications that use the_collective ✅
-- Integrating the_collective into proprietary software ✅
+- Building a SaaS service powered by >the_collective ✅
+- Selling applications that use >the_collective ✅
+- Integrating >the_collective into proprietary software ✅
 
 **not allowed:**
-- Selling the_collective itself as your product ❌
-- Claiming you created the_collective agents ❌
-- Rebranding and reselling as proprietary ❌ 
+- Selling >the_collective itself as your product ❌
+- Claiming you created >the_collective agents ❌
+- Rebranding and reselling >the_collective as proprietary ❌ 
 
-### third-party packages
+### 📦 Third-party packages
 
 See [THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md) for all open-source attributions and licenses of dependencies.
-
-<br>
 
 ## 🤝 contributing
 
@@ -218,8 +225,8 @@ Contributions welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for:
 
 <div align="center">
   
-built with 🖤 by the_collective
+built with 🖤 by >the_collective
 
-[⬆ back to top](#the_collective)
+[⬆ uppies](#the_collective)
 
 </div>

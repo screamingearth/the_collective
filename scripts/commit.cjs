@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-/**
+/*
  * the_collective - Smart Commit Tool
  *
- * A delightful two-in-one developer workflow tool that:
+ * A delightful little two-in-one developer tool that:
  * 1. Creates a git commit with proper conventional commit formatting
  * 2. Appends a changelog entry to CHANGELOG.md
  *
@@ -38,6 +38,21 @@
  *   --all, -a        Stage all changes before commit
  *   --dry-run        Preview what would happen without making changes
  *   --help, -h       Show this help
+ * ============================================================================
+ * This file is part of >the_collective.
+ * Copyright (c) 2025 screamingearth.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 const { execSync } = require("child_process");
@@ -76,7 +91,7 @@ function shellEscape(str) {
   if (/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(str)) {
     throw new Error("Invalid control characters in input - potential injection attempt");
   }
-  
+
   // Also reject newlines in shell arguments (could break command structure)
   if (/[\r\n]/.test(str)) {
     throw new Error("Newlines not allowed in shell arguments");
@@ -106,7 +121,7 @@ function escapeCommitMessage(msg) {
   if (msg.includes("\x00")) {
     throw new Error("Null bytes not allowed in commit messages");
   }
-  
+
   if (IS_WINDOWS) {
     // Windows cmd.exe: escape backslashes FIRST, then double quotes, percent signs, and carets
     // Order is critical: backslash must be escaped first to avoid double-escaping other escapes
@@ -261,7 +276,7 @@ function showHelp() {
     { color: colors.yellow },
   );
 
-  log(`\n${colors.dim}Made with 💜 by the_collective${colors.reset}\n`);
+  log(`\n${colors.dim}Made with 💜 by >the_collective${colors.reset}\n`);
   process.exit(0);
 }
 
@@ -1254,7 +1269,7 @@ async function main() {
     summaryItems.push(`${colors.cyan}Commit:${colors.reset} ${formattedCommitMessage}`);
     summaryItems.push(
       `${colors.cyan}Staged:${colors.reset} ${previewFiles.staged.length} file(s)` +
-        (stagedSample ? ` ${colors.dim}[${stagedSample}]${colors.reset}` : ""),
+      (stagedSample ? ` ${colors.dim}[${stagedSample}]${colors.reset}` : ""),
     );
     if (finalScope) {
       summaryItems.push(`${colors.cyan}Scope:${colors.reset} (${finalScope})`);
@@ -1265,7 +1280,7 @@ async function main() {
     if (previewFiles.unstaged.length > 0 || previewFiles.untracked.length > 0) {
       summaryItems.push(
         `${colors.yellow}Pending:${colors.reset} ${previewFiles.unstaged.length} modified, ${previewFiles.untracked.length} untracked` +
-          (pendingSample ? ` ${colors.dim}[${pendingSample}]${colors.reset}` : ""),
+        (pendingSample ? ` ${colors.dim}[${pendingSample}]${colors.reset}` : ""),
       );
     }
   }

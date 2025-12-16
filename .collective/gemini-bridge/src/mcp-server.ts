@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
-/**
- * Gemini Bridge MCP Server
+/*
+ * This file is part of >the_collective.
+ * Copyright (c) 2025 screamingearth.
  *
- * MCP server providing access to Google's Gemini via CLI.
- * Enables research, code analysis, and validation through structured tools.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
