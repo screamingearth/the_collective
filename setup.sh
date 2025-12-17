@@ -85,7 +85,10 @@ BOLD='\033[1m'
 DIM='\033[2m'
 
 # Setup logging (after colors defined)
-LOG_DIR=".collective/.logs"
+# Use absolute path to ensure logs work from any directory
+SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+LOG_DIR="$SCRIPT_ROOT/.collective/logs"
 mkdir -p "$LOG_DIR" 2>/dev/null || {
     # Fallback if .collective directory doesn't exist or has permission issues
     LOG_DIR="/tmp/the_collective_logs"

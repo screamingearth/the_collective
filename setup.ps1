@@ -35,18 +35,35 @@ $PREFERRED_NODE_VERSION = 22
 # LOGGING SETUP
 # ==========================================
 
-$LOG_DIR = ".collective\.logs"
-if (-not (Test-Path $LOG_DIR)) {
-    New-Item -ItemType Directory -Path $LOG_DIR -Force | Out-Null
+# Use absolute path to ensure logs work from any directory
+$SCRIPT_ROOT = $PSScriptRoot
+if (-not $SCRIPT_ROOT) {
+    $SCRIPT_ROOT = (Get-Location).Path
 }
+
+$LOG_DIR = Join-Path $SCRIPT_ROOT ".collective" "logs"
+if (-not (Test-Path $LOG_DIR)) {
+    try {
+        New-Item -ItemType Directory -Path $LOG_DIR -Force | Out-Null
+    } catch {
+        # Fallback to temp directory if .collective/logs is not writable
+        $LOG_DIR = Join-Path $env:TEMP "the_collective_logs"
+        New-Item -ItemType Directory -Path $LOG_DIR -Force | Out-Null
+    }
+}
+
 $LOG_FILE = Join-Path $LOG_DIR "setup.log"
 
 # Function to log and display
 function Write-Log {
     param([string]$Message)
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    "$timestamp | $Message" | Out-File -FilePath $LOG_FILE -Append
-    Write-Host $Message
+    try {
+        "$timestamp | $Message" | Out-File -FilePath $LOG_FILE -Append -Encoding UTF8
+    } catch {
+        # If logging fails, still show the message
+        Write-Host "[LOG ERROR] $Message" -ForegroundColor DarkGray
+    }
 }
 
 # Start logging

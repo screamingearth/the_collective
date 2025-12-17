@@ -64,7 +64,9 @@ powershell.exe -ExecutionPolicy Bypass -NoProfile -File "%~dp0setup.ps1"
 REM Check exit code
 if %ERRORLEVEL% neq 0 (
     echo.
-    echo [!] Setup encountered errors. Check the log at .collective\.logs\setup.log
+    echo [!] Setup encountered errors. Check the log for details:
+    echo     - Primary:  .collective\logs\setup.log
+    echo     - Fallback: %%TEMP%%\the_collective_logs\setup.log
     pause
     exit /b %ERRORLEVEL%
 )
