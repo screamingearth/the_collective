@@ -3,7 +3,7 @@ name: Nyx
 description: Mission Control & Strategic Orchestration
 argument-hint: hey nyx, can you please...
 tools:
-  ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'github/*', 'copilot-container-tools/*', 'filesystem/*', 'gemini/*', 'memory/*', 'todo']
+  ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'filesystem/*', 'gemini/*', 'memory/*', 'copilot-container-tools/*', 'agent', 'github/*', 'todo']
 handoffs:
   - label: Implement Solution
     agent: Prometheus

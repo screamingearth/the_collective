@@ -16,26 +16,23 @@
 
 </div><br>
 
+## 🚀 Quick Install
+
+**One command, zero prerequisites.** The bootstrapper installs everything (Git, Node.js, dependencies) automatically.
+
 ### 🍎 macOS / Linux / WSL
 ```bash
-mkdir -p ~/the_collective && cd ~/the_collective
-curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_unix.sh | bash
 ```
 
-### 🪟 Windows
-> *if you don't have Git or Node.js installed and the command line is spooky, don't worry! just follow these steps:*
->
->\>*this installation process is experimental, manual instructions [here](./QUICKSTART.md)*
+### 🪟 Windows (PowerShell)
+```powershell
+iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_win.ps1 | iex
+```
 
-Open VS Code and use the default Copilot Chat to install dependencies:
+> **For manual installation** or if you prefer to review scripts before running, see [QUICKSTART.md](./QUICKSTART.md)
 
-1. Open Copilot Chat (`ctrl+shift+I` or click the chat icon)
-2. Say: ```Autonomously install Node.js 20 or later, Git Bash for Windows, and ensure VS Code is in PATH ```
-3. Do the things, **restart vscode**, **go to explorer** (`ctrl+shift+E`), open ```>the_collective```
-4. Say: ```install screamingearth/the_collective```
-
-Restart VS Code, then select the `>the_collective` chat mode in Copilot Chat.
-> *hey guys, I'd like to make...*
+---
 
 ### 🧐 verify it works
 

@@ -3,26 +3,36 @@
 # ==============================================================================
 # Part of the_collective by screamingearth (Apache 2.0 licensed, see NOTICE file).
 # ==============================================================================
-# Universal Setup & Bootstrap
+# Internal Setup Script
 # ==============================================================================
-# ONE script that does EVERYTHING:
-#   1. Auto-downloads repo if needed (universal bootstrap)
-#   2. Detects your OS
-#   3. Installs Node.js 22 if missing or outdated
-#   4. Installs all dependencies
-#   5. Builds the memory server
-#   6. Bootstraps core memories
+# This script configures an already-cloned repository:
+#   1. Detects your OS
+#   2. Installs Node.js 22 if missing or outdated
+#   3. Installs all dependencies
+#   4. Builds the memory server
+#   5. Bootstraps core memories
 #
-# Usage (local):
-#   git clone https://github.com/screamingearth/the_collective.git
+# Usage:
+#   Called automatically by bootstrapper scripts, or manually:
 #   cd the_collective
 #   ./setup.sh
 #
-# Usage (bootstrap - downloads repo automatically):
-#   curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.sh | bash
+# For first-time installation, use the bootstrapper:
+#   curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_unix.sh | bash
 # ==============================================================================
 
 set -eo pipefail
+
+# Set download command preference (curl preferred, wget fallback)
+# Used for downloading nvm installer later
+if command -v curl &> /dev/null; then
+    DOWNLOAD_CMD="curl"
+elif command -v wget &> /dev/null; then
+    DOWNLOAD_CMD="wget"
+else
+    # If neither exists, nvm installation will fail with clear error
+    DOWNLOAD_CMD="curl"
+fi
 
 # ==========================================
 # Pre-flight: Fix permissions if needed
@@ -41,98 +51,21 @@ if [[ "${BASH_SOURCE[0]}" == "./setup.sh" ]] || [[ "${BASH_SOURCE[0]}" == "setup
 fi
 
 # ==========================================
-# Repository Configuration
-# ==========================================
-REPO_URL="https://github.com/screamingearth/the_collective.git"
-REPO_TARBALL_URL="https://codeload.github.com/screamingearth/the_collective/tar.gz/main"
-
-# ==========================================
-# BOOTSTRAP: Check if we're in repo directory
+# Verify we're in the repo directory
 # ==========================================
 if [ ! -f "package.json" ] || [ ! -d ".collective" ]; then
-    echo "→ Not in the_collective directory. Downloading repo..."
-    
-    # Check network connectivity before attempting download
-    if ! curl -Is --connect-timeout 5 https://github.com 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
-        echo "✗ Network connectivity issue - cannot reach GitHub"
-        echo "Please check your internet connection and try again"
-        exit 1
-    fi
-    
-    # Check disk space before downloading
-    if command -v df &> /dev/null; then
-        available_mb=$(df -m . 2>/dev/null | tail -1 | awk '{print $4}')
-        required_mb=500
-        if [[ "$available_mb" -lt "$required_mb" ]]; then
-            echo "✗ Insufficient disk space: ${available_mb}MB available, ${required_mb}MB required"
-            exit 1
-        fi
-    fi
-    
-    # Detect tar format
-    if command -v tar &> /dev/null; then
-        # Extract directly to current directory
-        # The tarball contains 'the_collective-main' folder, so we extract it here
-        echo "Extracting repository to current directory..."
-        
-        # Use portable temp directory (works on Windows Git Bash, macOS, Linux)
-        TEMP_FILE="${TMPDIR:-/tmp}/the_collective_repo_$$.tar.gz"
-        
-        # Validate curl succeeds before piping to tar
-        http_code=$(curl --connect-timeout 30 --max-time 600 -fsSL -w "%{http_code}" -o "$TEMP_FILE" "$REPO_TARBALL_URL" 2>/dev/null || echo "000")
-        if [[ "$http_code" != "200" ]]; then
-            echo "✗ Failed to download repository (HTTP $http_code)"
-            rm -f "$TEMP_FILE"
-            exit 1
-        fi
-        
-        tar xzf "$TEMP_FILE" || {
-            echo "✗ Failed to extract repository"
-            rm -f "$TEMP_FILE"
-            exit 1
-        }
-        rm -f "$TEMP_FILE"
-        
-        if [[ ! -d "the_collective-main" ]]; then
-            echo "✗ Repository extraction failed - directory not found"
-            exit 1
-        fi
-        
-        # Move the extracted folder to 'the_collective' for cleaner naming
-        if [[ -d "the_collective" ]]; then
-            echo "✗ 'the_collective' directory already exists. Aborting to prevent overwrite."
-            echo "Please remove it first: rm -rf the_collective"
-            exit 1
-        fi
-        
-        mv the_collective-main the_collective || {
-            echo "✗ Failed to rename extracted directory"
-            exit 1
-        }
-        
-        echo "✓ Repository extracted to ./the_collective"
-        
-        # Change into the newly extracted repository
-        cd the_collective || {
-            echo "✗ Failed to enter repository directory"
-            exit 1
-        }
-        
-        # Verify critical directories exist after extraction
-        if [[ ! -d ".collective" ]]; then
-            echo "✗ .collective directory missing - corrupted download"
-            echo "Try again or clone manually: git clone $REPO_URL"
-            exit 1
-        fi
-        
-        echo ""
-        echo "Setup will now proceed from: $(pwd)"
-        echo ""
-    else
-        echo "✗ tar not found. Please install tar or clone manually:"
-        echo "  git clone https://github.com/screamingearth/the_collective.git"
-        exit 1
-    fi
+    echo "✗ Not in the_collective directory"
+    echo ""
+    echo "This script must be run from within the cloned repository."
+    echo ""
+    echo "Use the bootstrapper for first-time installation:"
+    echo "  curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_unix.sh | bash"
+    echo ""
+    echo "Or clone manually:"
+    echo "  git clone https://github.com/screamingearth/the_collective.git"
+    echo "  cd the_collective"
+    echo "  ./setup.sh"
+    exit 1
 fi
 
 # ==========================================
@@ -158,43 +91,8 @@ case "${OS_TYPE}" in
         ;;
 esac
 
-# ==========================================
-# 2. DEFINE PLATFORM-SPECIFIC COMMANDS
-# ==========================================
-if [ "$IS_WINDOWS" -eq 1 ]; then
-    # Windows/Git Bash specific settings
-    PYTHON_CMD="python"    # Windows usually registers 'python', not 'python3'
-    PIP_CMD="pip"
-    OPEN_CMD="explorer"    # To open folders/files
-    
-    # Define a dummy 'sudo' function because Git Bash runs as the current user
-    # and doesn't have sudo. If admin is needed, the user must run the .bat as Admin.
-    sudo() {
-        # Security: Whitelist only safe package manager commands
-        local cmd="$1"
-        case "$cmd" in
-            apt-get|dnf|pacman|yum|brew)
-                echo "[Windows] Running as current user: $*" >&2
-                "$@"
-                ;;
-            *)
-                echo "[Windows] Error: sudo not available. Command not whitelisted: $cmd" >&2
-                echo "[Windows] If you need admin privileges, run Git Bash as Administrator" >&2
-                return 1
-                ;;
-        esac
-    }
-else
-    # Linux/Mac specific settings
-    PYTHON_CMD="python3"
-    PIP_CMD="pip3"
-    
-    if [[ "$OS_TYPE" == "Darwin"* ]]; then
-        OPEN_CMD="open"
-    else
-        OPEN_CMD="xdg-open"
-    fi
-fi
+# Note: This script runs in bash (including Git Bash on Windows)
+# No Windows-specific commands needed - Git Bash provides Unix-like environment
 
 # ==========================================
 # 3. YOUR MAIN LOGIC STARTS HERE
@@ -275,13 +173,22 @@ step() {
 setup_logging() {
     # Call this after we're in the repo directory
     # This ensures logs go to the correct location
-    mkdir -p .collective/.logs || {
+    
+    # Security: Sanitize log directory path to prevent traversal
+    LOG_DIR=$(realpath ".collective/.logs" 2>/dev/null || echo ".collective/.logs")
+    
+    mkdir -p "$LOG_DIR" || {
         warn "Could not create .collective/.logs directory"
         return 0
     }
     
-    LOG_DIR=".collective/.logs"
     LOG_FILE="$LOG_DIR/setup.log"
+    
+    # Security: Validate path is within expected bounds
+    if [[ "$LOG_FILE" != *"/.collective/.logs/"* ]]; then
+        warn "Log path suspicious: $LOG_FILE - skipping logging"
+        return 0
+    fi
     
     # Validate log file is writable
     if ! touch "$LOG_FILE" 2>/dev/null; then
@@ -524,10 +431,47 @@ install_node() {
 
 install_nvm() {
     info "Installing nvm (Node Version Manager)..."
-    curl --connect-timeout 30 --max-time 300 -o- https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh | bash || {
-        error "Failed to install nvm"
+    
+    # Security: Download script first, then execute (never pipe directly to bash)
+    local nvm_script
+    nvm_script=$(mktemp) || {
+        error "Failed to create temp file for nvm installer"
         exit 1
     }
+    trap "rm -f '$nvm_script'" EXIT INT TERM
+    
+    info "Downloading nvm installer..."
+    if [[ "$DOWNLOAD_CMD" == "curl" ]]; then
+        curl --connect-timeout 30 --max-time 300 --proto '=https' --tlsv1.2 \
+            -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" \
+            -o "$nvm_script" || {
+            error "Failed to download nvm installer"
+            rm -f "$nvm_script"
+            exit 1
+        }
+    else
+        wget --timeout=300 --tries=3 -q -O "$nvm_script" \
+            "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" || {
+            error "Failed to download nvm installer"
+            rm -f "$nvm_script"
+            exit 1
+        }
+    fi
+    
+    # Verify it's a shell script
+    if ! head -1 "$nvm_script" | grep -q "^#!.*sh"; then
+        error "Downloaded nvm installer doesn't look like a shell script"
+        rm -f "$nvm_script"
+        exit 1
+    fi
+    
+    info "Executing nvm installer..."
+    bash "$nvm_script" || {
+        error "Failed to install nvm"
+        rm -f "$nvm_script"
+        exit 1
+    }
+    rm -f "$nvm_script"
 
     export NVM_DIR="$HOME/.nvm"
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" || {
@@ -573,9 +517,19 @@ install_dependencies() {
     
     # Rebuild native modules explicitly - critical for DuckDB on Windows
     info "Rebuilding native modules (DuckDB, etc)..."
-    npm rebuild 2>&1 | head -20
-    # Check npm rebuild's actual exit code using PIPESTATUS
-    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+    
+    # Use timeout to prevent indefinite hangs (5 minutes should be enough)
+    if command -v timeout &> /dev/null; then
+        timeout 300 npm rebuild 2>&1 | head -20
+        local rebuild_status=${PIPESTATUS[0]}
+    else
+        # No timeout command available (macOS by default) - run without timeout
+        npm rebuild 2>&1 | head -20
+        local rebuild_status=${PIPESTATUS[0]}
+    fi
+    
+    # Check npm rebuild's actual exit code
+    if [[ $rebuild_status -ne 0 ]]; then
         warn "npm rebuild encountered issues - attempting to continue"
         info "If you see DuckDB errors, try: npm rebuild --build-from-source"
     fi
@@ -780,10 +734,21 @@ reinit_git_optional() {
             COMMIT_MSG="${COMMIT_MSG:0:500}"
         fi
         
-        git commit -m "$COMMIT_MSG" || {
+        # Security: Reject null bytes (command injection vector)
+        if [[ "$COMMIT_MSG" == *$'\x00'* ]]; then
+            error "Invalid commit message - contains null bytes"
+            return 1
+        fi
+        
+        # Security: Use git commit -F - to pass message via stdin (prevents injection)
+        git commit -F - <<EOF
+$COMMIT_MSG
+EOF
+        
+        if [[ $? -ne 0 ]]; then
             error "Failed to create initial commit"
             return 1
-        }
+        fi
         
         # Optionally set default branch
         git branch -M main 2>/dev/null || true

@@ -4,6 +4,52 @@
 
 </div>
 
+## 🚀 Automatic Install (Recommended)
+
+**Zero-to-hero in one command.** The bootstrapper installs all prerequisites (Git, Node.js) automatically.
+
+### 🍎 macOS / Linux / WSL
+```bash
+curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_unix.sh | bash
+```
+
+### 🪟 Windows (PowerShell)
+```powershell
+iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_win.ps1 | iex
+```
+
+**What it does:**
+1. Installs Git (if missing)
+2. Installs curl/wget (Linux only, if missing)
+3. Clones the repository to `~/the_collective`
+4. Runs the internal setup script
+5. Installs Node.js (if needed) and all dependencies
+6. Builds the memory server and bootstraps core knowledge
+
+**After installation:** Restart VS Code, open the `the_collective` folder, and say "hey nyx" in Copilot Chat.
+
+---
+
+## 🔧 Manual Install (For Control Freaks)
+
+**Prefer to review scripts first?** Download and inspect the bootstrapper before running:
+
+```bash
+# macOS/Linux
+curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_unix.sh -o install.sh
+less install.sh  # Review the script
+bash install.sh
+
+# Windows (PowerShell)
+iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_win.ps1 -OutFile install.ps1
+# Review install.ps1 in editor
+.\install.ps1
+```
+
+Or follow the platform-specific manual instructions below.
+
+---
+
 ### requirements
 
 - **VS Code 1.107+** (December 2025) // [download here](https://code.visualstudio.com/) (free, Stable or Insiders)
