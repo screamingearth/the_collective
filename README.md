@@ -10,7 +10,7 @@
   
 <h3>vision:// further enable humans to harness the power of AI and bring their ideas to life</h3>
 
-\>the_collective is a team of AI agents that work together inside VS Code. instead of one AI assistant, you get specialised personalities that debate, research, and build things collaboratively using powerful tools. it's like having a full dev team in your editor.
+\>the_collective is a team of AI agents that work together inside VS Code. instead of one AI assistant, you get specialised personalities that debate, research, and build things collaboratively using powerful tools.
 
 **no AI expertise required:** if you can handle installing vscode and running a single terminal command, you're good to go.
 
@@ -18,43 +18,36 @@
 
 ### ⚡ quick start
 
-#### 🪟 Windows
->\>*if you're not familiar with the command line interface:*
-
-1. Click here to download: [Download ZIP](https://github.com/screamingearth/the_collective/archive/refs/heads/main.zip)
-2. Right-click the ZIP file → **Extract All** → choose a folder (e.g., Desktop or Documents)
-3. Open the extracted folder → **double-click `setup.bat`** 
-4. Do the thing
-5. Restart VS Code
-6. ????
-7. Profit!
-
-##### 🪟 Windows (if you have git)
-```powershell
-git clone https://github.com/screamingearth/the_collective.git
-cd the_collective
-.\setup.bat
-```
-
-#### 🍎 macOS / Linux
+### 🍎 macOS / Linux
 ```bash
 git clone https://github.com/screamingearth/the_collective.git
 cd the_collective
 ./setup.sh
 ```
 
-**Note:** If Git isn't installed, the setup script will attempt to install it automatically
+### 🪟 Windows
+> *if you don't have Git or Node.js installed and the command line is spooky, don't worry! just follow these steps:*
 
-#### ✅ Verify Installation
-```bash
-npm run check  # full health check
-```
+Open VS Code and use the default Copilot Chat to install dependencies:
 
-### 🎉 You're all set!
-restart VS Code after setup, open copilot chat with the_collective, 
-> hey guys, I'd like to make...
+1. Open Copilot Chat (`Ctrl+Shift+I` or click the chat icon)
+2. Ask: `Install Node.js 20 or later, Git for Windows, and ensure VS Code is in PATH`
+3. Follow Copilot's installation guidance
+4. Ask copilot "install screamingearth/the_collective"
 
 <br>
+
+```bash
+git clone https://github.com/screamingearth/the_collective.git
+cd the_collective
+./setup.sh      # macOS/Linux
+.\windows.ps1   # Windows
+```
+
+Restart VS Code, then select the `>the_collective` chat mode in Copilot Chat.
+> *hey guys, I'd like to make...*
+
+**[→ Detailed setup guide](./QUICKSTART.md)**
 
 ## 🤖 the team
 
@@ -102,76 +95,26 @@ restart VS Code after setup, open copilot chat with the_collective,
 
 ## 📋 requirements
 
-**core:**
-- **VS Code 1.107+** ([download](https://code.visualstudio.com/)) with **GitHub Copilot** subscription or free account
-- **macOS, Linux, or Windows**
+- **VS Code 1.107+** with **GitHub Copilot**
+- **Node.js 20+** (auto-installed on macOS/Linux)
+- **macOS, Linux, or Windows 10/11**
 
-**recommended:**
-- VS Code **Insiders** build for seamless MCP auto-startup
-- 4GB+ RAM (MCP servers + vector embeddings)
-- 500MB+ disk space (dependencies + memory database)
-
-### VS Code Edition Comparison
-
-| feature | insiders | stable |
-|---------|----------|--------|
-| **MCP auto-startup** | ✅ automatic | ⚠️ manual (1 task) |
-| **Agent defaults** | ✅ immediate | ⚠️ ~1 setup step |
-| **Experimental features** | ✅ yes | ✅ stable |
-| **Release cycle** | daily | monthly |
+**[→ System requirements & troubleshooting](./QUICKSTART.md)**
 
 <br>
 
 ## 📖 documentation
 
-- **[/docs/ (technical jargon)](./docs/)** // architecture, MCP servers, memory system
-- **[QUICKSTART.md](./QUICKSTART.md)** // detailed setup & troubleshooting
+- **[/docs/](./docs/)** — architecture, MCP servers, memory system
+- **[NOTICE](./NOTICE)** — legal notices & attributions
+- **[QUICKSTART.md](./QUICKSTART.md)** — setup, requirements, troubleshooting
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** — development guide & guidelines
+- **[THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md)** — open-source attributions & licenses - thank you FOSS developers 🖤
 
-- **[CHANGELOG.md](./CHANGELOG.md)** // release notes & version history 
-- **[CONTRIBUTING.md](./CONTRIBUTING.md)** // development setup, code of conduct, PR guidelines
-- **[THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md)** // open-source attributions & licenses
-- **[NOTICE](./NOTICE)** // licensing, trademark, and attribution guidelines
-
-<br>
-
-## 🆘 troubleshooting
-
-```bash
-npm run check              # full health check
-npm run check -- --quick   # fast validation
-npm run check -- --memory  # memory system only
-```
-
-**logs & diagnostics:**
-
-All setup and check operations are logged to `.collective/.logs/` for troubleshooting:
-- `setup.log` — recorded during `./setup.sh`
-- `check.log` — recorded during `npm run check`
-
-When reporting issues, include the relevant log file from `.collective/.logs/`.
-
-**common issues:**
-
-| issue | solution |
-|-------|----------|
-| MCP servers not starting | VS Code Stable: run task "Start MCP Servers" (Ctrl+Shift+P) |
-| memory not loading | `cd .collective/memory-server && npm run build && npm run bootstrap` |
-| database locked | close VS Code, retry |
-| agents not responding | check `npm run check`, ensure Copilot subscription active |
-| memory reset needed | `rm .mcp/collective_memory.duckdb* && npm run bootstrap` |
-
-See [QUICKSTART.md](./QUICKSTART.md#troubleshooting) for detailed troubleshooting.
 
 <br>
 
-## 🌐 community & support
 
-- **GitHub Issues** // [report bugs](https://github.com/screamingearth/the_collective/issues/new/choose)
-- **Discussions** // [ideas, questions, show your work](https://github.com/screamingearth/the_collective/discussions)
-- **Reddit** // [r/vscode](https://reddit.com/r/vscode), [r/githubcopilot](https://reddit.com/r/githubcopilot)
-- **Documentation** // start with [QUICKSTART.md](./QUICKSTART.md)
-  
-<br>
 
 ## ⚖️ License & Legal
 

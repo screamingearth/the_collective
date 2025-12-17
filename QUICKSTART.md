@@ -7,8 +7,22 @@
 ### requirements
 
 - **VS Code 1.107+** (December 2025) // [download here](https://code.visualstudio.com/) (free, Stable or Insiders)
-- **Node.js 20+** // auto-installed by the setup script, or [download here](https://nodejs.org/)
+- **Node.js 20+** // auto-installed by setup script on macOS/Linux, or [download here](https://nodejs.org/)
 - **GitHub Copilot** // free plan or subscription with chat access
+
+**Recommended:**
+- 4GB+ RAM (for MCP servers + vector embeddings)
+- 500MB+ disk space (dependencies + memory database)
+
+### vs code edition comparison
+
+| Feature | Insiders | Stable |
+|---------|----------|--------|
+| **MCP auto-startup** | ✅ Automatic | ⚠️ Manual (run task once) |
+| **Experimental features** | ✅ Yes | ✅ Stable only |
+| **Release cycle** | Daily | Monthly |
+
+Both editions work great. Insiders just auto-starts MCP servers on workspace open.
 
 ### supported platforms
 
@@ -16,35 +30,44 @@
 |----------|--------|-------|
 | **Linux** | ✅ Supported | Ubuntu, Fedora, Debian, Arch, etc. |
 | **macOS** | ✅ Supported | Intel and Apple Silicon |
-| **Windows** | ✅ Supported | Windows 10/11 (native PowerShell, no dependencies) |
+| **Windows** | ✅ Supported | Windows 10/11 |
 
 ## first time setup
 
 ### setup
 
-#### 🪟 Windows - Recommended for Beginners
-**No command line needed:**
-1. Download the repository: [Download ZIP](https://github.com/screamingearth/the_collective/archive/refs/heads/main.zip)
-2. Right-click the downloaded ZIP → **Extract All** → choose where to save (Desktop or Documents)
-3. Open the extracted folder
-4. Find `setup.bat` and **double-click it**
-5. Wait for installation to complete (2-5 minutes)
-6. Restart VS Code
+#### 🪟 Windows
 
-**What it does automatically:**
-- Installs Node.js if missing
-- Installs all dependencies
-- Builds the memory and Gemini servers
-- Sets up MCP integration with VS Code
+**Step 1: Install dependencies**
 
-#### 🪟 Windows - If You Have Git
+Open VS Code and use Copilot Chat to install dependencies:
+
+1. Open Copilot Chat (`Ctrl+Shift+I` or click the chat icon)
+2. Ask: `Install Node.js 20 or later, Git for Windows, and ensure VS Code is in PATH`
+3. Follow Copilot's installation guidance
+4. Ask copilot "install screamingearth/the_collective"
+
+**Step 2: Clone and setup**
+
+Open a terminal in VS Code (`Ctrl+`` `) and run:
+
 ```powershell
 git clone https://github.com/screamingearth/the_collective.git
 cd the_collective
-.\setup.bat
+.\windows.ps1
 ```
 
-**Don't have Git?** Download from [git-scm.com](https://git-scm.com/) (click "Download"), install it, then run the commands above.
+The setup script will:
+- Verify dependencies are installed
+- Install npm packages
+- Build MCP servers (memory + Gemini bridge)
+- Bootstrap the memory system
+- Optionally configure Gemini integration
+
+**Troubleshooting:**
+- **Bash not found:** Reinstall Git for Windows and ensure Git Bash is selected during installation
+- **Node.js not found:** Use Copilot Chat to install Node.js, then rerun setup
+- **Permission errors:** Run terminal as Administrator
 
 #### 🍎 macOS / Linux
 ```bash
@@ -58,20 +81,6 @@ cd the_collective
 - **Linux:** Uses apt/dnf/pacman (installs automatically if you confirm)
 
 Then open the folder in VS Code and you're ready to go.
-
-**🔒 Security & Trust:**
-- **Session-only:** ExecutionPolicy -Bypass - Only affects the current PowerShell session, doesn't change system settings
-- **No admin required:** Runs with your normal user permissions
-- **Antivirus still active:** Windows Defender and other security software remain fully functional
-- **Open source:** Both setup.bat and setup.ps1 are readable before you run them
-
-
-**Common Issues:**
-- **"setup.bat not recognized":** You're in PowerShell—use `.\setup.bat` (with `./` prefix)
-- **"execution policy" error:** The setup.bat launcher handles this automatically. If running setup.ps1 directly, you can use the launcher or run `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`
-- **"PowerShell error" on Windows 7/8:** Your system has PowerShell < 5.1. Install Windows Management Framework 5.1 from Microsoft and try again
-- **Permission errors:** Try running terminal as Administrator
-- **Node install fails:** Manually install from https://nodejs.org/ and rerun setup
 
 ## automatic mcp server startup
 
@@ -208,31 +217,55 @@ the free tier gives you:
 
 ## troubleshooting
 
-**Something not working?**
+### health checks
+
 ```bash
-npm run check
+npm run check              # full health check
+npm run check -- --quick   # fast validation
+npm run check -- --memory  # memory system only
 ```
 
-**Memory issues:**
-```bash
-npm run check -- --memory
-```
+### logs & diagnostics
 
-**Reset memory (but keep core knowledge):**
+All operations are logged to `.collective/.logs/`:
+- `setup.log` — setup script output
+- `check.log` — health check results
+
+When reporting issues, include relevant logs from `.collective/.logs/`.
+
+### common issues
+
+| Issue | Solution |
+|-------|----------|
+| **MCP servers not starting** | VS Code Stable: Ctrl+Shift+P → "Run Task" → "Start Memory Server" |
+| **Memory not loading** | `cd .collective/memory-server && npm run build && npm run bootstrap` |
+| **Database locked** | Close VS Code completely, then retry |
+| **Agents not responding** | Run `npm run check`, ensure Copilot subscription active |
+| **Build failed** | `npm run clean && ./setup.sh` (or `.\windows.ps1`) |
+| **Memory reset needed** | `rm .mcp/collective_memory.duckdb* && npm run bootstrap` |
+
+### windows-specific issues
+
+| Issue | Solution |
+|-------|----------|
+| **Bash not found** | Reinstall Git for Windows, select "Git Bash" during install |
+| **Node.js not found** | Ask Copilot Chat: `Install Node.js 20 or later` |
+| **Permission errors** | Run terminal as Administrator |
+
+### advanced troubleshooting
+
+**Reset memory but keep core knowledge:**
 ```bash
 npm run reset:memories -- --keep-core
 ```
 
-**"Database locked" error:**
-Normal when VS Code is open. Close VS Code first, then retry.
-
-**Build failed?**
+**Rebuild everything from scratch:**
 ```bash
 npm run clean
-./setup.sh
+./setup.sh  # or .\windows.ps1 on Windows
 ```
 
-For detailed troubleshooting, see [docs/README.md](docs/README.md#troubleshooting).
+For technical deep dives, see [docs/README.md](docs/README.md).
 
 <br><div align="center">
   
