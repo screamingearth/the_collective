@@ -22,6 +22,19 @@ curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/
 cd the_collective
 ```
 
+**or manually:**
+```bash
+git clone https://github.com/screamingearth/the_collective.git
+cd the_collective
+bash setup.sh  # or: chmod +x setup.sh && ./setup.sh
+```
+
+**or bootstrap mode** (script downloads the repo):
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.sh)
+```
+This will download and extract the repo to `./the_collective` and run setup automatically.
+
 ### 🪟 Windows
 > *if you don't have Git or Node.js installed and the command line is spooky, don't worry! just follow these steps:*
 >

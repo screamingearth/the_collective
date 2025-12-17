@@ -62,6 +62,16 @@ cd the_collective
 ./setup.sh
 ```
 
+**If you get "permission denied":**
+```bash
+# Option 1: Make it executable, then run (recommended)
+chmod +x setup.sh
+./setup.sh
+
+# Option 2: Run with bash directly (works without execute permission)
+bash setup.sh
+```
+
 ## 🍎 macOS
 
 **Step 1: Install Homebrew** (if not already installed)
@@ -100,10 +110,10 @@ Open Git Bash (or a terminal in VS Code using Bash) and run:
 ```bash
 git clone https://github.com/screamingearth/the_collective.git
 cd the_collective
-./setup.sh
+bash setup.sh
 ```
 
-This downloads and extracts the repo automatically, then runs setup.
+**Note:** Use `bash setup.sh` on Windows instead of `./setup.sh` to avoid permission issues with Git Bash.
 
 ## what setup.sh does
 

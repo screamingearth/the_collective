@@ -25,38 +25,72 @@
 set -e
 
 # ==========================================
+# Pre-flight: Fix permissions if needed
+# ==========================================
+# If this script was copied/downloaded without execute permissions, fix it
+if [[ "${BASH_SOURCE[0]}" == "./setup.sh" ]] || [[ "${BASH_SOURCE[0]}" == "setup.sh" ]]; then
+    SCRIPT_PATH="${BASH_SOURCE[0]}"
+    if [[ ! -x "$SCRIPT_PATH" ]]; then
+        echo "⚠️  setup.sh doesn't have execute permissions. Fixing..."
+        chmod +x "$SCRIPT_PATH" 2>/dev/null || {
+            echo "Note: chmod failed - if you see 'permission denied', restart your terminal and try again"
+        }
+    fi
+fi
+
+# ==========================================
+# Repository Configuration
+# ==========================================
+REPO_URL="https://github.com/screamingearth/the_collective.git"
+REPO_TARBALL_URL="https://codeload.github.com/screamingearth/the_collective/tar.gz/main"
+
+# ==========================================
 # BOOTSTRAP: Check if we're in repo directory
 # ==========================================
 if [ ! -f "package.json" ] || [ ! -d ".collective" ]; then
     echo "→ Not in the_collective directory. Downloading repo..."
     
+    # Store the original directory so we can return to it if needed
+    ORIGINAL_DIR="$(pwd)"
+    
     # Detect tar format
     if command -v tar &> /dev/null; then
-        TEMP_DIR=$(mktemp -d) || {
-            echo "✗ Failed to create temp directory"
-            exit 1
-        }
-        cd "$TEMP_DIR" || {
-            echo "✗ Failed to enter temp directory"
-            rm -rf "$TEMP_DIR" 2>/dev/null
-            exit 1
-        }
+        # Extract directly to current directory
+        # The tarball contains 'the_collective-main' folder, so we extract it here
+        echo "Extracting repository to current directory..."
         curl --connect-timeout 30 --max-time 600 -fsSL "$REPO_TARBALL_URL" | tar xz || {
             echo "✗ Failed to download/extract repository"
-            cd - > /dev/null 2>&1
-            rm -rf "$TEMP_DIR" 2>/dev/null
             exit 1
         }
+        
         if [[ ! -d "the_collective-main" ]]; then
             echo "✗ Repository extraction failed - directory not found"
-            cd - > /dev/null 2>&1
-            rm -rf "$TEMP_DIR" 2>/dev/null
             exit 1
         fi
-        cd the_collective-main || {
+        
+        # Move the extracted folder to 'the_collective' for cleaner naming
+        if [[ -d "the_collective" ]]; then
+            echo "✗ 'the_collective' directory already exists. Aborting to prevent overwrite."
+            echo "Please remove it first: rm -rf the_collective"
+            exit 1
+        fi
+        
+        mv the_collective-main the_collective || {
+            echo "✗ Failed to rename extracted directory"
+            exit 1
+        }
+        
+        echo "✓ Repository extracted to ./the_collective"
+        
+        # Change into the newly extracted repository
+        cd the_collective || {
             echo "✗ Failed to enter repository directory"
             exit 1
         }
+        
+        echo ""
+        echo "Setup will now proceed from: $(pwd)"
+        echo ""
     else
         echo "✗ tar not found. Please install tar or clone manually:"
         echo "  git clone https://github.com/screamingearth/the_collective.git"
@@ -140,33 +174,12 @@ NC='\033[0m'
 BOLD='\033[1m'
 DIM='\033[2m'
 
-# Setup logging (after colors defined)
-# Use absolute path to ensure logs work from any directory
-SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-LOG_DIR="$SCRIPT_ROOT/.collective/logs"
-mkdir -p "$LOG_DIR" 2>/dev/null || {
-    # Fallback if .collective directory doesn't exist or has permission issues
-    LOG_DIR="/tmp/the_collective_logs"
-    mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="."
-}
-LOG_FILE="$LOG_DIR/setup.log"
-# Validate log file is writable
-if ! touch "$LOG_FILE" 2>/dev/null; then
-    echo "ERROR: Cannot write to log file: $LOG_FILE" >&2
-    exit 1
-fi
-exec 1> >(tee -a "$LOG_FILE")
-exec 2>&1
+# Note: Logging will be set up later, after we determine the correct repo directory
 
 # Node.js version requirements
 MIN_NODE_VERSION=20
 PREFERRED_NODE_VERSION=22
 NVM_VERSION="v0.40.1"  # Update periodically - check https://github.com/nvm-sh/nvm/releases
-
-# Repository configuration
-REPO_URL="https://github.com/screamingearth/the_collective.git"
-REPO_TARBALL_URL="https://codeload.github.com/screamingearth/the_collective/tar.gz/main"
 
 # Timeouts (in seconds)
 GEMINI_AUTH_TIMEOUT=600  # 10 minutes for OAuth browser flow
@@ -208,6 +221,37 @@ step() {
     echo ""
     echo -e "${CYAN}${BOLD}[$1/$2] $3${NC}"
     echo -e "${DIM}────────────────────────────────────────${NC}"
+}
+
+setup_logging() {
+    # Call this after we're in the repo directory
+    # This ensures logs go to the correct location
+    mkdir -p .collective/.logs || {
+        warn "Could not create .collective/.logs directory"
+        return 0
+    }
+    
+    LOG_DIR=".collective/.logs"
+    LOG_FILE="$LOG_DIR/setup.log"
+    
+    # Validate log file is writable
+    if ! touch "$LOG_FILE" 2>/dev/null; then
+        warn "Cannot write to $LOG_FILE"
+        return 0
+    fi
+    
+    # Set up logging with fallback for non-bash shells
+    # Bash supports process substitution >(tee), other shells don't
+    if [ -n "$BASH_VERSION" ]; then
+        # In bash: redirect to both stdout and file using process substitution
+        exec 1> >(tee -a "$LOG_FILE")
+        exec 2>&1
+    else
+        # Not in bash: redirect to file only (safer, more portable)
+        exec >> "$LOG_FILE" 2>&1
+    fi
+    
+    echo "📝 Setup log: $(pwd)/$LOG_FILE"
 }
 
 cleanup_on_exit() {
@@ -465,7 +509,13 @@ install_dependencies() {
         error "Failed to install memory-server dependencies"
         exit 1
     }
-    npm rebuild 2>/dev/null || warn "npm rebuild had issues (non-critical)"
+    
+    # Rebuild native modules explicitly - critical for DuckDB on Windows
+    info "Rebuilding native modules (DuckDB, etc)..."
+    npm rebuild --verbose 2>&1 | head -20 || {
+        warn "npm rebuild encountered issues - attempting to continue"
+        info "If you see DuckDB errors, try: npm rebuild --build-from-source"
+    }
     success "Memory server dependencies installed"
     cd ../.. || {
         error "Failed to return to root directory"
@@ -521,10 +571,25 @@ bootstrap_memories() {
         error "Failed to enter memory-server directory"
         exit 1
     }
-    npm run bootstrap || {
-        error "Failed to bootstrap memories"
+    
+    # Try bootstrap with better error handling for native module issues
+    if ! npm run bootstrap 2>&1; then
+        error "Bootstrap failed - likely a native module issue"
+        echo ""
+        warn "Troubleshooting for Windows users:"
+        warn "1. If you see 'Segmentation fault', try rebuilding native modules:"
+        warn "   npm rebuild --build-from-source"
+        warn ""
+        warn "2. Ensure you have Windows Build Tools installed:"
+        warn "   npm install --global windows-build-tools"
+        warn ""
+        warn "3. Or install Visual Studio with C++ build tools"
+        warn ""
+        warn "After installing tools, run: ./setup.sh"
+        cd ../.. > /dev/null 2>&1
         exit 1
-    }
+    fi
+    
     cd ../.. || {
         error "Failed to return to root directory"
         exit 1
@@ -765,7 +830,9 @@ clone_if_needed() {
 
 main() {
     print_banner
-    info "Setup log: $LOG_FILE"
+    
+    # Set up logging now that we're in the correct directory
+    setup_logging
 
     # Pre-flight checks
     check_disk_space
