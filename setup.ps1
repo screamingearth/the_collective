@@ -104,7 +104,7 @@ function Write-Step {
     Write-Host ""
     Write-Host "[$Current/$Total] $Message" -ForegroundColor Cyan
     Write-Host "────────────────────────────────────────" -ForegroundColor DarkGray
-    Write-Log "STEP $Current/$Total: $Message"
+    Write-Log "STEP ${Current}/${Total}: $Message"
 }
 
 # ==========================================
@@ -149,7 +149,7 @@ function Install-NodeJS {
     $nvmDir = "$env:APPDATA\nvm"
     if (Test-Path $nvmDir) {
         Write-Info "Found nvm-windows..."
-        Write-Warning "Please run manually: nvm install $PREFERRED_NODE_VERSION && nvm use $PREFERRED_NODE_VERSION"
+        Write-Warning "Please run manually: nvm install $PREFERRED_NODE_VERSION`nThen: nvm use $PREFERRED_NODE_VERSION"
         Write-Host "Press Enter after installing Node.js..."
         Read-Host
         return
@@ -161,7 +161,7 @@ function Install-NodeJS {
         try {
             choco install nodejs --version=$PREFERRED_NODE_VERSION -y
             # Refresh environment
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+            $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User')
             Write-Success "Node.js installed via Chocolatey"
             return
         } catch {
@@ -175,7 +175,7 @@ function Install-NodeJS {
         try {
             winget install OpenJS.NodeJS --version $PREFERRED_NODE_VERSION --silent --accept-package-agreements --accept-source-agreements
             # Refresh environment
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+            $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User')
             Write-Success "Node.js installed via winget"
             return
         } catch {
@@ -321,11 +321,11 @@ function Initialize-GeminiOptional {
             npm run auth
             Write-Success "Gemini tools authentication successful"
         } catch {
-            Write-Warning "Gemini authentication did not complete (you can run it later with: cd .collective\gemini-bridge && npm run auth)"
+            Write-Warning "Gemini authentication did not complete (you can run it later with: cd .collective\gemini-bridge; npm run auth)"
         }
         Pop-Location
     } else {
-        Write-Info "Skipping Gemini setup (you can run 'cd .collective\gemini-bridge && npm run auth' later)"
+        Write-Info "Skipping Gemini setup (you can run 'cd .collective\gemini-bridge; npm run auth' later)"
     }
 }
 
@@ -405,10 +405,10 @@ function Write-CompletionMessage {
     Write-Host "   Next steps:" -ForegroundColor Cyan
     Write-Host "   1. Restart VS Code (to load MCP servers)"
     Write-Host "   2. Open Copilot Chat and say " -NoNewline
-    Write-Host "'hey nyx'" -ForegroundColor Magenta
+    Write-Host '"hey nyx"' -ForegroundColor Magenta
     Write-Host ""
     Write-Host "   Verify anytime: npm run check" -ForegroundColor DarkGray
-    Write-Host "   Enable Gemini later: cd .collective\gemini-bridge && npm run auth" -ForegroundColor DarkGray
+    Write-Host "   Enable Gemini later: cd .collective\gemini-bridge; npm run auth" -ForegroundColor DarkGray
     Write-Host ""
     Write-Log "Setup completed successfully at $(Get-Date)"
 }
@@ -423,7 +423,7 @@ function Install-GitIfNeeded {
             try {
                 winget install --id Git.Git -e --source winget --silent --accept-package-agreements --accept-source-agreements
                 # Refresh environment
-                $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+                $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User')
                 Write-Success "Git installed via winget"
                 return
             } catch {
@@ -437,7 +437,7 @@ function Install-GitIfNeeded {
             try {
                 choco install git -y
                 # Refresh environment
-                $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+                $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User')
                 Write-Success "Git installed via Chocolatey"
                 return
             } catch {
