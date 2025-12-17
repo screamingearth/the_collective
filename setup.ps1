@@ -178,7 +178,9 @@ function Install-NodeJS {
         try {
             choco install nodejs --version=$PREFERRED_NODE_VERSION -y
             # Refresh environment
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+            $machinePath = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+            $userPath = [System.Environment]::GetEnvironmentVariable("Path","User")
+            $env:Path = $machinePath + ";" + $userPath
             Write-Success "Node.js installed via Chocolatey"
             return
         } catch {
@@ -192,7 +194,9 @@ function Install-NodeJS {
         try {
             winget install OpenJS.NodeJS --version $PREFERRED_NODE_VERSION --silent --accept-package-agreements --accept-source-agreements
             # Refresh environment
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+            $machinePath = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+            $userPath = [System.Environment]::GetEnvironmentVariable("Path","User")
+            $env:Path = $machinePath + ";" + $userPath
             Write-Success "Node.js installed via winget"
             return
         } catch {
@@ -422,7 +426,7 @@ function Write-CompletionMessage {
     Write-Host "   Next steps:" -ForegroundColor Cyan
     Write-Host "   1. Restart VS Code (to load MCP servers)"
     Write-Host "   2. Open Copilot Chat and say " -NoNewline
-    Write-Host '"hey nyx"' -ForegroundColor Magenta
+    Write-Host "`"hey nyx`"" -ForegroundColor Magenta
     Write-Host ""
     Write-Host "   Verify anytime: npm run check" -ForegroundColor DarkGray
     Write-Host "   Enable Gemini later: cd .collective\gemini-bridge; npm run auth" -ForegroundColor DarkGray
@@ -440,7 +444,9 @@ function Install-GitIfNeeded {
             try {
                 winget install --id Git.Git -e --source winget --silent --accept-package-agreements --accept-source-agreements
                 # Refresh environment
-                $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+                $machinePath = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+                $userPath = [System.Environment]::GetEnvironmentVariable("Path","User")
+                $env:Path = $machinePath + ";" + $userPath
                 Write-Success "Git installed via winget"
                 return
             } catch {
@@ -454,7 +460,9 @@ function Install-GitIfNeeded {
             try {
                 choco install git -y
                 # Refresh environment
-                $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+                $machinePath = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+                $userPath = [System.Environment]::GetEnvironmentVariable("Path","User")
+                $env:Path = $machinePath + ";" + $userPath
                 Write-Success "Git installed via Chocolatey"
                 return
             } catch {
