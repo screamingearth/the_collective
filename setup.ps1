@@ -31,17 +31,6 @@ $ErrorActionPreference = "Stop"
 $MIN_NODE_VERSION = 20
 $PREFERRED_NODE_VERSION = 22
 
-# Colors (ANSI escape codes for PowerShell)
-$RED = "`e[31m"
-$GREEN = "`e[32m"
-$YELLOW = "`e[33m"
-$BLUE = "`e[34m"
-$MAGENTA = "`e[35m"
-$CYAN = "`e[36m"
-$RESET = "`e[0m"
-$BOLD = "`e[1m"
-$DIM = "`e[2m"
-
 # ==========================================
 # LOGGING SETUP
 # ==========================================
@@ -69,40 +58,40 @@ Write-Log "=== Setup started at $(Get-Date) ==="
 
 function Write-Banner {
     Write-Host ""
-    Write-Host "${CYAN}   ▀█▀ █ █ █▀▀${RESET}"
-    Write-Host "${CYAN}    █  █▀█ ██▄${RESET}"
-    Write-Host "${MAGENTA}   █▀▀ █▀█ █   █   █▀▀ █▀▀ ▀█▀ █ █ █ █▀▀${RESET}"
-    Write-Host "${MAGENTA}   █▄▄ █▄█ █▄▄ █▄▄ ██▄ █▄▄  █  █ ▀▄▀ ██▄${RESET}"
+    Write-Host "   ▀█▀ █ █ █▀▀" -ForegroundColor Cyan
+    Write-Host "    █  █▀█ ██▄" -ForegroundColor Cyan
+    Write-Host "   █▀▀ █▀█ █   █   █▀▀ █▀▀ ▀█▀ █ █ █ █▀▀" -ForegroundColor Magenta
+    Write-Host "   █▄▄ █▄█ █▄▄ █▄▄ ██▄ █▄▄  █  █ ▀▄▀ ██▄" -ForegroundColor Magenta
     Write-Host ""
-    Write-Host "   ${BOLD}Windows PowerShell Setup${RESET}"
+    Write-Host "   Windows PowerShell Setup" -ForegroundColor White
     Write-Host ""
 }
 
 function Write-Info {
     param([string]$Message)
-    $output = "${BLUE}ℹ${RESET} $Message"
-    Write-Host $output
+    Write-Host "ℹ " -ForegroundColor Blue -NoNewline
+    Write-Host $Message
     Write-Log "INFO: $Message"
 }
 
 function Write-Success {
     param([string]$Message)
-    $output = "${GREEN}✓${RESET} $Message"
-    Write-Host $output
+    Write-Host "✓ " -ForegroundColor Green -NoNewline
+    Write-Host $Message
     Write-Log "SUCCESS: $Message"
 }
 
 function Write-Warning {
     param([string]$Message)
-    $output = "${YELLOW}⚠${RESET} $Message"
-    Write-Host $output
+    Write-Host "⚠ " -ForegroundColor Yellow -NoNewline
+    Write-Host $Message
     Write-Log "WARNING: $Message"
 }
 
 function Write-Error {
     param([string]$Message)
-    $output = "${RED}✗${RESET} $Message"
-    Write-Host $output
+    Write-Host "✗ " -ForegroundColor Red -NoNewline
+    Write-Host $Message
     Write-Log "ERROR: $Message"
 }
 
@@ -113,8 +102,8 @@ function Write-Step {
         [string]$Message
     )
     Write-Host ""
-    Write-Host "${CYAN}${BOLD}[$Current/$Total] $Message${RESET}"
-    Write-Host "${DIM}────────────────────────────────────────${RESET}"
+    Write-Host "[$Current/$Total] $Message" -ForegroundColor Cyan
+    Write-Host "────────────────────────────────────────" -ForegroundColor DarkGray
     Write-Log "STEP $Current/$Total: $Message"
 }
 
@@ -197,14 +186,17 @@ function Install-NodeJS {
     # Manual fallback
     Write-Error "Could not auto-install Node.js"
     Write-Host ""
-    Write-Host "${YELLOW}Please install Node.js manually:${RESET}"
-    Write-Host "  1. Download from: ${CYAN}https://nodejs.org/${RESET}"
+    Write-Host "Please install Node.js manually:" -ForegroundColor Yellow
+    Write-Host "  1. Download from: " -NoNewline
+    Write-Host "https://nodejs.org/" -ForegroundColor Cyan
     Write-Host "  2. Install Node.js $PREFERRED_NODE_VERSION or later"
     Write-Host "  3. Restart this script"
     Write-Host ""
     Write-Host "Or install a Node version manager:"
-    Write-Host "  - fnm: ${CYAN}https://github.com/Schniz/fnm#installation${RESET}"
-    Write-Host "  - nvm-windows: ${CYAN}https://github.com/coreybutler/nvm-windows${RESET}"
+    Write-Host "  - fnm: " -NoNewline
+    Write-Host "https://github.com/Schniz/fnm#installation" -ForegroundColor Cyan
+    Write-Host "  - nvm-windows: " -NoNewline
+    Write-Host "https://github.com/coreybutler/nvm-windows" -ForegroundColor Cyan
     Write-Host ""
     exit 1
 }
@@ -312,20 +304,24 @@ function Test-VSCodeConfig {
 
 function Initialize-GeminiOptional {
     Write-Host ""
-    Write-Host "${CYAN}${BOLD}Optional: Gemini Research Tools${RESET}"
-    Write-Host "${DIM}Enable cognitive diversity via Google's Gemini (different AI model)${RESET}"
+    Write-Host "Optional: Gemini Research Tools" -ForegroundColor Cyan
+    Write-Host "Enable cognitive diversity via Google's Gemini (different AI model)" -ForegroundColor DarkGray
     Write-Host ""
     
     $response = Read-Host "Enable Gemini tools? [y/N]"
     
     if ($response -match "^[Yy]") {
         Write-Info "Setting up Gemini authentication..."
+        Write-Info "A browser window will open for Google OAuth authentication"
+        Write-Info "If the browser doesn't open automatically, visit the URL shown in the terminal"
+        Write-Host ""
+        
         Push-Location ".collective\gemini-bridge"
         try {
             npm run auth
-            Write-Success "Gemini tools setup attempted"
+            Write-Success "Gemini tools authentication successful"
         } catch {
-            Write-Warning "Gemini authentication did not complete (you can run it later)"
+            Write-Warning "Gemini authentication did not complete (you can run it later with: cd .collective\gemini-bridge && npm run auth)"
         }
         Pop-Location
     } else {
@@ -335,8 +331,8 @@ function Initialize-GeminiOptional {
 
 function Initialize-FreshGitOptional {
     Write-Host ""
-    Write-Host "${CYAN}${BOLD}Optional: Fresh Repository${RESET}"
-    Write-Host "${DIM}Replace git history with a new repository${RESET}"
+    Write-Host "Optional: Fresh Repository" -ForegroundColor Cyan
+    Write-Host "Replace git history with a new repository" -ForegroundColor DarkGray
     Write-Host ""
     
     $response = Read-Host "Initialize fresh git repo? [y/N]"
@@ -371,8 +367,9 @@ function Initialize-FreshGitOptional {
         
         # Prompt for custom commit message
         Write-Host ""
-        Write-Host "${CYAN}Initial commit message:${RESET}"
-        Write-Host "  Default: ${DIM}Initial commit from the_collective template${RESET}"
+        Write-Host "Initial commit message:" -ForegroundColor Cyan
+        Write-Host "  Default: " -NoNewline
+        Write-Host "Initial commit from the_collective template" -ForegroundColor DarkGray
         $commitMsg = Read-Host "  Enter custom message (or press Enter for default)"
         
         if ([string]::IsNullOrWhiteSpace($commitMsg)) {
@@ -401,16 +398,17 @@ function Initialize-FreshGitOptional {
 
 function Write-CompletionMessage {
     Write-Host ""
-    Write-Host "${GREEN}════════════════════════════════════════════════${RESET}"
-    Write-Host "${GREEN}${BOLD}🎉 Setup complete!${RESET}"
-    Write-Host "${GREEN}════════════════════════════════════════════════${RESET}"
+    Write-Host "════════════════════════════════════════════════" -ForegroundColor Green
+    Write-Host "🎉 Setup complete!" -ForegroundColor Green
+    Write-Host "════════════════════════════════════════════════" -ForegroundColor Green
     Write-Host ""
-    Write-Host "   ${CYAN}Next steps:${RESET}"
-    Write-Host "   1. ${BOLD}Restart VS Code${RESET} (to load MCP servers)"
-    Write-Host "   2. Open Copilot Chat and say `"${MAGENTA}hey nyx${RESET}`""
+    Write-Host "   Next steps:" -ForegroundColor Cyan
+    Write-Host "   1. Restart VS Code (to load MCP servers)"
+    Write-Host "   2. Open Copilot Chat and say " -NoNewline
+    Write-Host "'hey nyx'" -ForegroundColor Magenta
     Write-Host ""
-    Write-Host "   ${DIM}Verify anytime: npm run check${RESET}"
-    Write-Host "   ${DIM}Enable Gemini later: cd .collective\gemini-bridge && npm run auth${RESET}"
+    Write-Host "   Verify anytime: npm run check" -ForegroundColor DarkGray
+    Write-Host "   Enable Gemini later: cd .collective\gemini-bridge && npm run auth" -ForegroundColor DarkGray
     Write-Host ""
     Write-Log "Setup completed successfully at $(Get-Date)"
 }
@@ -450,8 +448,9 @@ function Install-GitIfNeeded {
         # Manual fallback
         Write-Error "Could not auto-install Git"
         Write-Host ""
-        Write-Host "${YELLOW}Please install Git manually:${RESET}"
-        Write-Host "  Download from: ${CYAN}https://git-scm.com/downloads${RESET}"
+        Write-Host "Please install Git manually:" -ForegroundColor Yellow
+        Write-Host "  Download from: " -NoNewline
+        Write-Host "https://git-scm.com/downloads" -ForegroundColor Cyan
         Write-Host "  Then restart this script"
         Write-Host ""
         exit 1
@@ -493,6 +492,21 @@ function Clone-RepositoryIfNeeded {
 function Main {
     Write-Banner
     Write-Info "Setup log: $LOG_FILE"
+    
+    # Verify PowerShell version
+    $psVersion = $PSVersionTable.PSVersion.Major
+    if ($psVersion -lt 5) {
+        Write-Error "PowerShell $psVersion detected - this script requires PowerShell 5.1 or later"
+        Write-Host ""
+        Write-Host "Please update PowerShell:" -ForegroundColor Yellow
+        Write-Host "  Windows 10/11: Already includes PowerShell 5.1"
+        Write-Host "  Windows 7/8: Download Windows Management Framework 5.1"
+        Write-Host "  URL: " -NoNewline
+        Write-Host "https://www.microsoft.com/download/details.aspx?id=54616" -ForegroundColor Cyan
+        Write-Host ""
+        exit 1
+    }
+    
     Write-Info "Detected: Windows PowerShell $($PSVersionTable.PSVersion)"
     
     # Clone repo if running via remote script
@@ -539,7 +553,8 @@ function Main {
         # Verify installation
         if (-not (Test-NodeVersion)) {
             Write-Error "Node.js installation failed"
-            Write-Host "Please install Node.js ${MIN_NODE_VERSION}+ manually: ${CYAN}https://nodejs.org${RESET}"
+            Write-Host "Please install Node.js ${MIN_NODE_VERSION}+ manually: " -NoNewline
+            Write-Host "https://nodejs.org" -ForegroundColor Cyan
             exit 1
         }
         

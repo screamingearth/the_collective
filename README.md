@@ -18,35 +18,40 @@
 
 ### ⚡ quick start
 
-**macOS / Linux:**
-```bash
-curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.sh | bash
-```
+#### 🪟 Windows
+>\>*if you're not familiar with the command line interface:*
 
-**Windows:**
+1. Click here to download: [Download ZIP](https://github.com/screamingearth/the_collective/archive/refs/heads/main.zip)
+2. Right-click the ZIP file → **Extract All** → choose a folder (e.g., Desktop or Documents)
+3. Open the extracted folder → **double-click `setup.bat`** 
+4. Do the thing
+5. Restart VS Code
+6. ????
+7. Profit!
+
+##### 🪟 Windows (if you have git)
 ```powershell
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.bat" -OutFile "setup.bat"; .\setup.bat
+git clone https://github.com/screamingearth/the_collective.git
+cd the_collective
+.\setup.bat
 ```
 
-**Windows (Manual - requires Git Bash or Git+WSL):**
+#### 🍎 macOS / Linux
 ```bash
 git clone https://github.com/screamingearth/the_collective.git
 cd the_collective
 ./setup.sh
 ```
 
+**Note:** If Git isn't installed, the setup script will attempt to install it automatically
+
+#### ✅ Verify Installation
 ```bash
-npm run check  # verify installation
+npm run check  # full health check
 ```
 
-The setup automatically:
-- Detects and installs Git and Node.js 20+ if needed
-- Installs all dependencies
-- Builds the memory and Gemini servers
-- Bootstraps core AI memories
-- Configures VS Code MCP integration
-
-restart VS Code after setup - open copilot chat with the_collective, 
+### 🎉 You're all set!
+restart VS Code after setup, open copilot chat with the_collective, 
 > hey guys, I'd like to make...
 
 <br>
@@ -154,8 +159,6 @@ When reporting issues, include the relevant log file from `.collective/.logs/`.
 | database locked | close VS Code, retry |
 | agents not responding | check `npm run check`, ensure Copilot subscription active |
 | memory reset needed | `rm .mcp/collective_memory.duckdb* && npm run bootstrap` |
-| "setup.bat not recognized" (Windows) | PowerShell: use `.\setup.bat` not `setup.bat` |
-| "execution policy" error (Windows) | Use setup.bat launcher OR run `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` |
 
 See [QUICKSTART.md](./QUICKSTART.md#troubleshooting) for detailed troubleshooting.
 

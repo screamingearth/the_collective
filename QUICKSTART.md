@@ -22,39 +22,42 @@
 
 ### setup
 
-**macOS / Linux:**
-```bash
-git clone https://github.com/screamingearth/the_collective.git
-cd the_collective
-./setup.sh
-```
+#### 🪟 Windows - Recommended for Beginners
+**No command line needed:**
+1. Download the repository: [Download ZIP](https://github.com/screamingearth/the_collective/archive/refs/heads/main.zip)
+2. Right-click the downloaded ZIP → **Extract All** → choose where to save (Desktop or Documents)
+3. Open the extracted folder
+4. Find `setup.bat` and **double-click it**
+5. Wait for installation to complete (2-5 minutes)
+6. Restart VS Code
 
-**Windows (Recommended):**
+**What it does automatically:**
+- Installs Node.js if missing
+- Installs all dependencies
+- Builds the memory and Gemini servers
+- Sets up MCP integration with VS Code
+
+#### 🪟 Windows - If You Have Git
 ```powershell
 git clone https://github.com/screamingearth/the_collective.git
 cd the_collective
-.\setup.bat       # Double-click works too!
+.\setup.bat
 ```
 
-**Windows (Manual - requires Git Bash or WSL):**
+**Don't have Git?** Download from [git-scm.com](https://git-scm.com/) (click "Download"), install it, then run the commands above.
+
+#### 🍎 macOS / Linux
 ```bash
 git clone https://github.com/screamingearth/the_collective.git
 cd the_collective
 ./setup.sh
 ```
 
-Setup automatically:
-- Verifies Node.js 20+
-- Installs all dependencies
-- Builds memory and gemini servers
-- Bootstraps core memories
-- Configures MCP servers
+**Note:** If Git isn't installed, the setup script will offer to install it automatically:
+- **macOS:** Uses Homebrew (installs automatically if you confirm)
+- **Linux:** Uses apt/dnf/pacman (installs automatically if you confirm)
 
-Then open the folder in VS Code.
-
-**Note:** The recommended setup.bat launcher requires no dependencies and handles everything automatically. Advanced users can use setup.ps1 directly or run setup.sh via Git Bash/WSL.
-
-**macOS / Linux:** `setup.sh` will prompt to install Git automatically using the system package manager if Git is not found (you must confirm before any changes). This is optional — you can install Git manually and re-run the script.
+Then open the folder in VS Code and you're ready to go.
 
 **🔒 Security & Trust:**
 - **Session-only:** ExecutionPolicy -Bypass - Only affects the current PowerShell session, doesn't change system settings
@@ -62,13 +65,11 @@ Then open the folder in VS Code.
 - **Antivirus still active:** Windows Defender and other security software remain fully functional
 - **Open source:** Both setup.bat and setup.ps1 are readable before you run them
 
-**Note for macOS / Linux:** If `git` is not found, `setup.sh` will offer to install Git using your package manager (apt/dnf/pacman/brew). You must confirm before any changes are made. If you prefer, install Git manually and re-run the script.
-
 
 **Common Issues:**
-- **"setup.bat not recognized":** You're in PowerShell—use `.\setup.bat` (with `.\` prefix)
-- **"execution policy" error:** Use setup.bat launcher (session-only bypass) OR run `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`
-- **"Failed to download setup.ps1":** Check internet connection. Alternatively, clone the full repo instead of using one-liner
+- **"setup.bat not recognized":** You're in PowerShell—use `.\setup.bat` (with `./` prefix)
+- **"execution policy" error:** The setup.bat launcher handles this automatically. If running setup.ps1 directly, you can use the launcher or run `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`
+- **"PowerShell error" on Windows 7/8:** Your system has PowerShell < 5.1. Install Windows Management Framework 5.1 from Microsoft and try again
 - **Permission errors:** Try running terminal as Administrator
 - **Node install fails:** Manually install from https://nodejs.org/ and rerun setup
 

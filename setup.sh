@@ -455,15 +455,22 @@ setup_gemini_optional() {
     
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         info "Setting up Gemini authentication..."
+        info "A browser window will open for Google OAuth authentication"
+        info "If the browser doesn't open automatically, visit the URL shown in the terminal"
+        echo ""
+        
         cd .collective/gemini-bridge || {
             error "Failed to enter gemini-bridge directory"
             exit 1
         }
         
-        # Set timeout for auth (some systems might hang)
-        timeout 120 npm run auth 2>/dev/null || {
-            warn "Gemini authentication did not complete (you can run it later)"
-        }
+        # Run auth with full output visible (OAuth is interactive)
+        # Use generous timeout since user needs to complete browser auth
+        if timeout 690 npm run auth; then
+            success "Gemini tools authentication successful"
+        else
+            warn "Gemini authentication did not complete (you can run it later with: cd .collective/gemini-bridge && npm run auth)"
+        fi
         
         cd ../.. || {
             error "Failed to return to root directory"
