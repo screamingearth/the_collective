@@ -24,12 +24,23 @@ curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/
 ```
 
 **Windows:**
-```batch
-curl -L -o setup.bat https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.bat && setup.bat
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.bat" -OutFile "setup.bat"; .\setup.bat
+```
+
+**Windows (Manual - requires Git Bash or Git+WSL):**
+```bash
+git clone https://github.com/screamingearth/the_collective.git
+cd the_collective
+./setup.sh
+```
+
+```bash
+npm run check  # verify installation
 ```
 
 The setup automatically:
-- Detects and installs Node.js 20+ if needed
+- Detects and installs Git and Node.js 20+ if needed
 - Installs all dependencies
 - Builds the memory and Gemini servers
 - Bootstraps core AI memories
@@ -38,25 +49,6 @@ The setup automatically:
 restart VS Code after setup - open copilot chat with the_collective, 
 > hey guys, I'd like to make...
 
-### manual install
-
-**macOS / Linux:**
-```bash
-git clone https://github.com/screamingearth/the_collective.git
-cd the_collective
-./setup.sh
-```
-
-**Windows:**
-```batch
-git clone https://github.com/screamingearth/the_collective.git
-cd the_collective
-setup.bat
-```
-
-```bash
-npm run check  # verify installation
-```
 <br>
 
 ## 🤖 the team
@@ -162,6 +154,8 @@ When reporting issues, include the relevant log file from `.collective/.logs/`.
 | database locked | close VS Code, retry |
 | agents not responding | check `npm run check`, ensure Copilot subscription active |
 | memory reset needed | `rm .mcp/collective_memory.duckdb* && npm run bootstrap` |
+| "setup.bat not recognized" (Windows) | PowerShell: use `.\setup.bat` not `setup.bat` |
+| "execution policy" error (Windows) | Use setup.bat launcher OR run `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` |
 
 See [QUICKSTART.md](./QUICKSTART.md#troubleshooting) for detailed troubleshooting.
 

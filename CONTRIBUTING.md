@@ -14,10 +14,14 @@ cd the_collective
 ```
 
 **Windows:**
-```batch
+```powershell
 git clone https://github.com/YOUR_USERNAME/the_collective.git
 cd the_collective
-setup.bat
+.\setup.bat       # Recommended
+# OR
+.\setup.ps1       # Advanced (may require execution policy setup)
+# OR
+./setup.sh        # Git Bash/WSL only
 ```
 
 ## Making Changes

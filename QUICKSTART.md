@@ -16,7 +16,7 @@
 |----------|--------|-------|
 | **Linux** | ✅ Supported | Ubuntu, Fedora, Debian, Arch, etc. |
 | **macOS** | ✅ Supported | Intel and Apple Silicon |
-| **Windows** | ✅ Supported | Windows 10/11 |
+| **Windows** | ✅ Supported | Windows 10/11 (native PowerShell, no dependencies) |
 
 ## first time setup
 
@@ -29,14 +29,18 @@ cd the_collective
 ./setup.sh
 ```
 
-**Windows:**
-```batch
-curl -L -o setup.bat https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.bat && setup.bat
+**Windows (Recommended):**
+```powershell
+git clone https://github.com/screamingearth/the_collective.git
+cd the_collective
+.\setup.bat       # Double-click works too!
 ```
 
-**One-liner (macOS/Linux):**
+**Windows (Manual - requires Git Bash or WSL):**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.sh | bash
+git clone https://github.com/screamingearth/the_collective.git
+cd the_collective
+./setup.sh
 ```
 
 Setup automatically:
@@ -48,21 +52,25 @@ Setup automatically:
 
 Then open the folder in VS Code.
 
-**Windows Setup Details:**
+**Note:** The recommended setup.bat launcher requires no dependencies and handles everything automatically. Advanced users can use setup.ps1 directly or run setup.sh via Git Bash/WSL.
 
-The Windows bootstrapper (`setup.bat`) handles:
-- **Git auto-install:** Uses Winget to install Git if missing
-- **Custom location:** Prompts for installation directory
-- **Git Bash handoff:** Launches the universal setup script via Git Bash
-- **Node.js detection:** Installs Node.js 22 if outdated/missing
+**macOS / Linux:** `setup.sh` will prompt to install Git automatically using the system package manager if Git is not found (you must confirm before any changes). This is optional — you can install Git manually and re-run the script.
 
-No admin elevation required—everything runs as your current user. Setup time is 5-10 minutes depending on internet speed.
+**🔒 Security & Trust:**
+- **Session-only:** ExecutionPolicy -Bypass - Only affects the current PowerShell session, doesn't change system settings
+- **No admin required:** Runs with your normal user permissions
+- **Antivirus still active:** Windows Defender and other security software remain fully functional
+- **Open source:** Both setup.bat and setup.ps1 are readable before you run them
 
-**Troubleshooting Windows:**
-- **"Git not found":** Restart Command Prompt after auto-install
-- **"Bash not found":** Same—restart to refresh PATH
-- **Permission errors:** Try running Command Prompt as Administrator
-- **Custom Python paths:** Setup detects `python` (not `python3`) on Windows automatically
+**Note for macOS / Linux:** If `git` is not found, `setup.sh` will offer to install Git using your package manager (apt/dnf/pacman/brew). You must confirm before any changes are made. If you prefer, install Git manually and re-run the script.
+
+
+**Common Issues:**
+- **"setup.bat not recognized":** You're in PowerShell—use `.\setup.bat` (with `.\` prefix)
+- **"execution policy" error:** Use setup.bat launcher (session-only bypass) OR run `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`
+- **"Failed to download setup.ps1":** Check internet connection. Alternatively, clone the full repo instead of using one-liner
+- **Permission errors:** Try running terminal as Administrator
+- **Node install fails:** Manually install from https://nodejs.org/ and rerun setup
 
 ## automatic mcp server startup
 

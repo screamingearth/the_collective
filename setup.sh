@@ -556,9 +556,59 @@ clone_if_needed() {
     # If running via curl | bash, we need to clone the repo first
     if [[ ! -f "package.json" ]]; then
         if ! command -v git &> /dev/null; then
-            error "Git not found - required for cloning repository"
-            error "Install Git: https://git-scm.com/downloads"
-            exit 1
+            warn "Git not found - required for cloning repository"
+
+            # Offer to install Git automatically when possible
+            printf "Would you like the installer to attempt to install Git now using your package manager? [y/N]: "
+            read -r INSTALL_GIT_REPLY
+            if [[ "$INSTALL_GIT_REPLY" =~ ^[Yy]$ ]]; then
+                info "Attempting to install Git using package manager: $PKG_MANAGER"
+                case "$PKG_MANAGER" in
+                    apt)
+                        sudo apt-get update && sudo apt-get install -y git || {
+                            error "Failed to install Git via apt"
+                            error "Install Git manually: https://git-scm.com/downloads"
+                            exit 1
+                        }
+                        ;;
+                    dnf)
+                        sudo dnf install -y git || {
+                            error "Failed to install Git via dnf"
+                            error "Install Git manually: https://git-scm.com/downloads"
+                            exit 1
+                        }
+                        ;;
+                    pacman)
+                        sudo pacman -S --noconfirm git || {
+                            error "Failed to install Git via pacman"
+                            error "Install Git manually: https://git-scm.com/downloads"
+                            exit 1
+                        }
+                        ;;
+                    brew)
+                        brew install git || {
+                            error "Failed to install Git via Homebrew"
+                            error "Install Git manually: https://git-scm.com/downloads"
+                            exit 1
+                        }
+                        ;;
+                    *)
+                        error "Automatic Git installation is not supported on your system ($PKG_MANAGER)."
+                        error "Please install Git manually: https://git-scm.com/downloads"
+                        exit 1
+                        ;;
+                esac
+
+                # Verify installation
+                if ! command -v git &> /dev/null; then
+                    error "Git installation appeared to fail. Please install Git manually: https://git-scm.com/downloads"
+                    exit 1
+                fi
+                success "Git installed successfully"
+            else
+                error "Git is required to continue. Please install Git and re-run this script: https://git-scm.com/downloads"
+                exit 1
+            fi
         fi
 
         if [[ ! -d "the_collective" ]]; then
