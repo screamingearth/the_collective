@@ -3,22 +3,45 @@
 # ==============================================================================
 # Part of the_collective by screamingearth (Apache 2.0 licensed, see NOTICE file).
 # ==============================================================================
-# Universal Setup
+# Universal Setup & Bootstrap
 # ==============================================================================
 # ONE script that does EVERYTHING:
-#   1. Detects your OS
-#   2. Installs Node.js 22 if missing or outdated
-#   3. Installs all dependencies
-#   4. Builds the memory server
-#   5. Bootstraps core memories
+#   1. Auto-downloads repo if needed (universal bootstrap)
+#   2. Detects your OS
+#   3. Installs Node.js 22 if missing or outdated
+#   4. Installs all dependencies
+#   5. Builds the memory server
+#   6. Bootstraps core memories
 #
-# Usage:
+# Usage (local):
+#   git clone https://github.com/screamingearth/the_collective.git
+#   cd the_collective
 #   ./setup.sh
-#   OR
+#
+# Usage (bootstrap - downloads repo automatically):
 #   curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.sh | bash
 # ==============================================================================
 
 set -e
+
+# ==========================================
+# BOOTSTRAP: Check if we're in repo directory
+# ==========================================
+if [ ! -f "package.json" ] || [ ! -d ".collective" ]; then
+    echo "→ Not in the_collective directory. Downloading repo..."
+    
+    # Detect tar format
+    if command -v tar &> /dev/null; then
+        TEMP_DIR=$(mktemp -d)
+        cd "$TEMP_DIR"
+        curl -fsSL https://codeload.github.com/screamingearth/the_collective/tar.gz/main | tar xz
+        cd the_collective-main
+    else
+        echo "✗ tar not found. Please install tar or clone manually:"
+        echo "  git clone https://github.com/screamingearth/the_collective.git"
+        exit 1
+    fi
+fi
 
 # ==========================================
 # 1. OS DETECTION & CONFIGURATION

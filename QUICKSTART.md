@@ -32,59 +32,125 @@ Both editions work great. Insiders just auto-starts MCP servers on workspace ope
 | **macOS** | ✅ Supported | Intel and Apple Silicon |
 | **Windows** | ✅ Supported | Windows 10/11 |
 
-## first time setup
+## first time setup (manual dependencies)
+The following instructions guide you through installing dependencies and setting up `>the_collective` manually on your platform.
 
-### setup
+## 🐧 Linux
 
-#### 🪟 Windows
+**Step 1: Dependencies**
 
-**Step 1: Install dependencies**
-
-Open VS Code and use Copilot Chat to install dependencies:
-
-1. Open Copilot Chat (`Ctrl+Shift+I` or click the chat icon)
-2. Ask: `Install Node.js 20 or later, Git for Windows, and ensure VS Code is in PATH`
-3. Follow Copilot's installation guidance
-4. Ask copilot "install screamingearth/the_collective"
-
-**Step 2: Clone and setup**
-
-Open a terminal in VS Code (`Ctrl+`` `) and run:
-
-```powershell
-git clone https://github.com/screamingearth/the_collective.git
-cd the_collective
-.\windows.ps1
+**Ubuntu/Debian:**
+```bash
+sudo apt update
+sudo apt install -y nodejs npm git
 ```
 
-The setup script will:
-- Verify dependencies are installed
-- Install npm packages
-- Build MCP servers (memory + Gemini bridge)
-- Bootstrap the memory system
-- Optionally configure Gemini integration
+**Fedora/RHEL:**
+```bash
+sudo dnf install -y nodejs npm git
+```
 
-**Troubleshooting:**
-- **Bash not found:** Reinstall Git for Windows and ensure Git Bash is selected during installation
-- **Node.js not found:** Use Copilot Chat to install Node.js, then rerun setup
-- **Permission errors:** Run terminal as Administrator
+**Arch:**
+```bash
+sudo pacman -S nodejs npm git
+```
 
-#### 🍎 macOS / Linux
+**Step 2: Clone and setup**
 ```bash
 git clone https://github.com/screamingearth/the_collective.git
 cd the_collective
 ./setup.sh
 ```
 
-**Note:** If Git isn't installed, the setup script will offer to install it automatically:
-- **macOS:** Uses Homebrew (installs automatically if you confirm)
-- **Linux:** Uses apt/dnf/pacman (installs automatically if you confirm)
+## 🍎 macOS
 
-Then open the folder in VS Code and you're ready to go.
+**Step 1: Install Homebrew** (if not already installed)
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+**Step 2: Install dependencies**
+```bash
+brew install node git
+```
+
+**Step 3: Clone and setup**
+```bash
+git clone https://github.com/screamingearth/the_collective.git
+cd the_collective
+./setup.sh
+```
+
+## 🪟 Windows
+
+**Step 1: Install Node.js**
+- Download from [nodejs.org](https://nodejs.org/) (LTS version recommended)
+- Run the installer, follow prompts (accept defaults)
+- Restart your terminal/VS Code after installation
+
+**Step 2: Install Git for Windows**
+- Download from [git-scm.com](https://git-scm.com/download/win)
+- Run the installer
+- **Important:** When prompted, select **"Git Bash"** to include bash (required for setup.sh)
+- Complete installation and restart terminal
+
+**Step 3: Clone and setup**
+
+Open Git Bash (or a terminal in VS Code using Bash) and run:
+```bash
+git clone https://github.com/screamingearth/the_collective.git
+cd the_collective
+./setup.sh
+```
+
+This downloads and extracts the repo automatically, then runs setup.
+
+## what setup.sh does
+
+The setup script handles the rest of the installation:
+1. Verifies Node.js and Git are installed
+2. Installs npm dependencies
+3. Builds MCP servers (memory server + Gemini bridge)
+4. Bootstraps core memories
+5. Optionally sets up Gemini authentication
+
+**Note:** Node.js and Git Bash must be installed before running `setup.sh`
+
+## troubleshooting
+
+**I don't have Git installed:**
+
+Option 1: Install Git for your platform (see setup instructions above)
+
+Option 2: Use bootstrap with curl (no Git required):
+```bash
+curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.sh | bash
+```
+
+**I don't have Node.js installed:**
+
+Install Node.js for your platform:
+- **macOS:** `brew install node`
+- **Linux:** `sudo apt install nodejs npm` (or `dnf`/`pacman` depending on distro)
+- **Windows:** Download from [nodejs.org](https://nodejs.org/)
+
+Then rerun `./setup.sh`
+
+**Permission errors (Linux/macOS):**
+- Run setup.sh with `sudo`: `sudo bash setup.sh`
+- Or use password-less sudo setup (not recommended for security)
+
+**Bash not found (Windows):**
+- Reinstall Git for Windows
+- Select **"Git Bash"** during installation
+- Ensure `C:\Program Files\Git\bin` is in your PATH
+
+**"Database locked" error:**
+- Close VS Code completely, then retry
 
 ## automatic mcp server startup
 
-When you open the workspace in VS Code for the first time, you'll see two prompts:
+When you open the workspace in VS Code for the first time, you might see two prompts:
 
 ```
 "Start Memory Server" is configured to run when the workspace opens. Allow?
@@ -93,9 +159,9 @@ When you open the workspace in VS Code for the first time, you'll see two prompt
 
 **Click "Allow" (or "Trust this folder")** to enable automatic startup. After that:
 
-- Memory server and Gemini Bridge start automatically every time you open the workspace
+- Memory server and Gemini Bridge start automatically every time you open the workspace (VS Code Insiders v1.107+ only)
 - Both run silently in the background (no terminal windows)
-- Copilot has instant access to your memory system and research tools
+- Copilot has instant access to the memory system and research tools
 - Processes stop automatically when you close VS Code
 
 **Why?** Eager-loading the servers eliminates startup latency. When you ask Copilot a question, memory is already available for context retrieval.
@@ -114,6 +180,7 @@ Restart VS Code and the servers will start on-demand instead.
 
 ## verify it works
 
+open the terminal in vs code inside `>the_collective` workspace and run:
 ```bash
 npm run check
 ```
@@ -123,8 +190,11 @@ expected output:
 ```
 ✅ All checks passed! Framework is ready.
 ```
+then say,
+```
+>the_collective:// hey guys, test out your tools and make sure they work
+```
 
-open copilot chat and have fun!
 
 ## organization-level custom agents
 

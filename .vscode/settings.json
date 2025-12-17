@@ -137,7 +137,7 @@
   // ═══════════════════════════════════════════════════════════════════
   "terminal.integrated.defaultProfile.linux": "bash",
   "terminal.integrated.defaultProfile.osx": "zsh",
-  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.defaultProfile.windows": "Git Bash",
   "terminal.integrated.scrollback": 10000,
   "terminal.integrated.enablePersistentSessions": true,
   // ═══════════════════════════════════════════════════════════════════

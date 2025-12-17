@@ -14,40 +14,47 @@
 
 **no AI expertise required:** if you can handle installing vscode and running a single terminal command, you're good to go.
 
-</div>
+</div><br>
 
-### ⚡ quick start
-
-### 🍎 macOS / Linux
+### 🍎 macOS / Linux / WSL
 ```bash
-git clone https://github.com/screamingearth/the_collective.git
+curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.sh | bash
 cd the_collective
-./setup.sh
 ```
 
 ### 🪟 Windows
 > *if you don't have Git or Node.js installed and the command line is spooky, don't worry! just follow these steps:*
+>
+>\>*this installation process is experimental, manual instructions [here](./QUICKSTART.md)*
 
 Open VS Code and use the default Copilot Chat to install dependencies:
 
-1. Open Copilot Chat (`Ctrl+Shift+I` or click the chat icon)
-2. Ask: `Install Node.js 20 or later, Git for Windows, and ensure VS Code is in PATH`
-3. Follow Copilot's installation guidance
-4. Ask copilot "install screamingearth/the_collective"
-
-<br>
-
-```bash
-git clone https://github.com/screamingearth/the_collective.git
-cd the_collective
-./setup.sh      # macOS/Linux
-.\windows.ps1   # Windows
-```
+1. Open Copilot Chat (`ctrl+shift+I` or click the chat icon)
+2. Say: ```Autonomously install Node.js 20 or later, Git Bash for Windows, and ensure VS Code is in PATH ```
+3. Do the things, restart vscode, go to explorer (`ctrl+shift+E`), open ```>the_collective```
+4. Say: ```install screamingearth/the_collective```
 
 Restart VS Code, then select the `>the_collective` chat mode in Copilot Chat.
 > *hey guys, I'd like to make...*
 
-**[→ Detailed setup guide](./QUICKSTART.md)**
+### 🧐 verify it works
+
+open the terminal in vs code inside ```>the_collective``` workspace and run:
+```bash
+npm run check
+```
+
+expected output:
+
+```
+✅ All checks passed! Framework is ready.
+```
+then say,
+
+```>the_collective://``` *"hey guys, please test out your tools and make sure they work"*
+
+
+**[→ detailed setup guide →](./QUICKSTART.md)**
 
 ## 🤖 the team
 
