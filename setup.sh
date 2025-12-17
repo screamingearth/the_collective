@@ -32,10 +32,31 @@ if [ ! -f "package.json" ] || [ ! -d ".collective" ]; then
     
     # Detect tar format
     if command -v tar &> /dev/null; then
-        TEMP_DIR=$(mktemp -d)
-        cd "$TEMP_DIR"
-        curl -fsSL https://codeload.github.com/screamingearth/the_collective/tar.gz/main | tar xz
-        cd the_collective-main
+        TEMP_DIR=$(mktemp -d) || {
+            echo "✗ Failed to create temp directory"
+            exit 1
+        }
+        cd "$TEMP_DIR" || {
+            echo "✗ Failed to enter temp directory"
+            rm -rf "$TEMP_DIR" 2>/dev/null
+            exit 1
+        }
+        curl --connect-timeout 30 --max-time 600 -fsSL "$REPO_TARBALL_URL" | tar xz || {
+            echo "✗ Failed to download/extract repository"
+            cd - > /dev/null 2>&1
+            rm -rf "$TEMP_DIR" 2>/dev/null
+            exit 1
+        }
+        if [[ ! -d "the_collective-main" ]]; then
+            echo "✗ Repository extraction failed - directory not found"
+            cd - > /dev/null 2>&1
+            rm -rf "$TEMP_DIR" 2>/dev/null
+            exit 1
+        fi
+        cd the_collective-main || {
+            echo "✗ Failed to enter repository directory"
+            exit 1
+        }
     else
         echo "✗ tar not found. Please install tar or clone manually:"
         echo "  git clone https://github.com/screamingearth/the_collective.git"
@@ -78,7 +99,19 @@ if [ "$IS_WINDOWS" -eq 1 ]; then
     # Define a dummy 'sudo' function because Git Bash runs as the current user
     # and doesn't have sudo. If admin is needed, the user must run the .bat as Admin.
     sudo() {
-        "$@"
+        # Security: Whitelist only safe package manager commands
+        local cmd="$1"
+        case "$cmd" in
+            apt-get|dnf|pacman|yum|brew)
+                echo "[Windows] Running as current user: $*" >&2
+                "$@"
+                ;;
+            *)
+                echo "[Windows] Error: sudo not available. Command not whitelisted: $cmd" >&2
+                echo "[Windows] If you need admin privileges, run Git Bash as Administrator" >&2
+                return 1
+                ;;
+        esac
     }
 else
     # Linux/Mac specific settings
@@ -118,16 +151,42 @@ mkdir -p "$LOG_DIR" 2>/dev/null || {
     mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR="."
 }
 LOG_FILE="$LOG_DIR/setup.log"
+# Validate log file is writable
+if ! touch "$LOG_FILE" 2>/dev/null; then
+    echo "ERROR: Cannot write to log file: $LOG_FILE" >&2
+    exit 1
+fi
 exec 1> >(tee -a "$LOG_FILE")
 exec 2>&1
 
 # Node.js version requirements
 MIN_NODE_VERSION=20
 PREFERRED_NODE_VERSION=22
+NVM_VERSION="v0.40.1"  # Update periodically - check https://github.com/nvm-sh/nvm/releases
+
+# Repository configuration
+REPO_URL="https://github.com/screamingearth/the_collective.git"
+REPO_TARBALL_URL="https://codeload.github.com/screamingearth/the_collective/tar.gz/main"
+
+# Timeouts (in seconds)
+GEMINI_AUTH_TIMEOUT=600  # 10 minutes for OAuth browser flow
 
 # -----------------------------------------------------------------------------
 # Helper Functions
 # -----------------------------------------------------------------------------
+
+check_disk_space() {
+    local required_mb=500  # Estimate: 500MB for node_modules + builds
+    local available_mb
+    
+    if command -v df &> /dev/null; then
+        available_mb=$(df -m . | tail -1 | awk '{print $4}')
+        if [[ "$available_mb" -lt "$required_mb" ]]; then
+            error "Insufficient disk space: ${available_mb}MB available, ${required_mb}MB required"
+            exit 1
+        fi
+    fi
+}
 
 print_banner() {
     echo -e "${CYAN}"
@@ -150,6 +209,18 @@ step() {
     echo -e "${CYAN}${BOLD}[$1/$2] $3${NC}"
     echo -e "${DIM}────────────────────────────────────────${NC}"
 }
+
+cleanup_on_exit() {
+    local exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+        echo ""
+        warn "Setup interrupted or failed (exit code: $exit_code)"
+        warn "To retry: ./setup.sh"
+        warn "To clean up: npm run clean"
+    fi
+}
+
+trap cleanup_on_exit EXIT
 
 # -----------------------------------------------------------------------------
 # OS Detection (Linux/Mac Package Manager)
@@ -203,7 +274,13 @@ get_node_version() {
 check_node() {
     local version
     version=$(get_node_version)
-    [[ "$version" -ge "$MIN_NODE_VERSION" ]]
+    if [[ "$version" -ge "$MIN_NODE_VERSION" ]]; then
+        # Also verify npm works
+        if command -v npm &> /dev/null && npm --version &> /dev/null; then
+            return 0
+        fi
+    fi
+    return 1
 }
 
 install_node() {
@@ -290,6 +367,12 @@ install_node() {
                     exit 1
                 }
                 brew link node@$PREFERRED_NODE_VERSION --force --overwrite 2>/dev/null || warn "Homebrew link warning (non-critical)"
+                # Verify node is accessible
+                if ! command -v node &> /dev/null || ! node --version &> /dev/null; then
+                    error "Node.js installed via Homebrew but not accessible in PATH"
+                    error "Try: export PATH=\"/opt/homebrew/opt/node@${PREFERRED_NODE_VERSION}/bin:\$PATH\""
+                    exit 1
+                fi
             else
                 install_nvm
             fi
@@ -298,7 +381,7 @@ install_node() {
             info "Installing via dnf..."
             sudo dnf module install -y nodejs:$PREFERRED_NODE_VERSION/common 2>/dev/null || {
                 info "Trying NodeSource RPM..."
-                curl -fsSL https://rpm.nodesource.com/setup_${PREFERRED_NODE_VERSION}.x | sudo bash - || {
+                curl --connect-timeout 30 --max-time 300 -fsSL https://rpm.nodesource.com/setup_${PREFERRED_NODE_VERSION}.x | sudo bash - || {
                     error "Failed to setup NodeSource repository"
                     exit 1
                 }
@@ -310,7 +393,7 @@ install_node() {
             ;;
         debian)
             info "Installing via apt..."
-            curl -fsSL https://deb.nodesource.com/setup_${PREFERRED_NODE_VERSION}.x | sudo -E bash - || {
+            curl --connect-timeout 30 --max-time 300 -fsSL https://deb.nodesource.com/setup_${PREFERRED_NODE_VERSION}.x | sudo -E bash - || {
                 error "Failed to setup NodeSource repository"
                 exit 1
             }
@@ -336,7 +419,7 @@ install_node() {
 
 install_nvm() {
     info "Installing nvm (Node Version Manager)..."
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash || {
+    curl --connect-timeout 30 --max-time 300 -o- https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh | bash || {
         error "Failed to install nvm"
         exit 1
     }
@@ -492,7 +575,7 @@ setup_gemini_optional() {
         
         # Run auth with full output visible (OAuth is interactive)
         # Use generous timeout since user needs to complete browser auth
-        if timeout 690 npm run auth; then
+        if timeout $GEMINI_AUTH_TIMEOUT npm run auth; then
             success "Gemini tools authentication successful"
         else
             warn "Gemini authentication did not complete (you can run it later with: cd .collective/gemini-bridge && npm run auth)"
@@ -523,11 +606,15 @@ reinit_git_optional() {
         # Backup original remote info
         ORIGINAL_REMOTE=$(git remote get-url origin 2>/dev/null || echo "")
         
-        # Remove old git history
-        rm -rf .git || {
-            error "Failed to remove .git directory"
-            return 1
-        }
+        # Backup git history before removal
+        if [[ -d ".git" ]]; then
+            BACKUP_NAME=".git.backup.$(date +%s)"
+            mv .git "$BACKUP_NAME" || {
+                error "Failed to backup .git directory"
+                return 1
+            }
+            info "Git history backed up to $BACKUP_NAME"
+        fi
         
         # Initialize fresh repo
         git init || {
@@ -547,8 +634,12 @@ reinit_git_optional() {
         read -r COMMIT_MSG
         echo
         
+        # Security: Validate and truncate commit message length
         if [[ -z "$COMMIT_MSG" ]]; then
             COMMIT_MSG="Initial commit from the_collective template"
+        elif [[ ${#COMMIT_MSG} -gt 500 ]]; then
+            warn "Commit message too long (${#COMMIT_MSG} chars), truncating to 500 characters"
+            COMMIT_MSG="${COMMIT_MSG:0:500}"
         fi
         
         git commit -m "$COMMIT_MSG" || {
@@ -646,8 +737,10 @@ clone_if_needed() {
 
         if [[ ! -d "the_collective" ]]; then
             info "Cloning the_collective repository..."
-            git clone https://github.com/screamingearth/the_collective.git || {
-                error "Failed to clone repository"
+            # Security: Sanitize git output to prevent terminal injection via ANSI escape codes
+            GIT_ERROR=$(git clone "$REPO_URL" 2>&1 | tr -d '\000-\037\177-\377') || {
+                error "Failed to clone repository:"
+                echo "$GIT_ERROR" | head -20 >&2  # Limit output to prevent spam
                 exit 1
             }
         fi
@@ -673,6 +766,9 @@ clone_if_needed() {
 main() {
     print_banner
     info "Setup log: $LOG_FILE"
+
+    # Pre-flight checks
+    check_disk_space
 
     # Detect OS
     detect_os
