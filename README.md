@@ -18,22 +18,9 @@
 
 ### 🍎 macOS / Linux / WSL
 ```bash
+mkdir -p ~/the_collective && cd ~/the_collective
 curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.sh | bash
-cd the_collective
 ```
-
-**or manually:**
-```bash
-git clone https://github.com/screamingearth/the_collective.git
-cd the_collective
-bash setup.sh  # or: chmod +x setup.sh && ./setup.sh
-```
-
-**or bootstrap mode** (script downloads the repo):
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.sh)
-```
-This will download and extract the repo to `./the_collective` and run setup automatically.
 
 ### 🪟 Windows
 > *if you don't have Git or Node.js installed and the command line is spooky, don't worry! just follow these steps:*
@@ -44,7 +31,7 @@ Open VS Code and use the default Copilot Chat to install dependencies:
 
 1. Open Copilot Chat (`ctrl+shift+I` or click the chat icon)
 2. Say: ```Autonomously install Node.js 20 or later, Git Bash for Windows, and ensure VS Code is in PATH ```
-3. Do the things, restart vscode, go to explorer (`ctrl+shift+E`), open ```>the_collective```
+3. Do the things, **restart vscode**, **go to explorer** (`ctrl+shift+E`), open ```>the_collective```
 4. Say: ```install screamingearth/the_collective```
 
 Restart VS Code, then select the `>the_collective` chat mode in Copilot Chat.
@@ -65,6 +52,9 @@ expected output:
 then say,
 
 ```>the_collective://``` *"hey guys, please test out your tools and make sure they work"*
+
+
+>*disclaimer: >the_collective is currently an experimental open-source framework. while I strive for quality, it may contain bugs or incomplete features. use at your own risk. contributions and feedback are welcome!*
 
 
 **[→ detailed setup guide →](./QUICKSTART.md)**
@@ -104,7 +94,7 @@ then say,
 ## 🚀 features
 
 - **local memory** // semantic vector database never leaves your machine
-- **zero tracking** // Apache 2.0 licensed, no telemetry, no vendor lock-in
+- **zero tracking** // no telemetry, no vendor lock-in
 - **cognitive diversity** // use multiple LLM models for different perspectives
 - **real-time collaboration** // watch agents debate, build, and refine solutions
 - **extensible architecture** // add custom agents, tools, memories, and workflows

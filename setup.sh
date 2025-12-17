@@ -22,15 +22,17 @@
 #   curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.sh | bash
 # ==============================================================================
 
-set -e
+set -eo pipefail
 
 # ==========================================
 # Pre-flight: Fix permissions if needed
 # ==========================================
 # If this script was copied/downloaded without execute permissions, fix it
-if [[ "${BASH_SOURCE[0]}" == "./setup.sh" ]] || [[ "${BASH_SOURCE[0]}" == "setup.sh" ]]; then
+# Skip if running via pipe (curl | bash) - BASH_SOURCE will be something like "/dev/fd/63"
+if [[ "${BASH_SOURCE[0]}" == "./setup.sh" ]] || [[ "${BASH_SOURCE[0]}" == "setup.sh" ]] || [[ "${BASH_SOURCE[0]}" == *"/setup.sh" ]]; then
     SCRIPT_PATH="${BASH_SOURCE[0]}"
-    if [[ ! -x "$SCRIPT_PATH" ]]; then
+    # Only try chmod if it looks like a real file path (not /dev/fd/* or bash)
+    if [[ ! -x "$SCRIPT_PATH" ]] && [[ "$SCRIPT_PATH" != */dev/fd/* ]] && [[ "$SCRIPT_PATH" != "bash" ]]; then
         echo "⚠️  setup.sh doesn't have execute permissions. Fixing..."
         chmod +x "$SCRIPT_PATH" 2>/dev/null || {
             echo "Note: chmod failed - if you see 'permission denied', restart your terminal and try again"
@@ -50,18 +52,46 @@ REPO_TARBALL_URL="https://codeload.github.com/screamingearth/the_collective/tar.
 if [ ! -f "package.json" ] || [ ! -d ".collective" ]; then
     echo "→ Not in the_collective directory. Downloading repo..."
     
-    # Store the original directory so we can return to it if needed
-    ORIGINAL_DIR="$(pwd)"
+    # Check network connectivity before attempting download
+    if ! curl -Is --connect-timeout 5 https://github.com 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
+        echo "✗ Network connectivity issue - cannot reach GitHub"
+        echo "Please check your internet connection and try again"
+        exit 1
+    fi
+    
+    # Check disk space before downloading
+    if command -v df &> /dev/null; then
+        available_mb=$(df -m . 2>/dev/null | tail -1 | awk '{print $4}')
+        required_mb=500
+        if [[ "$available_mb" -lt "$required_mb" ]]; then
+            echo "✗ Insufficient disk space: ${available_mb}MB available, ${required_mb}MB required"
+            exit 1
+        fi
+    fi
     
     # Detect tar format
     if command -v tar &> /dev/null; then
         # Extract directly to current directory
         # The tarball contains 'the_collective-main' folder, so we extract it here
         echo "Extracting repository to current directory..."
-        curl --connect-timeout 30 --max-time 600 -fsSL "$REPO_TARBALL_URL" | tar xz || {
-            echo "✗ Failed to download/extract repository"
+        
+        # Use portable temp directory (works on Windows Git Bash, macOS, Linux)
+        TEMP_FILE="${TMPDIR:-/tmp}/the_collective_repo_$$.tar.gz"
+        
+        # Validate curl succeeds before piping to tar
+        http_code=$(curl --connect-timeout 30 --max-time 600 -fsSL -w "%{http_code}" -o "$TEMP_FILE" "$REPO_TARBALL_URL" 2>/dev/null || echo "000")
+        if [[ "$http_code" != "200" ]]; then
+            echo "✗ Failed to download repository (HTTP $http_code)"
+            rm -f "$TEMP_FILE"
+            exit 1
+        fi
+        
+        tar xzf "$TEMP_FILE" || {
+            echo "✗ Failed to extract repository"
+            rm -f "$TEMP_FILE"
             exit 1
         }
+        rm -f "$TEMP_FILE"
         
         if [[ ! -d "the_collective-main" ]]; then
             echo "✗ Repository extraction failed - directory not found"
@@ -87,6 +117,13 @@ if [ ! -f "package.json" ] || [ ! -d ".collective" ]; then
             echo "✗ Failed to enter repository directory"
             exit 1
         }
+        
+        # Verify critical directories exist after extraction
+        if [[ ! -d ".collective" ]]; then
+            echo "✗ .collective directory missing - corrupted download"
+            echo "Try again or clone manually: git clone $REPO_URL"
+            exit 1
+        fi
         
         echo ""
         echo "Setup will now proceed from: $(pwd)"
@@ -163,16 +200,28 @@ fi
 # 3. YOUR MAIN LOGIC STARTS HERE
 # ==========================================
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-MAGENTA='\033[0;35m'
-CYAN='\033[0;36m'
-NC='\033[0m'
-BOLD='\033[1m'
-DIM='\033[2m'
+# Colors - disable if output is not a terminal (prevents log file pollution)
+if [[ -t 1 ]]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    BLUE='\033[0;34m'
+    MAGENTA='\033[0;35m'
+    CYAN='\033[0;36m'
+    NC='\033[0m'
+    BOLD='\033[1m'
+    DIM='\033[2m'
+else
+    RED=''
+    GREEN=''
+    YELLOW=''
+    BLUE=''
+    MAGENTA=''
+    CYAN=''
+    NC=''
+    BOLD=''
+    DIM=''
+fi
 
 # Note: Logging will be set up later, after we determine the correct repo directory
 
@@ -264,8 +313,6 @@ cleanup_on_exit() {
     fi
 }
 
-trap cleanup_on_exit EXIT
-
 # -----------------------------------------------------------------------------
 # OS Detection (Linux/Mac Package Manager)
 # -----------------------------------------------------------------------------
@@ -344,22 +391,36 @@ install_node() {
         # Try fnm (cross-platform)
         if command -v fnm &> /dev/null; then
             info "Found fnm, using it..."
-            fnm install $PREFERRED_NODE_VERSION || {
+            fnm install "$PREFERRED_NODE_VERSION" || {
                 error "Failed to install Node.js via fnm"
                 exit 1
             }
-            fnm use $PREFERRED_NODE_VERSION || {
+            fnm use "$PREFERRED_NODE_VERSION" || {
                 error "Failed to activate Node.js"
                 exit 1
             }
-            fnm default $PREFERRED_NODE_VERSION || warn "Failed to set fnm default (non-critical)"
+            fnm default "$PREFERRED_NODE_VERSION" || warn "Failed to set fnm default (non-critical)"
             return 0
         fi
         
         # Fallback: try nvm-windows (Windows-native)
-        if [[ -d "$APPDATA/nvm" ]]; then
-            info "Found nvm-windows, skipping installation"
-            warn "Please run: nvm install $PREFERRED_NODE_VERSION && nvm use $PREFERRED_NODE_VERSION"
+        if [[ -d "$APPDATA/nvm" ]] && ! command -v nvm &> /dev/null; then
+            error "Found nvm-windows directory but nvm command not in PATH"
+            error "Please ensure nvm-windows is properly installed and in PATH"
+            error "Or run: nvm install $PREFERRED_NODE_VERSION && nvm use $PREFERRED_NODE_VERSION"
+            error "Then re-run setup.sh"
+            exit 1
+        elif [[ -d "$APPDATA/nvm" ]] && command -v nvm &> /dev/null; then
+            # nvm-windows exists and is in PATH, try to use it
+            info "Found nvm-windows, attempting to install Node.js..."
+            nvm install "$PREFERRED_NODE_VERSION" || {
+                error "Failed to install Node.js via nvm-windows"
+                exit 1
+            }
+            nvm use "$PREFERRED_NODE_VERSION" || {
+                error "Failed to activate Node.js"
+                exit 1
+            }
             return 0
         fi
         
@@ -374,30 +435,30 @@ install_node() {
     if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
         info "Found nvm, using it..."
         source "$HOME/.nvm/nvm.sh"
-        nvm install $PREFERRED_NODE_VERSION || {
+        nvm install "$PREFERRED_NODE_VERSION" || {
             error "Failed to install Node.js via nvm"
             exit 1
         }
-        nvm use $PREFERRED_NODE_VERSION || {
+        nvm use "$PREFERRED_NODE_VERSION" || {
             error "Failed to activate Node.js"
             exit 1
         }
-        nvm alias default $PREFERRED_NODE_VERSION || warn "Failed to set nvm default (non-critical)"
+        nvm alias default "$PREFERRED_NODE_VERSION" || warn "Failed to set nvm default (non-critical)"
         return 0
     fi
 
     # Try fnm
     if command -v fnm &> /dev/null; then
         info "Found fnm, using it..."
-        fnm install $PREFERRED_NODE_VERSION || {
+        fnm install "$PREFERRED_NODE_VERSION" || {
             error "Failed to install Node.js via fnm"
             exit 1
         }
-        fnm use $PREFERRED_NODE_VERSION || {
+        fnm use "$PREFERRED_NODE_VERSION" || {
             error "Failed to activate Node.js"
             exit 1
         }
-        fnm default $PREFERRED_NODE_VERSION || warn "Failed to set fnm default (non-critical)"
+        fnm default "$PREFERRED_NODE_VERSION" || warn "Failed to set fnm default (non-critical)"
         return 0
     fi
 
@@ -406,11 +467,11 @@ install_node() {
         macos)
             if [[ "$PKG_MANAGER" == "brew" ]]; then
                 info "Installing via Homebrew..."
-                brew install node@$PREFERRED_NODE_VERSION || {
+                brew install "node@$PREFERRED_NODE_VERSION" || {
                     error "Failed to install Node.js via Homebrew"
                     exit 1
                 }
-                brew link node@$PREFERRED_NODE_VERSION --force --overwrite 2>/dev/null || warn "Homebrew link warning (non-critical)"
+                brew link "node@$PREFERRED_NODE_VERSION" --force --overwrite 2>/dev/null || warn "Homebrew link warning (non-critical)"
                 # Verify node is accessible
                 if ! command -v node &> /dev/null || ! node --version &> /dev/null; then
                     error "Node.js installed via Homebrew but not accessible in PATH"
@@ -423,7 +484,7 @@ install_node() {
             ;;
         fedora|rhel)
             info "Installing via dnf..."
-            sudo dnf module install -y nodejs:$PREFERRED_NODE_VERSION/common 2>/dev/null || {
+            sudo dnf module install -y "nodejs:$PREFERRED_NODE_VERSION/common" 2>/dev/null || {
                 info "Trying NodeSource RPM..."
                 curl --connect-timeout 30 --max-time 300 -fsSL https://rpm.nodesource.com/setup_${PREFERRED_NODE_VERSION}.x | sudo bash - || {
                     error "Failed to setup NodeSource repository"
@@ -474,17 +535,17 @@ install_nvm() {
         exit 1
     }
 
-    nvm install $PREFERRED_NODE_VERSION || {
+    nvm install "$PREFERRED_NODE_VERSION" || {
         error "Failed to install Node.js via nvm"
         exit 1
     }
     
-    nvm use $PREFERRED_NODE_VERSION || {
+    nvm use "$PREFERRED_NODE_VERSION" || {
         error "Failed to activate Node.js"
         exit 1
     }
     
-    nvm alias default $PREFERRED_NODE_VERSION || warn "Failed to set nvm default (non-critical)"
+    nvm alias default "$PREFERRED_NODE_VERSION" || warn "Failed to set nvm default (non-critical)"
 
     success "nvm and Node.js installed"
     warn "You may need to restart your terminal after setup completes"
@@ -512,10 +573,12 @@ install_dependencies() {
     
     # Rebuild native modules explicitly - critical for DuckDB on Windows
     info "Rebuilding native modules (DuckDB, etc)..."
-    npm rebuild --verbose 2>&1 | head -20 || {
+    npm rebuild 2>&1 | head -20
+    # Check npm rebuild's actual exit code using PIPESTATUS
+    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
         warn "npm rebuild encountered issues - attempting to continue"
         info "If you see DuckDB errors, try: npm rebuild --build-from-source"
-    }
+    fi
     success "Memory server dependencies installed"
     cd ../.. || {
         error "Failed to return to root directory"
@@ -573,7 +636,7 @@ bootstrap_memories() {
     }
     
     # Try bootstrap with better error handling for native module issues
-    if ! npm run bootstrap 2>&1; then
+    if ! npm run bootstrap; then
         error "Bootstrap failed - likely a native module issue"
         echo ""
         warn "Troubleshooting for Windows users:"
@@ -640,10 +703,20 @@ setup_gemini_optional() {
         
         # Run auth with full output visible (OAuth is interactive)
         # Use generous timeout since user needs to complete browser auth
-        if timeout $GEMINI_AUTH_TIMEOUT npm run auth; then
-            success "Gemini tools authentication successful"
+        # Note: timeout command may not exist on macOS by default
+        if command -v timeout &> /dev/null; then
+            if timeout "$GEMINI_AUTH_TIMEOUT" npm run auth; then
+                success "Gemini tools authentication successful"
+            else
+                warn "Gemini authentication did not complete (you can run it later with: cd .collective/gemini-bridge && npm run auth)"
+            fi
         else
-            warn "Gemini authentication did not complete (you can run it later with: cd .collective/gemini-bridge && npm run auth)"
+            # No timeout available - run without time limit
+            if npm run auth; then
+                success "Gemini tools authentication successful"
+            else
+                warn "Gemini authentication did not complete (you can run it later with: cd .collective/gemini-bridge && npm run auth)"
+            fi
         fi
         
         cd ../.. || {
@@ -741,94 +814,17 @@ print_success() {
     echo ""
 }
 
-clone_if_needed() {
-    # If running via curl | bash, we need to clone the repo first
-    if [[ ! -f "package.json" ]]; then
-        if ! command -v git &> /dev/null; then
-            warn "Git not found - required for cloning repository"
 
-            # Offer to install Git automatically when possible
-            printf "Would you like the installer to attempt to install Git now using your package manager? [y/N]: "
-            read -r INSTALL_GIT_REPLY
-            if [[ "$INSTALL_GIT_REPLY" =~ ^[Yy]$ ]]; then
-                info "Attempting to install Git using package manager: $PKG_MANAGER"
-                case "$PKG_MANAGER" in
-                    apt)
-                        sudo apt-get update && sudo apt-get install -y git || {
-                            error "Failed to install Git via apt"
-                            error "Install Git manually: https://git-scm.com/downloads"
-                            exit 1
-                        }
-                        ;;
-                    dnf)
-                        sudo dnf install -y git || {
-                            error "Failed to install Git via dnf"
-                            error "Install Git manually: https://git-scm.com/downloads"
-                            exit 1
-                        }
-                        ;;
-                    pacman)
-                        sudo pacman -S --noconfirm git || {
-                            error "Failed to install Git via pacman"
-                            error "Install Git manually: https://git-scm.com/downloads"
-                            exit 1
-                        }
-                        ;;
-                    brew)
-                        brew install git || {
-                            error "Failed to install Git via Homebrew"
-                            error "Install Git manually: https://git-scm.com/downloads"
-                            exit 1
-                        }
-                        ;;
-                    *)
-                        error "Automatic Git installation is not supported on your system ($PKG_MANAGER)."
-                        error "Please install Git manually: https://git-scm.com/downloads"
-                        exit 1
-                        ;;
-                esac
-
-                # Verify installation
-                if ! command -v git &> /dev/null; then
-                    error "Git installation appeared to fail. Please install Git manually: https://git-scm.com/downloads"
-                    exit 1
-                fi
-                success "Git installed successfully"
-            else
-                error "Git is required to continue. Please install Git and re-run this script: https://git-scm.com/downloads"
-                exit 1
-            fi
-        fi
-
-        if [[ ! -d "the_collective" ]]; then
-            info "Cloning the_collective repository..."
-            # Security: Sanitize git output to prevent terminal injection via ANSI escape codes
-            GIT_ERROR=$(git clone "$REPO_URL" 2>&1 | tr -d '\000-\037\177-\377') || {
-                error "Failed to clone repository:"
-                echo "$GIT_ERROR" | head -20 >&2  # Limit output to prevent spam
-                exit 1
-            }
-        fi
-        cd the_collective || {
-            error "Failed to enter the_collective directory"
-            exit 1
-        }
-        
-        # Verify critical directories exist
-        if [[ ! -d ".collective" ]]; then
-            error ".collective directory missing in cloned repository"
-            exit 1
-        fi
-        
-        success "Repository ready"
-    fi
-}
 
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
 
 main() {
+    # Set up exit trap now that we're in a valid state with all functions defined
+    # Catch EXIT (normal exit), INT (Ctrl+C), and TERM (kill signal)
+    trap cleanup_on_exit EXIT INT TERM
+    
     print_banner
     
     # Set up logging now that we're in the correct directory
@@ -840,9 +836,6 @@ main() {
     # Detect OS
     detect_os
     info "Detected: $OS ($PKG_MANAGER)"
-
-    # Clone repo if running via curl | bash
-    clone_if_needed
 
     # Determine total steps based on whether we need to install Node
     if check_node; then
@@ -880,9 +873,7 @@ main() {
         step "$((++STEP))" "$TOTAL_STEPS" "Installing Node.js"
         install_node
 
-        # Reload shell environment
-        [[ -s "$HOME/.nvm/nvm.sh" ]] && source "$HOME/.nvm/nvm.sh"
-
+        # Verify installation succeeded
         if ! check_node; then
             error "Node.js installation failed"
             echo "Please install Node.js ${MIN_NODE_VERSION}+ manually: https://nodejs.org"
