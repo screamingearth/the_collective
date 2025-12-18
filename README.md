@@ -10,7 +10,7 @@
   
 <h3>vision:// further enable humans to harness the power of AI and bring their ideas to life</h3>
 
->the_collective is a team of AI agents that work together inside VS Code. Instead of one AI assistant, you get specialised personalities that debate, research, and build things collaboratively using powerful tools.
+>*\>the_collective is a team of AI agents that work together inside VS Code. Instead of one AI assistant, you get specialised personalities that debate, research, and build things collaboratively using powerful tools.*
 
 **No AI expertise required.** If you can install VS Code and run a single command, you are ready.
 
@@ -75,6 +75,8 @@ iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/main/b
 ## 🧠 how it works
 
 **memory system** // local vector database (DuckDB + semantic embeddings) with retriever-reranker pipeline. your preferences, decisions, architectural choices, and project context persist across sessions. encrypted locally, never sent to cloud.
+
+**gemini bridge** // custom MCP server wrapping gemini-cli into specialized tools for general queries, decision validation, and massive codebase analysis. leverages gemini-3-flash-preview free tier for cost-free offloading. />the_collective uses it autonomously to double-check logic or process information beyond local context limits.
 
 **agents** // one language model, four specialized personas. address them directly in chat (`cassandra, check for vulnerabilities`) or use team mode to watch them collaborate in real-time. 
 
