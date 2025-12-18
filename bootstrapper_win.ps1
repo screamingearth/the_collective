@@ -45,6 +45,7 @@ try {
     Log-Message "Log file: $LogFile"
     
     # Check if running as Administrator (Windows-only check)
+    $isAdmin = $false
     if ($IsWindows -or $PSVersionTable.PSEdition -eq 'Desktop') {
         $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
         if (-not $isAdmin) {
@@ -52,6 +53,162 @@ try {
         }
     } else {
         Log-Message "Running on non-Windows platform (testing mode)" "Yellow"
+    }
+    
+    # Helper function: Check if Visual Studio Build Tools are installed
+    function Test-VisualStudioBuildTools {
+        # Check for cl.exe (MSVC compiler) in common locations
+        $vsToolsLocations = @(
+            "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC",
+            "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC",
+            "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC",
+            "C:\Program Files\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC"
+        )
+        
+        foreach ($location in $vsToolsLocations) {
+            if (Test-Path $location) {
+                return $true
+            }
+        }
+        
+        # Also check if cl.exe is in PATH
+        if (Get-Command cl.exe -ErrorAction SilentlyContinue) {
+            return $true
+        }
+        
+        return $false
+    }
+    
+    # Helper function: Install Visual Studio Build Tools with elevation if needed
+    function Install-VisualStudioBuildTools {
+        Log-Message ""
+        Log-Message "Checking for Visual Studio C++ Build Tools..." "Cyan"
+        
+        if (Test-VisualStudioBuildTools) {
+            Log-Success "Visual Studio C++ Build Tools already installed"
+            return $true
+        }
+        
+        Log-Message "Visual Studio Build Tools not detected" "Yellow"
+        Log-Message ""
+        
+        if (-not $isAdmin) {
+            Log-Message "Admin privileges required to install build tools" "Yellow"
+            Log-Message "Requesting elevation..." "Yellow"
+            Log-Message ""
+            
+            # Re-run this script with admin privileges
+            $params = @{
+                'FilePath' = 'powershell.exe'
+                'ArgumentList' = @(
+                    '-NoProfile',
+                    '-ExecutionPolicy', 'Bypass',
+                    '-Command', "& {Set-Location '$PWD'; & '$PSCommandPath'}"
+                )
+                'Verb' = 'RunAs'
+                'Wait' = $true
+            }
+            
+            try {
+                Start-Process @params
+                # After elevation completes, exit this process
+                exit 0
+            } catch {
+                Log-Error "Failed to request elevation: $_"
+                Log-Message "Please run PowerShell as Administrator and try again" "Yellow"
+                return $false
+            }
+        }
+        
+        # If we get here, we're running as admin
+        Log-Success "Running with admin privileges - installing build tools"
+        Log-Message ""
+        Log-Message "Downloading and installing Visual Studio Build Tools..." "Cyan"
+        Log-Message "This will take 5-10 minutes. Please wait..." "Cyan"
+        Log-Message ""
+        
+        try {
+            # Try winget first (cleaner, no need for manual command)
+            if (Get-Command winget -ErrorAction SilentlyContinue) {
+                Log-Message "Using winget to install Visual Studio Build Tools..."
+                # The --no-upgrade flag prevents updating existing versions
+                winget install --id Microsoft.VisualStudio.2022.BuildTools `
+                    --accept-package-agreements `
+                    --accept-source-agreements `
+                    --silent `
+                    --override "--passive --wait" 2>&1 | ForEach-Object { Log-Message $_ "Gray" }
+                
+                if ($LASTEXITCODE -eq 0) {
+                    Log-Success "Visual Studio Build Tools installed via winget"
+                    return $true
+                } else {
+                    Log-Message "winget install had issues, trying direct download..." "Yellow"
+                }
+            }
+            
+            # Fallback: Direct download and install
+            Log-Message "Downloading Visual Studio Build Tools installer..." "Cyan"
+            $installerUrl = "https://aka.ms/vs/17/release/vs_buildtools.exe"
+            $installerPath = Join-Path $env:TEMP "vs_buildtools.exe"
+            
+            # Download with progress
+            $ProgressPreference = 'SilentlyContinue'  # Suppress progress bar for cleaner logs
+            Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -ErrorAction Stop
+            Log-Success "Downloaded Visual Studio Build Tools installer"
+            
+            # Install with C++ workload
+            Log-Message "Running installer with C++ workload..." "Cyan"
+            $setupArgs = @(
+                "--quiet",
+                "--wait",
+                "--add Microsoft.VisualStudio.Workload.VCTools",
+                "--add Microsoft.VisualStudio.Component.VC.CMake.Project"
+            )
+            
+            & $installerPath $setupArgs
+            
+            if ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq 3010) {  # 3010 = restart required
+                Log-Success "Visual Studio Build Tools installed successfully"
+                
+                # Clean up installer
+                Remove-Item $installerPath -ErrorAction SilentlyContinue
+                
+                # If restart required, ask user
+                if ($LASTEXITCODE -eq 3010) {
+                    Log-Message ""
+                    Log-Message "Installation complete but a system restart is recommended" "Yellow"
+                    Log-Message "Restarting now..." "Yellow"
+                    Log-Message ""
+                    Start-Sleep -Seconds 3
+                    Restart-Computer -Force
+                    exit 0
+                }
+                
+                return $true
+            } else {
+                Log-Error "Visual Studio Build Tools installation failed with exit code: $LASTEXITCODE"
+                Remove-Item $installerPath -ErrorAction SilentlyContinue
+                return $false
+            }
+        } catch {
+            Log-Error "Failed to install Visual Studio Build Tools: $_"
+            Log-Message ""
+            Log-Message "Manual installation:" "Yellow"
+            Log-Message "1. Download: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022" "Yellow"
+            Log-Message "2. Run installer and select 'Desktop development with C++'" "Yellow"
+            Log-Message "3. Complete installation and restart this script" "Yellow"
+            return $false
+        }
+    }
+    
+    # Attempt to install build tools if missing
+    if (-not (Test-VisualStudioBuildTools)) {
+        if (-not (Install-VisualStudioBuildTools)) {
+            Log-Error "Build tools installation failed or was skipped"
+            Log-Message "Setup cannot continue without C++ build tools" "Red"
+            Pause
+            exit 1
+        }
     }
     
     # Check for Git & Install if missing
@@ -206,10 +363,33 @@ try {
         }
         
         if ($bashPath) {
+            # Run setup.sh and capture detailed error output
+            # Note: bash output goes directly to console + log file (via setup.sh's tee command)
+            # We just need to check the exit code
             & $bashPath ./setup.sh
-            if ($LASTEXITCODE -ne 0) {
-                Log-Error "Setup script failed with exit code: $LASTEXITCODE"
-                throw "Setup failed"
+            $setupExitCode = $LASTEXITCODE
+            
+            if ($setupExitCode -ne 0) {
+                Log-Error "Setup script failed with exit code: $setupExitCode"
+                Log-Message ""
+                Log-Message "Troubleshooting steps:" "Yellow"
+                Log-Message "1. Check the detailed log file:" "Cyan"
+                Log-Message "   Type: Get-Content .collective\.logs\setup.log | Select-Object -Last 50" "Gray"
+                Log-Message ""
+                Log-Message "2. Common causes on Windows:" "Cyan"
+                Log-Message "   • Missing Visual Studio Build Tools (required for native modules like DuckDB)" "Gray"
+                Log-Message "   • Insufficient disk space (need ~2GB)" "Gray"
+                Log-Message "   • Node.js version too old (need v20+, preferably v22)" "Gray"
+                Log-Message "   • Network issues downloading npm packages" "Gray"
+                Log-Message ""
+                Log-Message "3. If native module compilation failed:" "Cyan"
+                Log-Message "   Download Visual Studio Build Tools: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022" "Yellow"
+                Log-Message "   Select 'Desktop development with C++' during installation" "Yellow"
+                Log-Message "   Then run: bash .\setup.sh" "Gray"
+                Log-Message ""
+                Log-Message "4. For more help, visit:" "Cyan"
+                Log-Message "   https://github.com/screamingearth/the_collective/issues" "Yellow"
+                throw "Setup failed (exit code $setupExitCode)"
             }
         } else {
             Log-Error "Git Bash (bash.exe) not found"

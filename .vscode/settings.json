@@ -270,8 +270,6 @@
   "inlineChat.enableV2": true,
   // Subagent support with custom agents
   "chat.customAgentInSubagent.enabled": true,
-  // Claude Skills support
-  "chat.useClaudeSkills": false,
   // Agent thinking display
   "chat.agent.thinkingStyle": "fixedScrolling",
   "chat.agent.thinking.collapsedTools": "always",
@@ -281,4 +279,5 @@
   "chat.viewRestorePreviousSession": true,
   "editor.defaultFormatter": "dbaeumer.vscode-eslint",
   "editor.experimentalGpuAcceleration": "off",
+  "chat.useAgentSkills": true,
 }

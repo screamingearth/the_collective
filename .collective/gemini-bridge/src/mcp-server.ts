@@ -110,7 +110,7 @@ async function main(): Promise<void> {
   if (!authStatus.authenticated) {
     console.error(
       "⚠️ Warning: Gemini CLI may not be authenticated. " +
-      "If Gemini tools fail, run: cd gemini-bridge && npm run auth"
+      "If Gemini tools fail, run: cd .collective/gemini-bridge && npm run auth"
     );
   } else {
     console.error("✓ Gemini CLI authenticated and ready");

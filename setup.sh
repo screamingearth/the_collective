@@ -730,35 +730,71 @@ install_dependencies() {
     # Rebuild native modules explicitly - critical for DuckDB on Windows
     info "Rebuilding native modules (DuckDB, etc)..."
     
-    # Use timeout to prevent indefinite hangs (5 minutes should be enough)
+    local rebuild_output
     local rebuild_status=0
+    
+    # Use timeout to prevent indefinite hangs (5 minutes should be enough)
     if command -v timeout &> /dev/null; then
-        timeout 300 npm rebuild 2>&1 | head -20
+        rebuild_output=$(timeout 300 npm rebuild 2>&1)
         rebuild_status=${PIPESTATUS[0]}
     else
         # No timeout command available (macOS by default) - run without timeout
-        npm rebuild 2>&1 | head -20
+        rebuild_output=$(npm rebuild 2>&1)
         rebuild_status=${PIPESTATUS[0]}
     fi
     
+    # Show first 30 lines of output
+    echo "$rebuild_output" | head -30
+    
     # Check npm rebuild's actual exit code
     if [[ $rebuild_status -ne 0 ]]; then
-        warn "npm rebuild encountered issues - attempting to continue"
+        warn "npm rebuild encountered issues - this often means missing build tools"
         echo ""
-        info "Native module compilation tips:"
+        error "═══════════════════════════════════════════════════════════"
+        error "Native module compilation failed"
+        error "═══════════════════════════════════════════════════════════"
+        echo ""
+        
         if [[ "$IS_WINDOWS" -eq 1 ]]; then
-            info "  • Install Visual Studio Build Tools: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022"
-            info "  • Or via npm: npm install --global windows-build-tools"
+            error "WINDOWS: You need Visual Studio C++ Build Tools"
+            echo ""
+            info "Installation steps:"
+            info "1. Download Visual Studio Build Tools (free):"
+            info "   https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022"
+            echo ""
+            info "2. Run the installer and select:"
+            info "   ✓ Desktop development with C++"
+            echo ""
+            info "3. Complete installation (~5-10 minutes)"
+            echo ""
+            info "4. Restart this setup script:"
+            info "   bash ./setup.sh"
+            echo ""
         else
-            info "  • Ensure build tools are installed (gcc, make, python3)"
-            if [[ "$OS" == "debian" ]]; then
-                info "  • Ubuntu/Debian: sudo apt install build-essential python3"
-            elif [[ "$OS" == "macos" ]]; then
-                info "  • macOS: xcode-select --install"
+            error "Unix/Mac: Missing build tools required for DuckDB"
+            echo ""
+            if [[ "$OS" == "macos" ]]; then
+                info "Install Xcode Command Line Tools:"
+                info "  xcode-select --install"
+            elif [[ "$OS" == "debian" ]]; then
+                info "Install build tools (Ubuntu/Debian):"
+                info "  sudo apt update && sudo apt install -y build-essential python3"
+            elif [[ "$OS" == "fedora" ]] || [[ "$OS" == "rhel" ]]; then
+                info "Install build tools (Fedora/RHEL):"
+                info "  sudo dnf groupinstall -y 'Development Tools'"
+            else
+                info "Install: gcc, make, python3 for your distribution"
             fi
+            echo ""
+            info "Then retry: ./setup.sh"
+            echo ""
         fi
-        info "  • Force rebuild from source: cd .collective/memory-server && npm rebuild --build-from-source"
+        
+        error "═══════════════════════════════════════════════════════════"
         echo ""
+        
+        # Exit with clear error instead of continuing
+        exit 1
     fi
     success "Memory server dependencies installed"
     cd ../.. || {
@@ -816,41 +852,51 @@ bootstrap_memories() {
         exit 1
     }
     
+    # Pre-flight: Check if DuckDB native module was compiled successfully
+    # If npm rebuild failed, this will catch it immediately
+    info "Verifying native modules are available..."
+    if ! node -e "require.resolve('better-sqlite3')" 2>/dev/null; then
+        error "═══════════════════════════════════════════════════════════"
+        error "Native module (better-sqlite3/DuckDB) is not available!"
+        error "═══════════════════════════════════════════════════════════"
+        echo ""
+        
+        if [[ "$IS_WINDOWS" -eq 1 ]]; then
+            error "WINDOWS: Your C++ build tools are not installed"
+            echo ""
+            error "Quick fix:"
+            error "1. Download: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022"
+            error "2. Select: 'Desktop development with C++'"
+            error "3. Install and restart this script"
+            echo ""
+        else
+            error "UNIX/MAC: Your build tools are incomplete"
+            echo ""
+            if [[ "$OS" == "macos" ]]; then
+                error "Run: xcode-select --install"
+            elif [[ "$OS" == "debian" ]]; then
+                error "Run: sudo apt update && sudo apt install -y build-essential python3"
+            else
+                error "Install gcc, make, and python3 for your system"
+            fi
+            echo ""
+        fi
+        
+        cd ../.. > /dev/null 2>&1
+        exit 1
+    fi
+    success "Native modules verified"
+    
     # Try bootstrap with better error handling for native module issues
     if ! npm run bootstrap; then
-        error "Bootstrap failed - likely a native module issue"
+        error "Bootstrap failed (memory database initialization)"
         echo ""
-        error "Native module (DuckDB) failed to load. This usually means:"
+        error "This usually indicates an issue with DuckDB or the database initialization."
         echo ""
-        if [[ "$IS_WINDOWS" -eq 1 ]]; then
-            warn "Windows troubleshooting steps:"
-            warn "  1. Install Visual Studio Build Tools:"
-            warn "     https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022"
-            warn "     Select 'Desktop development with C++'"
-            warn ""
-            warn "  2. Or try the automated installer:"
-            warn "     npm install --global windows-build-tools"
-            warn ""
-            warn "  3. Rebuild native modules:"
-            warn "     cd .collective/memory-server && npm rebuild --build-from-source"
-        else
-            warn "Unix/Mac troubleshooting steps:"
-            warn "  1. Ensure build tools are installed:"
-            if [[ "$OS" == "macos" ]]; then
-                warn "     xcode-select --install"
-            elif [[ "$OS" == "debian" ]]; then
-                warn "     sudo apt install build-essential python3"
-            elif [[ "$OS" == "fedora" ]] || [[ "$OS" == "rhel" ]]; then
-                warn "     sudo dnf groupinstall 'Development Tools'"
-            else
-                warn "     Install gcc, make, and python3 for your distro"
-            fi
-            warn ""
-            warn "  2. Rebuild native modules:"
-            warn "     cd .collective/memory-server && npm rebuild --build-from-source"
-        fi
+        info "Try these recovery steps:"
+        info "1. Delete the database: rm -f .mcp/memories.db"
+        info "2. Retry setup: cd ../.. && ./setup.sh"
         echo ""
-        warn "After installing tools, run: ./setup.sh"
         cd ../.. > /dev/null 2>&1
         exit 1
     fi
