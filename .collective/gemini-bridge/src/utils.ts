@@ -21,13 +21,66 @@ const __dirname = dirname(__filename);
  */
 export function getGeminiCliPath(): string {
   // First try local node_modules
-  const localPath = resolve(__dirname, "..", "..", "node_modules", ".bin", "gemini");
+  // __dirname is dist/ in the built package
+  const localPath = resolve(__dirname, "..", "node_modules", ".bin", "gemini");
   if (existsSync(localPath)) {
     return localPath;
   }
 
   // Fall back to npx
   return "npx @google/gemini-cli";
+}
+
+/**
+ * Ensure gemini-cli settings are configured correctly for >the_collective
+ */
+export async function ensureSettings(): Promise<void> {
+  try {
+    const fs = await import('node:fs/promises');
+    const os = await import('node:os');
+    const path = await import('node:path');
+
+    const settingsPath = path.join(os.homedir(), '.gemini', 'settings.json');
+    const geminiDir = path.join(os.homedir(), '.gemini');
+
+    // Ensure directory exists
+    if (!existsSync(geminiDir)) {
+      await fs.mkdir(geminiDir, { recursive: true });
+    }
+
+    let settings: any = {};
+    if (existsSync(settingsPath)) {
+      const content = await fs.readFile(settingsPath, 'utf8');
+      try {
+        settings = JSON.parse(content);
+      } catch {
+        // Corrupt settings, start fresh
+      }
+    }
+
+    let changed = false;
+
+    // Enable preview features (required for gemini-3-flash-preview)
+    if (!settings.general) settings.general = {};
+    if (settings.general.previewFeatures !== true) {
+      settings.general.previewFeatures = true;
+      changed = true;
+    }
+
+    // Set default model to gemini-3-flash-preview
+    if (!settings.model) settings.model = {};
+    if (settings.model.name !== "gemini-3-flash-preview") {
+      settings.model.name = "gemini-3-flash-preview";
+      changed = true;
+    }
+
+    if (changed) {
+      await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+      console.error("✓ Gemini CLI settings updated (preview features enabled, model set to gemini-3-flash-preview)");
+    }
+  } catch (err) {
+    console.error("⚠️ Failed to ensure Gemini CLI settings:", err);
+  }
 }
 
 /**

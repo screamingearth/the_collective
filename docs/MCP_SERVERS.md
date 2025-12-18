@@ -24,7 +24,9 @@ npm run check
 code .
 ```
 
-**That's it.** Servers auto-start automatically in `.vscode/settings.json`.
+**CRITICAL:** You must open the **root** `the_collective` folder in VS Code. 
+*   **Why?** VS Code only looks for `.vscode/mcp.json` in the root of the opened workspace. If you open a subfolder (like `.collective/memory-server`), the MCP servers will not load, and the agents will lose their tools.
+*   **Agent Personas:** Similarly, the agent instructions in `.github/copilot-instructions.md` are only loaded if the root folder is opened.
 
 ## Configuration
 

@@ -28,9 +28,14 @@ sh -c 'U="https://raw.githubusercontent.com/screamingearth/the_collective/main/b
 iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_win.ps1 | iex
 ```
 
-**After installation:** Restart VS Code, open the `the_collective` folder, and say "hey nyx" in Copilot Chat.
+**After installation:** Restart VS Code, select **Open Folder...**, and navigate to `Documents/the_collective`. 
+
+> **CRITICAL:** You must open the **root** `the_collective` folder. This is required for VS Code to load the MCP servers from `.vscode/mcp.json` and for Copilot to find the agent instructions in `.github/`.
+
+Once opened, say "hey nyx" in Copilot Chat.
 
 > **Note:** The first conversation will download ~400MB of ML models for embeddings. This is normal and only happens once.
+> **Windows Users:** The bootstrapper will attempt to install **Visual Studio C++ Build Tools** if missing. This takes ~5-15 minutes and is required for the local memory database.
 
 ---
 
@@ -42,13 +47,18 @@ If the bootstrapper fails due to firewall issues or a minimal environment, use t
 If you already have Git installed:
 
 ```bash
-git clone https://github.com/screamingearth/the_collective.git ~/the_collective
-cd ~/the_collective
-
 # Linux/Mac
+# Clones to your Documents folder
+mkdir -p ~/Documents
+git clone https://github.com/screamingearth/the_collective.git ~/Documents/the_collective
+cd ~/Documents/the_collective
 ./bootstrapper_unix.sh
 
 # Windows (PowerShell)
+# Clones to your Documents folder
+$dest = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "the_collective"
+git clone https://github.com/screamingearth/the_collective.git $dest
+cd $dest
 .\bootstrapper_win.ps1
 ```
 
@@ -57,7 +67,7 @@ If you have Python installed but no Git/Curl:
 
 ```bash
 python3 - <<'PY'
-import urllib.request
+import urllib.request, os
 url='https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_unix.sh'
 open('install.sh','w').write(urllib.request.urlopen(url).read().decode())
 print('Saved install.sh — run: bash install.sh')
@@ -71,14 +81,16 @@ If the scripts fail entirely, follow these steps manually:
 1. Install Node.js & Git:
    ```bash
    # Ubuntu/Debian
-   sudo apt update && sudo apt install -y nodejs npm git
+   sudo apt update && sudo apt install -y nodejs npm git build-essential
    # macOS
    brew install node git
+   xcode-select --install
    ```
 2. Run setup:
    ```bash
-   git clone https://github.com/screamingearth/the_collective.git
-   cd the_collective
+   mkdir -p ~/Documents
+   git clone https://github.com/screamingearth/the_collective.git ~/Documents/the_collective
+   cd ~/Documents/the_collective
    chmod +x setup.sh
    ./setup.sh
    ```
@@ -86,14 +98,24 @@ If the scripts fail entirely, follow these steps manually:
 **Windows:**
 1. Install [Node.js](https://nodejs.org/) (LTS).
 2. Install [Git for Windows](https://git-scm.com/download/win) (Select "Git Bash" during install).
-3. Open Git Bash:
+3. Install [Visual Studio Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022) (Select "Desktop development with C++").
+4. Open Git Bash:
    ```bash
+   # Navigate to Documents
+   cd ~/Documents
    git clone https://github.com/screamingearth/the_collective.git
    cd the_collective
    ./setup.sh
    ```
 
----
+### 4. Troubleshooting MCP Servers
+If the agents seem to be missing their tools (Memory, GitHub, Gemini), the MCP servers might not have started correctly:
+
+1. Open the **Extensions** window in the sidebar (or press `Ctrl+Shift+X`).
+2. Look for the **"MCP Servers - Installed"** section.
+3. Click the **cog icon** next to each server (memory, gemini, filesystem).
+4. Verify the status is "Running". If not, click **Start** to launch them manually.
+5. You can also run the command `MCP: List Servers` from the Command Palette (`Ctrl+Shift+P`) to see a detailed status.
 
 ## ⚙️ Configuration
 
@@ -133,6 +155,7 @@ npm run check -- --quick   # Fast validation
 
 | Issue | Solution |
 |-------|----------|
+| **MCP Servers Not Loading** | Go to the **Extensions** window (`Ctrl+Shift+X`), click the **cog icon** on each MCP server under "MCP Servers - Installed". Ensure they are running; start them manually if not. |
 | **Database Locked** | Close all VS Code windows, wait 5s, reopen. |
 | **Bash Not Found (Win)** | Reinstall Git, ensure "Git Bash" is selected. |
 | **Build Failed** | Run `npm run clean`, then `./setup.sh`. |

@@ -193,10 +193,32 @@ try {
         } catch {
             Log-Error "Failed to install Visual Studio Build Tools: $_"
             Log-Message ""
-            Log-Message "Manual installation:" "Yellow"
-            Log-Message "1. Download: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022" "Yellow"
-            Log-Message "2. Run installer and select 'Desktop development with C++'" "Yellow"
-            Log-Message "3. Complete installation and restart this script" "Yellow"
+            Log-Message "═══════════════════════════════════════════════════════════" "Yellow"
+            Log-Message "Manual Installation (if automated install failed):" "Yellow"
+            Log-Message "═══════════════════════════════════════════════════════════" "Yellow"
+            Log-Message ""
+            Log-Message "Step 1: Download the Visual Studio Build Tools installer" "Cyan"
+            Log-Message "   → Visit: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022" "Yellow"
+            Log-Message "   → Click the 'Download' button for 'Build Tools for Visual Studio 2022'" "Gray"
+            Log-Message ""
+            Log-Message "Step 2: Run the installer (vs_buildtools.exe)" "Cyan"
+            Log-Message "   → Opens: Visual Studio Installer window" "Gray"
+            Log-Message "   → Look for the 'Desktop development with C++' tile/card" "Gray"
+            Log-Message "   → Click the checkbox next to 'Desktop development with C++'" "Gray"
+            Log-Message ""
+            Log-Message "Step 3: Installation details appear on the RIGHT panel" "Cyan"
+            Log-Message "   → Verify these are selected:" "Gray"
+            Log-Message "      ✓ MSVC v143 - VS 2022 C++ x64/x86 build tools" "Gray"
+            Log-Message "      ✓ Windows 11 SDK" "Gray"
+            Log-Message "      ✓ CMake tools for Windows" "Gray"
+            Log-Message ""
+            Log-Message "Step 4: Click 'Install' button" "Cyan"
+            Log-Message "   → Installation location: C:\Program Files\Microsoft Visual Studio\2022\BuildTools" "Gray"
+            Log-Message "   → Takes 5-15 minutes (depending on your internet speed)" "Gray"
+            Log-Message ""
+            Log-Message "Step 5: After installation completes" "Cyan"
+            Log-Message "   → Restart this script: bash .\setup.sh" "Gray"
+            Log-Message ""
             return $false
         }
     }
@@ -291,39 +313,47 @@ try {
         Log-Success "Node.js already installed: $(node --version)"
     }
     
-    # Determine installation directory (cross-platform)
-    $InstallDir = Join-Path $HOME "the_collective"
+    # Determine installation directory
+    # Windows: C:\Users\{YourUsername}\Documents\the_collective
+    # (visible in Windows Explorer under Documents folder)
+    $DocumentsPath = [Environment]::GetFolderPath('MyDocuments')
+    $InstallDir = Join-Path $DocumentsPath "the_collective"
+    
+    Log-Message "Installation directory: $InstallDir" "Cyan"
     
     # Clone or Update Repository
     if (Test-Path $InstallDir) {
-        Log-Message "Repository directory exists. Pulling latest changes..."
+        Log-Message "Repository directory exists. Checking integrity..." "Cyan"
         try {
             Set-Location $InstallDir -ErrorAction Stop
+            
+            # Check if it's a valid git repo
+            $isGitRepo = git rev-parse --is-inside-work-tree 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                Log-Message "Valid repository found. Pulling latest changes..."
+                git pull origin main
+                Log-Success "Repository updated"
+            } else {
+                Log-Message "Directory exists but is not a valid git repository." "Yellow"
+                Log-Message "Moving existing directory to backup and re-cloning..." "Yellow"
+                $BackupDir = "${InstallDir}_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+                Move-Item -Path $InstallDir -Destination $BackupDir -Force
+                
+                Log-Message "Cloning repository to $InstallDir..." "Cyan"
+                git clone --depth 1 https://github.com/screamingearth/the_collective.git $InstallDir
+                Set-Location $InstallDir -ErrorAction Stop
+                Log-Success "Repository cloned successfully"
+            }
         } catch {
-            Log-Error "Failed to change to directory: $InstallDir"
-            Pause
-            exit 1
-        }
-        
-        try {
-            git pull origin main
-            Log-Success "Repository updated"
-        } catch {
-            Log-Error "Failed to update repository. Manual intervention may be required."
-            Log-Message "Continuing with existing local version..."
+            Log-Error "Failed to update repository: $($_.Exception.Message)"
+            Log-Message "Continuing with existing local version if possible..." "Yellow"
         }
     } else {
         Log-Message "Cloning repository to $InstallDir..."
         
         try {
             git clone --depth 1 https://github.com/screamingearth/the_collective.git $InstallDir
-            try {
-                Set-Location $InstallDir -ErrorAction Stop
-            } catch {
-                Log-Error "Failed to change to directory: $InstallDir"
-                Pause
-                exit 1
-            }
+            Set-Location $InstallDir -ErrorAction Stop
             Log-Success "Repository cloned successfully"
         } catch {
             Log-Error "Failed to clone repository"
@@ -363,32 +393,82 @@ try {
         }
         
         if ($bashPath) {
-            # Run setup.sh and capture detailed error output
-            # Note: bash output goes directly to console + log file (via setup.sh's tee command)
-            # We just need to check the exit code
-            & $bashPath ./setup.sh
+            # Create a wrapper script to capture bash output properly
+            $setupLogPath = Join-Path (Get-Location) ".collective\.logs\setup-full.log"
+            $setupScriptWrapper = Join-Path $env:TEMP "setup_wrapper_$([System.Guid]::NewGuid()).sh"
+            
+            # Create wrapper that tees output to both console and file
+            $wrapperContent = @"
+#!/bin/bash
+set -e
+# Source the setup script but capture all output
+exec 1> >(tee -a "$setupLogPath")
+exec 2>&1
+echo "[Bootstrap] Starting setup.sh at $(date)"
+echo "[Bootstrap] Current directory: \$(pwd)"
+echo "[Bootstrap] Bash version: \$(bash --version | head -1)"
+echo "[Bootstrap] Node version: \$(node --version 2>/dev/null || echo 'NOT FOUND')"
+echo "[Bootstrap] npm version: \$(npm --version 2>/dev/null || echo 'NOT FOUND')"
+echo ""
+bash ./setup.sh
+"@
+            
+            # Write wrapper to temp file
+            $wrapperContent | Out-File -FilePath $setupScriptWrapper -Encoding UTF8 -NoNewline
+            
+            # Run wrapper through bash
+            & $bashPath $setupScriptWrapper
             $setupExitCode = $LASTEXITCODE
+            
+            # Clean up wrapper
+            Remove-Item $setupScriptWrapper -ErrorAction SilentlyContinue
             
             if ($setupExitCode -ne 0) {
                 Log-Error "Setup script failed with exit code: $setupExitCode"
                 Log-Message ""
-                Log-Message "Troubleshooting steps:" "Yellow"
-                Log-Message "1. Check the detailed log file:" "Cyan"
-                Log-Message "   Type: Get-Content .collective\.logs\setup.log | Select-Object -Last 50" "Gray"
+                Log-Message "═══════════════════════════════════════════════════════════" "Red"
+                Log-Message "Detailed Setup Log:" "Red"
+                Log-Message "═══════════════════════════════════════════════════════════" "Red"
+                
+                # Show last 100 lines of setup log if it exists
+                if (Test-Path $setupLogPath) {
+                    Log-Message ""
+                    Get-Content $setupLogPath -ErrorAction SilentlyContinue | Select-Object -Last 100 | ForEach-Object {
+                        Log-Message $_
+                    }
+                } elseif (Test-Path ".\.collective\.logs\setup.log") {
+                    Log-Message ""
+                    Get-Content ".\.collective\.logs\setup.log" -ErrorAction SilentlyContinue | Select-Object -Last 100 | ForEach-Object {
+                        Log-Message $_
+                    }
+                } else {
+                    Log-Message "(No detailed setup log found)"
+                }
+                
                 Log-Message ""
-                Log-Message "2. Common causes on Windows:" "Cyan"
-                Log-Message "   • Missing Visual Studio Build Tools (required for native modules like DuckDB)" "Gray"
-                Log-Message "   • Insufficient disk space (need ~2GB)" "Gray"
-                Log-Message "   • Node.js version too old (need v20+, preferably v22)" "Gray"
-                Log-Message "   • Network issues downloading npm packages" "Gray"
+                Log-Message "═══════════════════════════════════════════════════════════" "Red"
+                Log-Message "Troubleshooting:" "Yellow"
+                Log-Message "═══════════════════════════════════════════════════════════" "Red"
                 Log-Message ""
-                Log-Message "3. If native module compilation failed:" "Cyan"
-                Log-Message "   Download Visual Studio Build Tools: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022" "Yellow"
-                Log-Message "   Select 'Desktop development with C++' during installation" "Yellow"
-                Log-Message "   Then run: bash .\setup.sh" "Gray"
+                Log-Message "1. Missing Visual Studio Build Tools?" "Cyan"
+                Log-Message "   The most common cause of setup.sh failure on Windows" "Gray"
+                Log-Message "   Download: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022" "Yellow"
+                Log-Message "   Select: 'Desktop development with C++'" "Yellow"
+                Log-Message "   Then: bash .\setup.sh" "Gray"
                 Log-Message ""
-                Log-Message "4. For more help, visit:" "Cyan"
-                Log-Message "   https://github.com/screamingearth/the_collective/issues" "Yellow"
+                Log-Message "2. Check disk space:" "Cyan"
+                Log-Message "   Need at least 2GB free (for npm packages + ML models)" "Gray"
+                Log-Message ""
+                Log-Message "3. Clear npm cache and retry:" "Cyan"
+                Log-Message "   npm cache clean --force" "Gray"
+                Log-Message "   bash .\setup.sh" "Gray"
+                Log-Message ""
+                Log-Message "4. View full logs:" "Cyan"
+                Log-Message "   Complete log: $setupLogPath" "Gray"
+                Log-Message "   Or: Get-Content .collective\.logs\setup.log -Tail 50" "Gray"
+                Log-Message ""
+                Log-Message "5. For help: https://github.com/screamingearth/the_collective/issues" "Yellow"
+                
                 throw "Setup failed (exit code $setupExitCode)"
             }
         } else {
@@ -400,7 +480,7 @@ try {
             Log-Message ""
             Log-Message "Option 1: Use Git Bash directly" "Cyan"
             Log-Message "  1. Open Git Bash (search 'Git Bash' in Start menu)"
-            Log-Message "  2. Run: cd ~/the_collective"
+            Log-Message "  2. Run: cd ~/Documents/the_collective"
             Log-Message "  3. Run: ./setup.sh"
             Log-Message ""
             Log-Message "Option 2: Restart and retry" "Cyan"
@@ -423,10 +503,19 @@ try {
     Write-Host "🎉 Installation Complete!" -ForegroundColor Green
     Write-Host "════════════════════════════════════════════════" -ForegroundColor Green
     Write-Host ""
-    Write-Host "   Next steps:" -ForegroundColor Cyan
-    Write-Host "   1. Open VS Code: " -NoNewline
-    Write-Host "code $InstallDir" -ForegroundColor Yellow
-    Write-Host "   2. In VS Code, open Copilot Chat and say: " -NoNewline
+    Write-Host "   📁 Your installation:" -ForegroundColor Cyan
+    Write-Host "      Location: $InstallDir" -ForegroundColor Gray
+    Write-Host "      (Visible in: Windows Explorer → Documents → the_collective)" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "   🚀 Next steps:" -ForegroundColor Cyan
+    Write-Host "      1. Open VS Code and select 'Open Folder...'" -ForegroundColor Gray
+    Write-Host "      2. Select the ROOT folder: " -NoNewline
+    Write-Host "$InstallDir" -ForegroundColor Yellow
+    Write-Host "         (CRITICAL: You must open the root folder for MCP servers to load)" -ForegroundColor Red
+    Write-Host "      3. Or run: " -NoNewline
+    Write-Host "code '$InstallDir'" -ForegroundColor Yellow
+    Write-Host "      4. In VS Code, open Copilot Chat sidebar" -ForegroundColor Gray
+    Write-Host "      5. Type: " -NoNewline
     Write-Host '"hey nyx"' -ForegroundColor Magenta
     Write-Host ""
     
@@ -434,8 +523,10 @@ try {
     if (Get-Command code -ErrorAction SilentlyContinue) {
         $OpenCode = Read-Host "Open in VS Code now? (y/n)"
         if ($OpenCode -eq "y" -or $OpenCode -eq "Y") {
-            code $InstallDir
+            code "$InstallDir"
         }
+    } else {
+        Write-Host "Tip: Install VS Code from https://code.visualstudio.com" -ForegroundColor Yellow
     }
     
     Pause

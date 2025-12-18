@@ -14,6 +14,8 @@ Complete guides for the_collective framework.
 
 ## Quick Start
 
+**CRITICAL:** Always open the **root** `the_collective` folder in VS Code. This ensures `.vscode/mcp.json` and `.github/copilot-instructions.md` are loaded correctly.
+
 **Commands from workspace root:**
 ```bash
 ./setup.sh              # First-time setup (builds everything)

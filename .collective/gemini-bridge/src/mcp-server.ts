@@ -13,7 +13,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import type { GeminiJsonResponse } from "./types.js";
-import { buildArgs, checkAuthStatus, spawnGemini } from "./utils.js";
+import { buildArgs, checkAuthStatus, ensureSettings, spawnGemini } from "./utils.js";
 
 /**
  * System instructions for Gemini - defines behavior as research tool for >the_collective
@@ -105,6 +105,9 @@ async function executeGemini(
  * Main server setup
  */
 async function main(): Promise<void> {
+  // Ensure settings are configured
+  await ensureSettings();
+
   // Check auth status on startup (non-blocking)
   const authStatus = await checkAuthStatus();
   if (!authStatus.authenticated) {

@@ -22,12 +22,12 @@
 
 ### 🍎 macOS / Linux / WSL
 ```bash
-sh -c 'U="https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_unix.sh"; (command -v curl >/dev/null && curl -fsSL "$U" || command -v wget >/dev/null && wget -qO- "$U" || python3 -c "import sys,urllib.request;sys.stdout.buffer.write(urllib.request.urlopen(\'$U\').read())") | bash'
+curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_unix.sh | bash
 ```
 
 ### 🪟 Windows (PowerShell)
 ```powershell
-iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_win.ps1 | iex
+$s = iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_win.ps1; if ($?) { $s.Content | iex }
 ```
 
 > **Troubleshooting:** If the command fails, see [QUICKSTART.md](./QUICKSTART.md) for manual installation steps and fallbacks.
@@ -36,7 +36,9 @@ iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/main/b
 
 ### 🧐 Verify It Works
 
-1. Restart VS Code and open the `the_collective` folder.
+1. **Open the Root Folder:** Restart VS Code and select **Open Folder...**. Navigate to your installation (e.g., `Documents/the_collective` on Windows) and select the **root** directory.
+   > **CRITICAL:** You must open the root folder directly. This allows VS Code to access `.vscode/mcp.json` for tool integration and `.github/copilot-instructions.md` for agent personas.
+
 2. Open the integrated terminal and run:
    ```bash
    npm run check
@@ -63,12 +65,16 @@ iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/main/b
 | **prometheus** | builder | implementation & architecture | methodical, technical |
 | **cassandra** | breaker | security & risk analysis | skeptical, thorough |
 | **apollo** | polisher | optimization & quality | perfectionist, elegant |
-<br>
-
+---
 **>the_collective is best utilized by Claude models:**
 *   **Haiku 4.5** (Fast / Chat)
 *   **Sonnet 4.5** (Default / Coding)
 *   **Opus 4.5** (Deep Reasoning)
+---
+> BYOK: you can configure >the_collective to use your own API keys. use vscode's built-in BYOK features by going to the vscode chat sidebar, click your current model, and select "Manage Models".
+>
+>you can also see [GEMINI_BRIDGE.md](./docs/GEMINI_BRIDGE.md) to change what model >the_collective interacts with via the bridge server.<br>
+>gemini-3-flash-preview by default.
 
 <br>
 

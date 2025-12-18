@@ -22,8 +22,6 @@ The development process follows a dynamic four-stage orchestration powered by Cl
 
 ### AI Models & Tools
 
-**Core Models:** Claude (Haiku 4.5, Sonnet 4.5, Opus 4.5) - see [.github/copilot-instructions.md](.github/copilot-instructions.md) for model selection guide
-
 **Research Tools:** Gemini MCP tools (`mcp_gemini_query`, `mcp_gemini_analyze_code`, `mcp_gemini_validate`) provide cognitive diversity from different AI model - see [.github/copilot-instructions.md](.github/copilot-instructions.md) for usage details
 
 ## Agent Interaction Matrix

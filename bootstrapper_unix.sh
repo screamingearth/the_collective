@@ -8,6 +8,8 @@
 # This file is part of >the_collective by screamingearth (Apache 2.0 licensed).
 # ==============================================================================
 
+{ # Prevent execution of partial script if download is interrupted
+
 set -eo pipefail
 
 # Logging
@@ -52,6 +54,7 @@ echo ""
 
 log "Starting installation for $(uname -s)..."
 log "Log file: $LOGFILE"
+log ""
 
 # Detect OS
 OS="$(uname -s)"
@@ -178,7 +181,7 @@ if ! command -v git &> /dev/null; then
                 error "  Ubuntu/Debian: sudo apt-get install git curl"
                 error "  Fedora/RHEL:   sudo dnf install git curl"
                 error "  Arch:          sudo pacman -S git curl"
-                error "Alternatively, if git is available elsewhere, use: git clone https://github.com/screamingearth/the_collective.git ~/the_collective"
+                error "Alternatively, if git is available elsewhere, use: git clone https://github.com/screamingearth/the_collective.git ~/Documents/the_collective"
                 exit 1
                 ;;
         esac
@@ -217,17 +220,44 @@ else
 fi
 
 # Determine installation directory
-INSTALL_DIR="$HOME/the_collective"
+INSTALL_DIR="$HOME/Documents/the_collective"
+
+log ""
+log "Installation directory: $INSTALL_DIR"
+if [[ "$OS_NAME" == "macOS" ]]; then
+    log "  Location: ~/Documents/the_collective (visible in Finder)"
+else
+    log "  Location: ~/Documents/the_collective (accessible via: cd ~/Documents/the_collective)"
+fi
+log ""
 
 # Clone or Update Repository
 if [ -d "$INSTALL_DIR" ]; then
-    log "Repository directory exists. Pulling latest changes..."
+    log "Repository directory exists. Checking integrity..."
     cd "$INSTALL_DIR" || exit 1
     
-    if git pull origin main 2>/dev/null; then
-        success "Repository updated"
+    # Check if it's a valid git repo
+    if git rev-parse --is-inside-work-tree &>/dev/null; then
+        log "Valid repository found. Pulling latest changes..."
+        if git pull origin main 2>/dev/null; then
+            success "Repository updated"
+        else
+            warn "Failed to update repository. Continuing with existing local version..."
+        fi
     else
-        warn "Failed to update repository. Continuing with existing local version..."
+        warn "Directory exists but is not a valid git repository."
+        log "Moving existing directory to backup and re-cloning..."
+        BACKUP_DIR="${INSTALL_DIR}_backup_$(date +%Y%m%d_%H%M%S)"
+        mv "$INSTALL_DIR" "$BACKUP_DIR"
+        
+        log "Cloning repository to $INSTALL_DIR..."
+        if git clone --depth 1 https://github.com/screamingearth/the_collective.git "$INSTALL_DIR"; then
+            cd "$INSTALL_DIR" || exit 1
+            success "Repository cloned successfully"
+        else
+            error "Failed to clone repository"
+            exit 1
+        fi
     fi
 else
     log "Cloning repository to $INSTALL_DIR..."
@@ -269,9 +299,24 @@ echo -e "\033[1;32m════════════════════�
 echo -e "\033[1;32m🎉 Installation Complete!\033[0m"
 echo -e "\033[1;32m════════════════════════════════════════════════\033[0m"
 echo ""
-echo -e "   \033[36mNext steps:\033[0m"
-echo -e "   1. Open VS Code: \033[33mcode $INSTALL_DIR\033[0m"
-echo -e "   2. In VS Code, open Copilot Chat and say: \033[35m\"hey nyx\"\033[0m"
+echo -e "   \033[36m📁 Your installation:\033[0m"
+echo -e "      Location: $INSTALL_DIR"
+if [[ "$OS_NAME" == "macOS" ]]; then
+    echo -e "      (Visible in: Finder → Go → Home → Documents → the_collective)"
+else
+    echo -e "      (Accessible via: cd ~/Documents/the_collective)"
+fi
+echo ""
+echo -e "   \033[36m🚀 Next steps:\033[0m"
+echo -e "      1. Open VS Code and select 'Open Folder...'"
+echo -e "      2. Select the ROOT folder: \033[33m$INSTALL_DIR\033[0m"
+echo -e "         \033[1;31m(CRITICAL: You must open the root folder for MCP servers to load)\033[0m"
+echo -e "      3. Or run: \033[33mcode $INSTALL_DIR\033[0m"
+echo -e "      4. In VS Code, open Copilot Chat sidebar"
+echo -e "      5. Type: \033[35m\"hey nyx\"\033[0m"
+echo ""
 echo ""
 echo -e "   \033[2mLog file: $LOGFILE\033[0m"
 echo ""
+
+} # End of safety block

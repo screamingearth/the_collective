@@ -37,7 +37,7 @@ Common issues and solutions when installing or running >the_collective.
 2. **Use Git Bash directly:**
    ```bash
    # Open Git Bash from Start menu, then:
-   cd ~/the_collective
+   cd ~/Documents/the_collective
    ./setup.sh
    ```
 
@@ -48,19 +48,21 @@ Common issues and solutions when installing or running >the_collective.
 
 #### Native module compilation fails
 
-**Cause:** Visual Studio Build Tools are not installed.
+**Cause:** Visual Studio Build Tools are not installed or misconfigured.
 
 **Solutions:**
 
-1. **Install Visual Studio Build Tools:**
+1. **Run the bootstrapper again:** The `bootstrapper_win.ps1` script now attempts to install these automatically using `winget`.
+
+2. **Manual Install:**
    - Download from [Visual Studio Downloads](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022)
    - Run installer
    - Select "Desktop development with C++" workload
    - Restart terminal and retry
 
-2. **Alternative - Use npm package:**
-   ```powershell
-   npm install --global windows-build-tools
+3. **Check for errors in setup.log:**
+   ```bash
+   cat .collective/.logs/setup.log
    ```
 
 ### macOS
@@ -207,22 +209,25 @@ You can verify progress by watching the VS Code task output for "Start Memory Se
 
 ### VS Code doesn't recognize MCP servers
 
-**Symptoms:** Tool calls to memory/GitHub fail, MCP errors in output.
+**Symptoms:** Tool calls to memory/GitHub fail, MCP errors in output, or agents seem "dumb" (missing personas).
 
 **Solutions:**
 
-1. **Restart VS Code** (the MCP servers need a restart to load)
+1. **CRITICAL: Open the Root Folder:** Ensure you have opened the `the_collective` **root** folder in VS Code (File → Open Folder...). 
+   - If you open a subfolder (like `.collective/memory-server`), VS Code will **not** load `.vscode/mcp.json` or `.github/copilot-instructions.md`.
 
-2. **Check MCP configuration:**
+2. **Restart VS Code** (the MCP servers need a restart to load)
+
+3. **Check MCP configuration:**
    ```bash
    cat .vscode/mcp.json
    ```
 
-3. **Verify servers are running:**
+4. **Verify servers are running:**
    - Open View → Terminal
    - Check "Tasks" output panels for Memory Server and Gemini Bridge
 
-4. **Start servers manually:**
+5. **Start servers manually:**
    ```bash
    npm run check  # This shows server status
    ```

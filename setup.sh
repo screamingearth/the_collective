@@ -31,6 +31,23 @@ fi
 
 set -eo pipefail
 
+# Set up logging IMMEDIATELY - before anything else
+# This ensures we capture errors from the very start
+LOG_DIR=".collective/.logs"
+mkdir -p "$LOG_DIR" 2>/dev/null || true
+
+LOG_FILE="$LOG_DIR/setup.log"
+
+# Validate log file is writable before proceeding
+if ! touch "$LOG_FILE" 2>/dev/null; then
+    echo "WARNING: Cannot write to $LOG_FILE - logging disabled" >&2
+else
+    # Set up logging with tee (Bash portable)
+    exec 1> >(tee -a "$LOG_FILE")
+    exec 2>&1
+    echo "📝 Setup log: $(pwd)/$LOG_FILE"
+fi
+
 # Set download command preference (curl preferred, wget fallback)
 # Used for downloading nvm installer later
 if command -v curl &> /dev/null; then
@@ -182,42 +199,17 @@ step() {
 
 setup_logging() {
     # Call this after we're in the repo directory
-    # This ensures logs go to the correct location
+    # This re-verifies and reconfigures logging if needed
     
-    # Security: Sanitize log directory path to prevent traversal
-    LOG_DIR=$(realpath ".collective/.logs" 2>/dev/null || echo ".collective/.logs")
-    
-    mkdir -p "$LOG_DIR" || {
-        warn "Could not create .collective/.logs directory"
+    # Logging should already be active from early in the script,
+    # but this function ensures it's working correctly
+    if [ -w "$LOG_FILE" ]; then
+        success "Logging active: $LOG_FILE"
         return 0
-    }
-    
-    LOG_FILE="$LOG_DIR/setup.log"
-    
-    # Security: Validate path is within expected bounds
-    if [[ "$LOG_FILE" != *"/.collective/.logs/"* ]]; then
-        warn "Log path suspicious: $LOG_FILE - skipping logging"
-        return 0
-    fi
-    
-    # Validate log file is writable
-    if ! touch "$LOG_FILE" 2>/dev/null; then
-        warn "Cannot write to $LOG_FILE"
-        return 0
-    fi
-    
-    # Set up logging with fallback for non-bash shells
-    # Bash supports process substitution >(tee), other shells don't
-    if [ -n "$BASH_VERSION" ]; then
-        # In bash: redirect to both stdout and file using process substitution
-        exec 1> >(tee -a "$LOG_FILE")
-        exec 2>&1
     else
-        # Not in bash: redirect to file only (safer, more portable)
-        exec >> "$LOG_FILE" 2>&1
+        warn "Log file not writable - some output may not be captured"
+        return 1
     fi
-    
-    echo "📝 Setup log: $(pwd)/$LOG_FILE"
 }
 
 cleanup_on_exit() {
@@ -285,7 +277,7 @@ detect_os() {
         if [[ "$(pwd)" == /mnt/* ]]; then
             warn "Running from Windows filesystem (/mnt/c, /mnt/d, etc.)"
             warn "This is VERY SLOW for npm operations"
-            warn "Recommended: Move project to Linux filesystem: ~/the_collective"
+            warn "Recommended: Move project to Linux filesystem: ~/Documents/the_collective"
             echo ""
         fi
     else
@@ -678,9 +670,11 @@ install_dependencies() {
     local retry=0
     
     info "Installing root dependencies..."
+    info "This may take 2-5 minutes on first run..."
     
     while [[ $retry -lt $max_retries ]]; do
         if npm install 2>&1; then
+            success "Root dependencies installed"
             break
         fi
         
@@ -696,12 +690,12 @@ install_dependencies() {
             info "Troubleshooting steps:"
             info "  1. Check internet: curl -s https://registry.npmjs.org/-/ping"
             info "  2. Clear cache: npm cache clean --force"
-            info "  3. Remove node_modules: rm -rf node_modules"
-            info "  4. Retry: npm install"
+            info "  3. Remove node_modules: rm -rf node_modules .collective/*/node_modules"
+            info "  4. Check disk space: at least 2GB free required"
+            info "  5. Retry: npm install"
             exit 1
         fi
     done
-    success "Root dependencies installed"
 
     cd .collective/memory-server || {
         error "Failed to enter memory-server directory"
@@ -1089,11 +1083,24 @@ main() {
     
     print_banner
     
-    # Set up logging now that we're in the correct directory
+    # Verify we're in the repo directory first
+    if [ ! -f "package.json" ] || [ ! -d ".collective" ]; then
+        echo "✗ Not in the_collective directory" >&2
+        echo "" >&2
+        echo "This script must be run from within the cloned repository." >&2
+        echo "" >&2
+        echo "Use the bootstrapper for first-time installation:" >&2
+        echo "  curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_unix.sh | bash" >&2
+        echo "" >&2
+        echo "Or clone manually:" >&2
+        echo "  git clone https://github.com/screamingearth/the_collective.git" >&2
+        echo "  cd the_collective" >&2
+        echo "  ./setup.sh" >&2
+        exit 1
+    fi
+    
+    # Set up logging now that we're in the repo directory
     setup_logging
-
-    # Pre-flight checks (run these BEFORE anything else)
-    check_disk_space
     
     # Detect OS first (needed for subsequent checks)
     detect_os
