@@ -223,6 +223,47 @@ try {
         }
     }
     
+    # Helper function: Check if Python is installed
+    function Test-Python {
+        if (Get-Command python -ErrorAction SilentlyContinue) {
+            $version = python --version 2>&1
+            if ($version -match "Python 3") {
+                return $true
+            }
+        }
+        if (Get-Command python3 -ErrorAction SilentlyContinue) {
+            return $true
+        }
+        return $false
+    }
+
+    # Helper function: Install Python via winget
+    function Install-Python {
+        Log-Message "Checking for Python (required for native module compilation)..." "Cyan"
+        
+        if (Test-Python) {
+            Log-Success "Python already installed"
+            return $true
+        }
+        
+        Log-Message "Python not detected. Installing via winget..." "Yellow"
+        
+        if (Get-Command winget -ErrorAction SilentlyContinue) {
+            try {
+                winget install --id Python.Python.3 --accept-package-agreements --accept-source-agreements --silent 2>&1 | ForEach-Object { Log-Message $_ "Gray" }
+                if ($LASTEXITCODE -eq 0) {
+                    Log-Success "Python installed successfully"
+                    return $true
+                }
+            } catch {
+                Log-Error "Failed to install Python via winget: $_"
+            }
+        }
+        
+        Log-Message "Manual Python installation recommended: https://www.python.org/downloads/windows/" "Yellow"
+        return $false
+    }
+
     # Attempt to install build tools if missing
     if (-not (Test-VisualStudioBuildTools)) {
         if (-not (Install-VisualStudioBuildTools)) {
@@ -232,6 +273,9 @@ try {
             exit 1
         }
     }
+
+    # Attempt to install Python if missing
+    Install-Python
     
     # Check for Git & Install if missing
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
@@ -310,7 +354,29 @@ try {
     if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
         Log-Message "Node.js not found. It will be installed by setup.sh"
     } else {
-        Log-Success "Node.js already installed: $(node --version)"
+        $nodeVersion = node -v
+        Log-Success "Node.js already installed: $nodeVersion"
+        
+        # Warn if Node version is too new (Current vs LTS)
+        if ($nodeVersion -match "v2[3-9]") {
+            Log-Message "" "Yellow"
+            Log-Message "⚠️  WARNING: You are using Node.js $nodeVersion (Current)" "Yellow"
+            Log-Message "   Native modules (like DuckDB) often lack pre-built binaries for 'Current' versions." "Yellow"
+            Log-Message "   This may cause long compilation times or failures during setup." "Yellow"
+            Log-Message "   Recommended: Use Node.js v22 (LTS) for the best experience." "Yellow"
+            Log-Message "" "Yellow"
+        }
+    }
+
+    # Check for running node processes that might lock files
+    $runningNode = Get-Process node -ErrorAction SilentlyContinue
+    if ($runningNode) {
+        Log-Message "" "Yellow"
+        Log-Message "⚠️  WARNING: Detected running Node.js processes." "Yellow"
+        Log-Message "   These may lock files and cause 'EBUSY' or 'EPERM' errors during installation." "Yellow"
+        Log-Message "   Please close VS Code and any other Node.js applications before continuing." "Yellow"
+        Log-Message "" "Yellow"
+        Read-Host "Press Enter once you have closed other Node.js processes..."
     }
     
     # Determine installation directory

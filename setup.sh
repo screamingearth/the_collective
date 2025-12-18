@@ -220,6 +220,22 @@ cleanup_on_exit() {
         error "Setup failed (exit code: $exit_code)"
         error "═══════════════════════════════════════════"
         echo ""
+        
+        # Check for common Windows errors in the log
+        if [[ "$IS_WINDOWS" -eq 1 ]]; then
+            if grep -qi "EBUSY" "$LOG_FILE" || grep -qi "EPERM" "$LOG_FILE"; then
+                warn "Detected 'EBUSY' or 'EPERM' errors."
+                warn "This usually means a file is locked by another process (like VS Code)."
+                info "FIX: Close VS Code, run 'taskkill /F /IM node.exe', and retry."
+                echo ""
+            fi
+            if grep -qi "Could not find any Python installation" "$LOG_FILE"; then
+                warn "Detected missing Python."
+                info "FIX: Run 'winget install Python.Python.3' and retry."
+                echo ""
+            fi
+        fi
+
         info "Log file: ${LOG_FILE:-'.collective/.logs/setup.log'}"
         echo ""
         info "Recovery steps:"
@@ -403,23 +419,46 @@ check_build_tools() {
     
     # Check for Python (required by node-gyp)
     if ! command -v python3 &> /dev/null && ! command -v python &> /dev/null; then
-        warn "Python not found - node-gyp may fail for some packages"
+        error "Python not found - node-gyp WILL fail for native modules (DuckDB)"
         
-        case "$OS" in
-            macos)
-                info "Install: brew install python3"
-                ;;
-            debian)
-                info "Install: sudo apt-get install -y python3"
-                ;;
-            fedora|rhel)
-                info "Install: sudo dnf install -y python3"
-                ;;
-            arch)
-                info "Install: sudo pacman -S --noconfirm python"
-                ;;
-        esac
+        if [[ "$IS_WINDOWS" -eq 1 ]]; then
+            info "Install Python via winget:"
+            info "  winget install Python.Python.3"
+            info "Or download: https://www.python.org/downloads/windows/"
+        else
+            case "$OS" in
+                macos)
+                    info "Install: brew install python3"
+                    ;;
+                debian)
+                    info "Install: sudo apt-get install -y python3"
+                    ;;
+                fedora|rhel)
+                    info "Install: sudo dnf install -y python3"
+                    ;;
+                arch)
+                    info "Install: sudo pacman -S --noconfirm python"
+                    ;;
+            esac
+        fi
         echo ""
+        exit 1
+    else
+        success "Python found ($(python3 --version 2>/dev/null || python --version))"
+    fi
+}
+
+check_running_processes() {
+    if [[ "$IS_WINDOWS" -eq 1 ]]; then
+        if tasklist.exe | grep -qi "node.exe"; then
+            warn "Detected running Node.js processes."
+            warn "These may lock files and cause 'EBUSY' or 'EPERM' errors."
+            info "Please close VS Code and any other Node.js apps."
+            echo ""
+            printf "Press Enter once you have closed other Node.js processes..."
+            read -r
+            echo ""
+        fi
     fi
 }
 
@@ -439,6 +478,16 @@ check_node() {
     local version
     version=$(get_node_version)
     if [[ "$version" -ge "$MIN_NODE_VERSION" ]]; then
+        # Warn if version is "Current" (odd numbers or very high even numbers)
+        # Node 23, 25, etc. are Current. 20, 22 are LTS.
+        if (( version % 2 != 0 )) || [[ "$version" -ge 23 ]]; then
+            warn "Node.js v$(node -v | sed 's/v//') is a 'Current' version."
+            warn "Native modules (DuckDB) often lack pre-built binaries for non-LTS versions."
+            warn "This may cause long compilation times or failures."
+            info "Recommended: Use Node.js v22 (LTS)"
+            echo ""
+        fi
+
         # Also verify npm works
         if command -v npm &> /dev/null && npm --version &> /dev/null; then
             return 0
@@ -1106,6 +1155,9 @@ main() {
     detect_os
     info "Detected: $OS ($PKG_MANAGER)"
     
+    # Check for running processes that might lock files
+    check_running_processes
+
     # Check network connectivity before trying to download anything
     check_network
     

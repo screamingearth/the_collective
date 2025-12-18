@@ -9,6 +9,8 @@
 Before you begin, ensure you have:
 - **VS Code 1.107+** (December 2025) // [Download](https://code.visualstudio.com/)
 - **GitHub Copilot** // Subscription with Chat access
+- **Node.js v20 or v22 (LTS)** // [Download](https://nodejs.org/) (Avoid v23, v25)
+- **Python 3.10+** // Required for native modules (Windows)
 - **Disk Space:** ~2GB (dependencies + vector database + ML models)
 - **RAM:** 4GB+ recommended
 
@@ -156,7 +158,9 @@ npm run check -- --quick   # Fast validation
 | Issue | Solution |
 |-------|----------|
 | **MCP Servers Not Loading** | Go to the **Extensions** window (`Ctrl+Shift+X`), click the **cog icon** on each MCP server under "MCP Servers - Installed". Ensure they are running; start them manually if not. |
-| **Database Locked** | Close all VS Code windows, wait 5s, reopen. |
+| **Database Locked (EBUSY)** | Close all VS Code windows, run `taskkill /F /IM node.exe` (Win), wait 5s, reopen. |
+| **Python Not Found** | Run `winget install Python.Python.3` (Win) or `brew install python3` (Mac). |
+| **Node Version Error** | Use Node v22 (LTS). Avoid v23/v25 for native module stability. |
 | **Bash Not Found (Win)** | Reinstall Git, ensure "Git Bash" is selected. |
 | **Build Failed** | Run `npm run clean`, then `./setup.sh`. |
 | **Reset Memory** | `npm run reset:memories -- --keep-core` |
