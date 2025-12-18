@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # ==============================================================================
-# Part of the_collective by screamingearth (Apache 2.0 licensed, see NOTICE file).
+# Part of >the_collective by screamingearth (Apache 2.0 licensed, see NOTICE file).
 # ==============================================================================
 # Internal Setup Script
 # ==============================================================================

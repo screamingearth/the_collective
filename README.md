@@ -10,19 +10,19 @@
   
 <h3>vision:// further enable humans to harness the power of AI and bring their ideas to life</h3>
 
-\>the_collective is a team of AI agents that work together inside VS Code. instead of one AI assistant, you get specialised personalities that debate, research, and build things collaboratively using powerful tools.
+>the_collective is a team of AI agents that work together inside VS Code. Instead of one AI assistant, you get specialised personalities that debate, research, and build things collaboratively using powerful tools.
 
-**no AI expertise required:** if you can handle installing vscode and running a single terminal command, you're good to go.
+**No AI expertise required.** If you can install VS Code and run a single command, you are ready.
 
 </div><br>
 
 ## 🚀 Quick Install
 
-**One command, zero prerequisites.** The bootstrapper installs everything (Git, Node.js, dependencies) automatically.
+**One command, zero prerequisites.** The bootstrapper installs everything (Git, Python, Node.js, dependencies) automatically.
 
 ### 🍎 macOS / Linux / WSL
 ```bash
-curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_unix.sh | bash
+sh -c 'U="https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_unix.sh"; (command -v curl >/dev/null && curl -fsSL "$U" || command -v wget >/dev/null && wget -qO- "$U" || python3 -c "import sys,urllib.request;sys.stdout.buffer.write(urllib.request.urlopen(\'$U\').read())") | bash'
 ```
 
 ### 🪟 Windows (PowerShell)
@@ -30,31 +30,30 @@ curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/
 iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_win.ps1 | iex
 ```
 
-> **For manual installation** or if you prefer to review scripts before running, see [QUICKSTART.md](./QUICKSTART.md)
+> **Troubleshooting:** If the command fails, see [QUICKSTART.md](./QUICKSTART.md) for manual installation steps and fallbacks.
 
 ---
 
-### 🧐 verify it works
+### 🧐 Verify It Works
 
-open the terminal in vs code inside ```>the_collective``` workspace and run:
-```bash
-npm run check
-```
+1. Restart VS Code and open the `the_collective` folder.
+2. Open the integrated terminal and run:
+   ```bash
+   npm run check
+   ```
+   *Expected output:* `✅ All checks passed! Framework is ready.`
 
-expected output:
+3. Open **Copilot Chat** and say:
+   
+   ```>the_collective://``` hey guys, please test out your tools and make sure they work
 
-```
-✅ All checks passed! Framework is ready.
-```
-then say,
+   *Expected outcome:* The agents should respond and stretch their legs a little.
 
-```>the_collective://``` *"hey guys, please test out your tools and make sure they work"*
+<br>
 
+> *disclaimer: >the_collective is an experimental open-source framework under active development. While I strive for quality, it may contain bugs or incomplete features. Use at your own risk.*
 
->*disclaimer: >the_collective is currently an experimental open-source framework. while I strive for quality, it may contain bugs or incomplete features. use at your own risk. contributions and feedback are welcome!*
-
-
-**[→ detailed setup guide →](./QUICKSTART.md)**
+**[→ Detailed Setup Guide & Troubleshooting →](./QUICKSTART.md)**
 
 ## 🤖 the team
 
@@ -67,56 +66,49 @@ then say,
 <br>
 
 **>the_collective is best utilized by Claude models:**
-
-\>Haiku 4.5 (fast)
-
-\>Sonnet 4.5 (default)
-
-\>Opus 4.5 (deep reasoning)
-
-<h5>but of course, you can use whatever you want!</h5>
+*   **Haiku 4.5** (Fast / Chat)
+*   **Sonnet 4.5** (Default / Coding)
+*   **Opus 4.5** (Deep Reasoning)
 
 <br>
 
 ## 🧠 how it works
 
-**memory system** // Local vector database (DuckDB + semantic embeddings) with retriever-reranker pipeline. your preferences, decisions, architectural choices, and project context persist across sessions. encrypted locally, never sent to cloud.
+**memory system** // local vector database (DuckDB + semantic embeddings) with retriever-reranker pipeline. your preferences, decisions, architectural choices, and project context persist across sessions. encrypted locally, never sent to cloud.
 
-**agents** // One language model, four specialized personas. address them directly in chat (`cassandra, review this`) or use team mode to watch them collaborate in real-time.
+**agents** // one language model, four specialized personas. address them directly in chat (`cassandra, check for vulnerabilities`) or use team mode to watch them collaborate in real-time. 
 
-**team mode** // Switch to `>the_collective` in Copilot chat. Watch Nyx orchestrate while Prometheus builds, Cassandra breaks things, and Apollo polishes. Friction creates quality.
+**customiseable skills** // easily accessible in chat with slash commands. try it out with ```/review```, ```/debug```, ```/implement```, or ```/test```. edit or add more in ```/.github/prompts/```.
+
+**team mode** // switch to `>the_collective` in Copilot chat. Watch Nyx orchestrate while Prometheus builds, Cassandra breaks things, and Apollo polishes. Friction creates quality.
 
 <br>
 
 ## 🚀 features
 
-- **local memory** // semantic vector database never leaves your machine
-- **zero tracking** // no telemetry, no vendor lock-in
-- **cognitive diversity** // use multiple LLM models for different perspectives
-- **real-time collaboration** // watch agents debate, build, and refine solutions
-- **extensible architecture** // add custom agents, tools, memories, and workflows
-- **dual-licensed** // Apache 2.0 for integration, MPL 2.0 for core framework
-- **open-source** // fully transparent, community-driven development
+- **Local-first** // Semantic vector database never leaves your machine. no telemetry, no vendor lock-in
+- **Cognitive Diversity** // Use multiple LLM models for different perspectives
+- **Real-Time Collaboration** // Watch agents debate, build, and refine solutions
+- **Extensible Architecture** // Add custom agents, tools, memories, and workflows
 
 <br>
 
-## 📋 requirements
+## 📋 Requirements
 
 - **VS Code 1.107+** with **GitHub Copilot**
-- **Node.js 20+** (auto-installed on macOS/Linux)
+- **Node.js 20+** (Auto-installed by bootstrapper)
 - **macOS, Linux, or Windows 10/11**
 
 **[→ System requirements & troubleshooting](./QUICKSTART.md)**
 
 <br>
 
-## 📖 documentation
+## 📖 Documentation
 
-- **[/docs/](./docs/)** — architecture, MCP servers, memory system
-- **[NOTICE](./NOTICE)** — legal notices & attributions
-- **[QUICKSTART.md](./QUICKSTART.md)** — setup, requirements, troubleshooting
-- **[CONTRIBUTING.md](./CONTRIBUTING.md)** — development guide & guidelines
-- **[THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md)** — open-source attributions & licenses - thank you FOSS developers 🖤
+- **[/docs/](./docs/)** — Architecture, MCP servers, memory system
+- **[QUICKSTART.md](./QUICKSTART.md)** — Setup, requirements, troubleshooting
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** — Development guide & guidelines
+- **[NOTICE](./NOTICE)** — Legal notices & attributions
 
 
 <br>
@@ -128,45 +120,16 @@ then say,
 This project is **Dual-Licensed** to protect the core framework while allowing easy integration.
 
 ### 🧠 The Core (MPL 2.0)
-The intelligence engine (`/.collective/`) and the Agent Personas (System Prompts) are licensed under the **[Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/)**. 
+The intelligence engine (`/.collective/`) and the Agent Personas are licensed under the **[Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/)**.
 *   **Commercial Use:** ✅ Allowed.
-*   **Modifications:** 📝 If you modify the core framework or agent prompts, you **must** open-source those specific changes and include required documentation.
+*   **Modifications:** 📝 If you modify the core framework or agent prompts, you **must** open-source those specific changes and follow the terms of the MPL 2.0. See [NOTICE](./NOTICE) for details.
 
 ### 🔌 The Shell (Apache 2.0)
 The setup scripts, documentation, and integration code are licensed under the **[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)**.
 *   You are free to use, modify, and distribute these scripts as you see fit.
 
-### 🛡️ Attribution
-
-">the_collective" is the name of this framework. The agent names (Nyx, Prometheus, Cassandra, Apollo) are inspired by mythology and are not trademarked - feel free to use those names for your own custom agents. 
-
-What matters: if you use code from this project, respect the licenses (MPL 2.0 for core, Apache 2.0 for integration) and give proper attribution. See [NOTICE](./NOTICE) for details.
-
-### 💼 Commercial use - YES ✅
-
-*you can absolutely sell stuff made with >the_collective*
-
-**allowed:**
-- Building a SaaS service powered by >the_collective ✅
-- Selling applications that use >the_collective ✅
-- Integrating >the_collective into proprietary software ✅
-
-**not allowed:**
-- Selling >the_collective itself as your product ❌
-- Claiming you created >the_collective agents ❌
-- Rebranding and reselling >the_collective as proprietary ❌ 
-
-### 📦 Third-party packages
-
-See [THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md) for all open-source attributions and licenses of dependencies.
-
-## 🤝 contributing
-
-Contributions welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for:
-- Development setup
-- Code of conduct
-- PR guidelines
-- Issue labels & triage
+### 💼 Commercial Use
+You can build and sell products *using* >the_collective, but you cannot resell >the_collective itself as a standalone product. See [NOTICE](./NOTICE) for details.
 
 <br>
 

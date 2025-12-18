@@ -83,56 +83,105 @@ esac
 
 log "Detected: $OS_NAME ($PKG_MANAGER)"
 
-# Install Git if missing
-if ! command -v git &> /dev/null; then
-    log "Git not found. Installing Git..."
-    
-    case "$PKG_MANAGER" in
-        brew)
-            if ! command -v brew &> /dev/null; then
-                log "Homebrew not found. Installing Homebrew..."
-                /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || {
-                    error "Failed to install Homebrew"
-                    exit 1
-                }
-            fi
-            brew install git || {
-                error "Failed to install Git via Homebrew"
-                exit 1
-            }
-            ;;
+# Helper: ensure_packages - cross-distro install of small toolset
+ensure_packages() {
+    # Usage: ensure_packages pkg1 pkg2 ...
+    local pkgs=("$@")
+    local pm="$PKG_MANAGER"
+    local SUDO=""
+
+    # Prefer sudo when not root
+    if [[ $EUID -ne 0 ]] && command -v sudo &> /dev/null; then
+        SUDO="sudo"
+    fi
+
+    case "$pm" in
         apt)
-            log "Installing Git via apt (requires sudo)..."
-            sudo apt-get update && sudo apt-get install -y git curl || {
-                error "Failed to install Git via apt"
-                error "Please run: sudo apt-get install git curl"
-                exit 1
-            }
+            $SUDO apt-get update -y
+            $SUDO apt-get install -y --no-install-recommends "${pkgs[@]}" && return 0 || return 1
             ;;
-        dnf|yum)
-            log "Installing Git via $PKG_MANAGER (requires sudo)..."
-            sudo $PKG_MANAGER install -y git curl || {
-                error "Failed to install Git via $PKG_MANAGER"
-                error "Please run: sudo $PKG_MANAGER install git curl"
-                exit 1
-            }
+        dnf)
+            $SUDO dnf install -y "${pkgs[@]}" && return 0 || return 1
+            ;;
+        yum)
+            $SUDO yum install -y "${pkgs[@]}" && return 0 || return 1
             ;;
         pacman)
-            log "Installing Git via pacman (requires sudo)..."
-            sudo pacman -S --noconfirm git curl || {
-                error "Failed to install Git via pacman"
-                error "Please run: sudo pacman -S git curl"
-                exit 1
-            }
+            $SUDO pacman -Syu --noconfirm "${pkgs[@]}" && return 0 || return 1
+            ;;
+        apk)
+            $SUDO apk add --no-cache "${pkgs[@]}" && return 0 || return 1
+            ;;
+        zypper)
+            $SUDO zypper -n install "${pkgs[@]}" && return 0 || return 1
+            ;;
+        brew)
+            for p in "${pkgs[@]}"; do brew install "$p" || true; done
+            return 0
             ;;
         *)
-            error "Unknown package manager. Please install Git manually:"
-            error "  Ubuntu/Debian: sudo apt-get install git curl"
-            error "  Fedora/RHEL:   sudo dnf install git curl"
-            error "  Arch:          sudo pacman -S git curl"
-            exit 1
+            return 1
             ;;
     esac
+}
+
+# Install Git if missing
+if ! command -v git &> /dev/null; then
+    log "Git not found. Attempting automatic install of Git, curl, and python3..."
+
+    # Try the universal helper first
+    if ensure_packages git curl python3; then
+        success "Git and essential tools installed"
+    else
+        log "Automatic install failed. Falling back to package-manager specific steps..."
+        case "$PKG_MANAGER" in
+            brew)
+                if ! command -v brew &> /dev/null; then
+                    log "Homebrew not found. Installing Homebrew..."
+                    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || {
+                        error "Failed to install Homebrew"
+                        exit 1
+                    }
+                fi
+                brew install git || {
+                    error "Failed to install Git via Homebrew"
+                    exit 1
+                }
+                ;;
+            apt)
+                log "Installing Git via apt (requires sudo)..."
+                sudo apt-get update && sudo apt-get install -y git curl || {
+                    error "Failed to install Git via apt"
+                    error "Please run: sudo apt-get install git curl"
+                    exit 1
+                }
+                ;;
+            dnf|yum)
+                log "Installing Git via $PKG_MANAGER (requires sudo)..."
+                sudo $PKG_MANAGER install -y git curl || {
+                    error "Failed to install Git via $PKG_MANAGER"
+                    error "Please run: sudo $PKG_MANAGER install git curl"
+                    exit 1
+                }
+                ;;
+            pacman)
+                log "Installing Git via pacman (requires sudo)..."
+                sudo pacman -S --noconfirm git curl || {
+                    error "Failed to install Git via pacman"
+                    error "Please run: sudo pacman -S git curl"
+                    exit 1
+                }
+                ;;
+            *)
+                error "Unknown package manager. Please install Git manually:"
+                error "  Ubuntu/Debian: sudo apt-get install git curl"
+                error "  Fedora/RHEL:   sudo dnf install git curl"
+                error "  Arch:          sudo pacman -S git curl"
+                error "Alternatively, if git is available elsewhere, use: git clone https://github.com/screamingearth/the_collective.git ~/the_collective"
+                exit 1
+                ;;
+        esac
+    fi
     
     success "Git installed"
 else

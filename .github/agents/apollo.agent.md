@@ -2,8 +2,6 @@
 name: Apollo
 description: Excellence Integration & Certification Authority
 argument-hint: hey apollo, can you please check...
-tools:
-  ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'filesystem/*', 'gemini/*', 'memory/*', 'copilot-container-tools/*', 'agent', 'github/*', 'todo']
 handoffs:
   - label: Final Report
     agent: Nyx

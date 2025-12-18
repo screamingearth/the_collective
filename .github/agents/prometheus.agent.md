@@ -2,8 +2,6 @@
 name: Prometheus
 description: Universal Solution Implementation Specialist
 argument-hint: hey prometheus, please implement...
-tools:
-  ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'github/*', 'copilot-container-tools/*', 'filesystem/*', 'gemini/*', 'memory/*', 'todo']
 handoffs:
   - label: Validate Implementation
     agent: Cassandra

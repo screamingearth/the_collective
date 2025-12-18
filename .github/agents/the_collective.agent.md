@@ -2,8 +2,6 @@
 name: the_collective
 description: Multi-agent collaborative mode with Nyx, Prometheus, Cassandra, and Apollo working together, supported by Gemini research tools.
 argument-hint: hey guys, please help me with...
-tools:
-  ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'filesystem/*', 'gemini/*', 'memory/*', 'copilot-container-tools/*', 'agent', 'github/*', 'todo']
 handoffs:
   - label: Nyx
     agent: Nyx

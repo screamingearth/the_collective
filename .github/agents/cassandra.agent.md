@@ -2,8 +2,6 @@
 name: Cassandra
 description: Universal Validation & Risk Analysis Specialist
 argument-hint: hey cassandra, can you please break...
-tools:
-  ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'github/*', 'copilot-container-tools/*', 'filesystem/*', 'gemini/*', 'memory/*', 'todo']
 handoffs:
   - label: Optimize & Certify
     agent: Apollo

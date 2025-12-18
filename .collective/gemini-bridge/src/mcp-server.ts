@@ -46,7 +46,7 @@ const GEMINI_TOOLS: Tool[] = [
   {
     name: "gemini_query",
     description:
-      "Query Gemini for research, documentation lookup, or general questions. Uses gemini-2.5-flash (128k context, 2-5s response time). Free tier: 60 req/min, 1000 req/day.",
+      "Query Gemini for research, documentation lookup, or general questions. Uses gemini-3-flash-preview (1M+ context, 2-5s response time). Free tier: 60 req/min, 1000 req/day.",
     inputSchema: {
       type: "object",
       properties: {
@@ -70,7 +70,7 @@ const GEMINI_TOOLS: Tool[] = [
   {
     name: "gemini_analyze_code",
     description:
-      "Analyze code with Gemini. Explain logic, identify issues, suggest improvements. Uses gemini-2.5-flash with 128k context window.",
+      "Analyze code with Gemini. Explain logic, identify issues, suggest improvements. Uses gemini-3-flash-preview with 1M+ context window.",
     inputSchema: {
       type: "object",
       properties: {
@@ -151,7 +151,7 @@ async function executeGemini(
 ): Promise<{ success: boolean; response?: string; error?: string }> {
   const args = buildArgs({
     prompt,
-    model: "gemini-2.5-flash",
+    model: "gemini-3-flash-preview",
     outputFormat: "json",
   });
 
