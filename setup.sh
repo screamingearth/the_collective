@@ -45,7 +45,17 @@ else
     # Set up logging with tee (Bash portable)
     exec 1> >(tee -a "$LOG_FILE")
     exec 2>&1
-    echo "📝 Setup log: $(pwd)/$LOG_FILE"
+    
+    # Get absolute path for display (handles relative/absolute gracefully)
+    if command -v readlink &> /dev/null; then
+        ABS_LOG_FILE=$(readlink -f "$LOG_FILE" 2>/dev/null || echo "$(pwd)/$LOG_FILE")
+    else
+        ABS_LOG_FILE="$(pwd)/$LOG_FILE"
+    fi
+    # Clean up double slashes if any
+    ABS_LOG_FILE=$(echo "$ABS_LOG_FILE" | sed 's/\/\//\//g')
+    
+    echo "📝 Setup log: $ABS_LOG_FILE"
 fi
 
 # Set download command preference (curl preferred, wget fallback)
@@ -490,13 +500,19 @@ get_node_version() {
 check_node() {
     local version
     version=$(get_node_version)
+    
+    # Safely extract version - handle parsing failures
+    if [[ ! "$version" =~ ^[0-9]+$ ]]; then
+        warn "Could not parse Node.js version: $(node -v 2>/dev/null || echo 'unknown')"
+        return 1
+    fi
+    
     if [[ "$version" -ge "$MIN_NODE_VERSION" ]]; then
-        # Warn if version is "Current" (odd numbers or very high even numbers)
-        # Node 23, 25, etc. are Current. 20, 22 are LTS.
+        # Hard reject if version is "Current" (Node 23, 25, etc.)
         if [[ "$version" -gt "$MAX_SUPPORTED_VERSION" ]]; then
-            error "Node.js v$(node -v | sed 's/v//') is NOT supported."
+            error "Node.js v$(node -v 2>/dev/null) is NOT supported."
             error "Native modules (DuckDB) lack pre-built binaries for Node v$version."
-            info "Please install Node.js v22 (LTS) or use a version manager (nvm/fnm)."
+            info "Required: Node.js v20 or v22 (LTS). Use: nvm install 22 && nvm use 22"
             echo ""
             
             # If not in safe mode, we exit. In safe mode, we just warn.
@@ -649,10 +665,13 @@ install_node() {
             ;;
         arch)
             info "Installing via pacman..."
-            sudo pacman -S --noconfirm nodejs npm || {
-                error "Failed to install Node.js via pacman"
-                exit 1
-            }
+            # Try to install LTS version (v22) first
+            if sudo pacman -S --noconfirm nodejs-lts-jod npm 2>/dev/null; then
+                success "Installed Node.js LTS (v22) via pacman"
+            else
+                warn "nodejs-lts-jod not found, using fnm for safe version management"
+                install_nvm  # Use nvm/fnm instead of generic nodejs package
+            fi
             ;;
         *)
             install_nvm
@@ -1207,6 +1226,9 @@ main() {
     # Detect OS first (needed for subsequent checks)
     detect_os
     info "Detected: $OS ($PKG_MANAGER)"
+    
+    # Check disk space before starting
+    check_disk_space
     
     # Check for running processes that might lock files
     check_running_processes

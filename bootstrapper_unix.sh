@@ -94,13 +94,25 @@ ensure_packages() {
     local SUDO=""
 
     # Prefer sudo when not root
-    if [[ $EUID -ne 0 ]] && command -v sudo &> /dev/null; then
-        SUDO="sudo"
+    if [[ $EUID -ne 0 ]]; then
+        if command -v sudo &> /dev/null; then
+            SUDO="sudo"
+        else
+            warn "sudo not found. If package installation fails, please run as root or install sudo."
+        fi
     fi
 
     case "$pm" in
         apt)
-            $SUDO apt-get update -y
+            local apt_retries=3
+            while [[ $apt_retries -gt 0 ]]; do
+                if $SUDO apt-get update -y 2>/dev/null; then
+                    break
+                fi
+                apt_retries=$((apt_retries - 1))
+                [[ $apt_retries -gt 0 ]] && sleep 2
+            done
+            [[ $apt_retries -eq 0 ]] && return 1
             $SUDO apt-get install -y --no-install-recommends "${pkgs[@]}" && return 0 || return 1
             ;;
         dnf)
@@ -120,6 +132,24 @@ ensure_packages() {
             $SUDO zypper -n install "${pkgs[@]}" && return 0 || return 1
             ;;
         brew)
+            if ! command -v brew &> /dev/null; then
+                log "Homebrew not found. Installing Homebrew..."
+                /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || {
+                    error "Failed to install Homebrew"
+                    exit 1
+                }
+            fi
+            if [[ -f /opt/homebrew/bin/brew ]]; then
+                export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+            elif [[ -f /usr/local/bin/brew ]]; then
+                export PATH="/usr/local/bin:/usr/local/sbin:$PATH"
+            elif [[ -f "$HOME/.homebrew/bin/brew" ]]; then
+                export PATH="$HOME/.homebrew/bin:$PATH"
+            fi
+            if ! command -v brew &> /dev/null; then
+                error "Homebrew installed but not accessible in PATH"
+                return 1
+            fi
             for p in "${pkgs[@]}"; do brew install "$p" || true; done
             return 0
             ;;
@@ -129,68 +159,45 @@ ensure_packages() {
     esac
 }
 
-# Install Git if missing
-if ! command -v git &> /dev/null; then
-    log "Git not found. Attempting automatic install of Git, curl, and python3..."
+# Ensure essential tools are installed
+log "Ensuring essential tools are installed (git, curl, python3, build tools)..."
 
-    # Try the universal helper first
-    if ensure_packages git curl python3; then
-        success "Git and essential tools installed"
-    else
-        log "Automatic install failed. Falling back to package-manager specific steps..."
-        case "$PKG_MANAGER" in
-            brew)
-                if ! command -v brew &> /dev/null; then
-                    log "Homebrew not found. Installing Homebrew..."
-                    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || {
-                        error "Failed to install Homebrew"
-                        exit 1
-                    }
-                fi
-                brew install git || {
-                    error "Failed to install Git via Homebrew"
-                    exit 1
-                }
-                ;;
-            apt)
-                log "Installing Git via apt (requires sudo)..."
-                sudo apt-get update && sudo apt-get install -y git curl || {
-                    error "Failed to install Git via apt"
-                    error "Please run: sudo apt-get install git curl"
-                    exit 1
-                }
-                ;;
-            dnf|yum)
-                log "Installing Git via $PKG_MANAGER (requires sudo)..."
-                sudo $PKG_MANAGER install -y git curl || {
-                    error "Failed to install Git via $PKG_MANAGER"
-                    error "Please run: sudo $PKG_MANAGER install git curl"
-                    exit 1
-                }
-                ;;
-            pacman)
-                log "Installing Git via pacman (requires sudo)..."
-                sudo pacman -S --noconfirm git curl || {
-                    error "Failed to install Git via pacman"
-                    error "Please run: sudo pacman -S git curl"
-                    exit 1
-                }
-                ;;
-            *)
-                error "Unknown package manager. Please install Git manually:"
-                error "  Ubuntu/Debian: sudo apt-get install git curl"
-                error "  Fedora/RHEL:   sudo dnf install git curl"
-                error "  Arch:          sudo pacman -S git curl"
-                error "Alternatively, if git is available elsewhere, use: git clone https://github.com/screamingearth/the_collective.git ~/Documents/the_collective"
-                exit 1
-                ;;
-        esac
+case "$PKG_MANAGER" in
+    apt)
+        ensure_packages git curl python3 python3-setuptools build-essential || warn "Some packages failed to install. Setup may fail later."
+        ;;
+    dnf|yum)
+        ensure_packages git curl python3 python3-setuptools gcc-c++ make || warn "Some packages failed to install. Setup may fail later."
+        ;;
+    pacman)
+        ensure_packages git curl python python-setuptools base-devel || warn "Some packages failed to install. Setup may fail later."
+        ;;
+    brew)
+        ensure_packages git curl python3 || warn "Some packages failed to install. Setup may fail later."
+        # xcode-select --install is handled by setup.sh if needed
+        ;;
+    *)
+        error "Unknown package manager. Cannot install dependencies automatically."
+        error "Please ensure git, curl, python3, and build tools are installed manually."
+        exit 1
+        ;;
+esac
+
+# Post-install validation: verify essential tools are now accessible
+log "Verifying essential tools are accessible..."
+local missing_tools=()
+for tool in git curl python3; do
+    if ! command -v "$tool" &> /dev/null; then
+        missing_tools+=("$tool")
     fi
-    
-    success "Git installed"
-else
-    success "Git already installed: $(git --version)"
+done
+
+if [[ ${#missing_tools[@]} -gt 0 ]]; then
+    error "Installation succeeded but these tools are not in PATH: ${missing_tools[*]}"
+    error "This may be a PATH configuration issue. Please add the tool directories to PATH and retry."
+    exit 1
 fi
+success "All essential tools verified"
 
 # Ensure curl or wget exists (for later steps)
 if ! command -v curl &> /dev/null && ! command -v wget &> /dev/null; then

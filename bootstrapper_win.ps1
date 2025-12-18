@@ -34,6 +34,11 @@ function Log-Success {
     Log-Message $Message "Green"
 }
 
+function Refresh-Path {
+    Log-Message "Refreshing PATH environment variable..." "Gray"
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+}
+
 # Banner
 Write-Host ""
 Write-Host "   ▀█▀ █ █ █▀▀" -ForegroundColor Cyan
@@ -101,6 +106,22 @@ try {
             Log-Message "Requesting elevation..." "Yellow"
             Log-Message ""
             
+            # Create a flag file to prevent elevation loops
+            $elevationFlag = Join-Path $env:TEMP "vs_build_tools_elevation_attempt.flag"
+            if (Test-Path $elevationFlag) {
+                # Already tried elevation once, don't loop
+                $attemptCount = [int](Get-Content $elevationFlag -ErrorAction SilentlyContinue)
+                if ($attemptCount -ge 2) {
+                    Log-Error "Elevation attempt already tried 2 times. Giving up to prevent loop."
+                    Log-Message "Please manually install Visual Studio Build Tools." "Yellow"
+                    return $false
+                }
+                $attemptCount++
+            } else {
+                $attemptCount = 1
+            }
+            Set-Content -Path $elevationFlag -Value $attemptCount
+            
             # Re-run this script with admin privileges
             $params = @{
                 'FilePath' = 'powershell.exe'
@@ -115,11 +136,17 @@ try {
             
             try {
                 Start-Process @params
+                $elevationExitCode = $LASTEXITCODE
+                # Clean up flag after successful elevation
+                if ($elevationExitCode -eq 0) {
+                    Remove-Item $elevationFlag -ErrorAction SilentlyContinue
+                }
                 # After elevation completes, exit this process
                 exit 0
             } catch {
                 Log-Error "Failed to request elevation: $_"
                 Log-Message "Please run PowerShell as Administrator and try again" "Yellow"
+                Remove-Item $elevationFlag -ErrorAction SilentlyContinue
                 return $false
             }
         }
@@ -257,6 +284,7 @@ try {
                 winget install --id Python.Python.3 --accept-package-agreements --accept-source-agreements --silent 2>&1 | ForEach-Object { Log-Message $_ "Gray" }
                 if ($LASTEXITCODE -eq 0) {
                     Log-Success "Python installed successfully"
+                    Refresh-Path
                     return $true
                 }
             } catch {
@@ -308,6 +336,7 @@ try {
             Log-Message "Installing Git (this may take a minute)..."
             winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements --silent | Out-Null
             Log-Success "Git installed successfully"
+            Refresh-Path
         } catch {
             Log-Error "Failed to install Git via winget"
             Log-Message ""
@@ -318,9 +347,6 @@ try {
             Pause
             exit 1
         }
-        
-        # Refresh environment variables to access git immediately
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
         
         # Also check common Git installation paths
         $gitPaths = @(
