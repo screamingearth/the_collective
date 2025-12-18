@@ -150,8 +150,17 @@ fi
 
 # Node.js version requirements
 MIN_NODE_VERSION=20
+MAX_SUPPORTED_VERSION=22
 PREFERRED_NODE_VERSION=22
 NVM_VERSION="v0.40.1"  # Update periodically - check https://github.com/nvm-sh/nvm/releases
+
+# Flags
+SAFE_MODE=0
+for arg in "$@"; do
+    if [[ "$arg" == "--safe" ]]; then
+        SAFE_MODE=1
+    fi
+done
 
 # Timeouts (in seconds)
 GEMINI_AUTH_TIMEOUT=600  # 10 minutes for OAuth browser flow
@@ -484,12 +493,17 @@ check_node() {
     if [[ "$version" -ge "$MIN_NODE_VERSION" ]]; then
         # Warn if version is "Current" (odd numbers or very high even numbers)
         # Node 23, 25, etc. are Current. 20, 22 are LTS.
-        if (( version % 2 != 0 )) || [[ "$version" -ge 23 ]]; then
-            warn "Node.js v$(node -v | sed 's/v//') is a 'Current' version."
-            warn "Native modules (DuckDB) often lack pre-built binaries for non-LTS versions."
-            warn "This may cause long compilation times or failures."
-            info "Recommended: Use Node.js v22 (LTS)"
+        if [[ "$version" -gt "$MAX_SUPPORTED_VERSION" ]]; then
+            error "Node.js v$(node -v | sed 's/v//') is NOT supported."
+            error "Native modules (DuckDB) lack pre-built binaries for Node v$version."
+            info "Please install Node.js v22 (LTS) or use a version manager (nvm/fnm)."
             echo ""
+            
+            # If not in safe mode, we exit. In safe mode, we just warn.
+            if [[ "$SAFE_MODE" -eq 0 ]]; then
+                error "Setup aborted. Use --safe to ignore this (not recommended)."
+                exit 1
+            fi
         fi
 
         # Also verify npm works
@@ -723,6 +737,11 @@ install_dependencies() {
     local retry=0
     
     info "Installing root dependencies..."
+    if [[ "$SAFE_MODE" -eq 1 ]]; then
+        warn "SAFE MODE: Skipping native module compilation where possible"
+        # We can't easily skip all native builds in npm install, but we can try to ignore failures
+    fi
+    
     info "This may take 2-5 minutes on first run..."
     
     while [[ $retry -lt $max_retries ]]; do
@@ -799,6 +818,12 @@ install_dependencies() {
     done
     
     # Rebuild native modules explicitly - critical for DuckDB on Windows
+    if [[ "$SAFE_MODE" -eq 1 ]]; then
+        info "SAFE MODE: Skipping explicit native module rebuild"
+        cd ../..
+        return 0
+    fi
+
     info "Rebuilding native modules (DuckDB, etc)..."
     
     local rebuild_output

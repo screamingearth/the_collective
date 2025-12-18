@@ -40,8 +40,13 @@
     "url": "https://github.com/screamingearth/the_collective/issues"
   },
   "homepage": "https://github.com/screamingearth/the_collective#readme",
+  "overrides": {
+    "node-gyp": "^11.0.0",
+    "glob": "^11.0.0",
+    "rimraf": "^6.0.0"
+  },
   "dependencies": {
-    "@modelcontextprotocol/server-filesystem": "2025.11.25"
+    "@modelcontextprotocol/server-filesystem": "2025.12.18"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

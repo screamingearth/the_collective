@@ -10,8 +10,12 @@
 $ErrorActionPreference = "Stop"
 
 # Define Logging (cross-platform temp path)
-$TempPath = if ($env:TEMP) { $env:TEMP } else { [System.IO.Path]::GetTempPath() }
-$LogFile = Join-Path $TempPath "the_collective_install.log"
+$LogFile = Join-Path ([System.IO.Path]::GetTempPath()) "the_collective_install.log"
+if ($env:USERPROFILE) {
+    # Try to put it in the user's home directory for better visibility
+    $LogFile = Join-Path $env:USERPROFILE ".collective_install.log"
+}
+
 function Log-Message {
     param([string]$Message, [string]$Color = "Cyan")
     $TimeStamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
@@ -357,14 +361,17 @@ try {
         $nodeVersion = node -v
         Log-Success "Node.js already installed: $nodeVersion"
         
-        # Warn if Node version is too new (Current vs LTS)
+        # Refuse Node version if too new (Current vs LTS)
         if ($nodeVersion -match "v2[3-9]") {
-            Log-Message "" "Yellow"
-            Log-Message "⚠️  WARNING: You are using Node.js $nodeVersion (Current)" "Yellow"
-            Log-Message "   Native modules (like DuckDB) often lack pre-built binaries for 'Current' versions." "Yellow"
-            Log-Message "   This may cause long compilation times or failures during setup." "Yellow"
-            Log-Message "   Recommended: Use Node.js v22 (LTS) for the best experience." "Yellow"
-            Log-Message "" "Yellow"
+            Log-Error "Node.js $nodeVersion is NOT supported."
+            Log-Message "Native modules (like DuckDB) lack pre-built binaries for Node v23/v25." "Yellow"
+            Log-Message "This WILL cause compilation failures during setup." "Yellow"
+            Log-Message "Please install Node.js v22 (LTS) before continuing." "Cyan"
+            Log-Message ""
+            Log-Message "You can use nvm-windows to switch versions: winget install coreybutler.nvm-windows" "Gray"
+            Log-Message ""
+            Pause
+            exit 1
         }
     }
 
