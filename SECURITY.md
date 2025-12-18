@@ -4,8 +4,8 @@
 
 **Please do NOT create public GitHub issues for security vulnerabilities.**
 
-Email: security@screamingearth.com
-PGP Key: [Coming Soon]
+Email: screamingearth69@gmail.com
+PGP Key: [Soon™]
 
 Response timeline:
 - Acknowledgment: 48 hours
