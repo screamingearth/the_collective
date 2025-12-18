@@ -234,6 +234,10 @@ cleanup_on_exit() {
                 info "FIX: Run 'winget install Python.Python.3' and retry."
                 echo ""
             fi
+            
+            # Pause on Windows so the window doesn't close
+            echo -e "${YELLOW}Press Enter to close this window...${NC}"
+            read -r
         fi
 
         info "Log file: ${LOG_FILE:-'.collective/.logs/setup.log'}"
@@ -722,7 +726,13 @@ install_dependencies() {
     info "This may take 2-5 minutes on first run..."
     
     while [[ $retry -lt $max_retries ]]; do
-        if npm install 2>&1; then
+        # Use --loglevel=error to suppress deprecated warnings unless it's the last attempt
+        local log_level="error"
+        if [[ $retry -eq $((max_retries - 1)) ]]; then
+            log_level="notice"
+        fi
+
+        if npm install --loglevel=$log_level 2>&1; then
             success "Root dependencies installed"
             break
         fi
@@ -730,7 +740,14 @@ install_dependencies() {
         retry=$((retry + 1))
         if [[ $retry -lt $max_retries ]]; then
             warn "npm install failed (attempt $retry/$max_retries), retrying..."
-            info "Clearing npm cache..."
+            
+            if [[ "$IS_WINDOWS" -eq 1 ]]; then
+                info "Windows: Attempting to clear file locks..."
+                taskkill.exe /F /IM node.exe /T 2>/dev/null || true
+            fi
+
+            info "Cleaning node_modules and cache..."
+            rm -rf node_modules 2>/dev/null || true
             npm cache clean --force 2>/dev/null || true
             sleep 2
         else
@@ -755,13 +772,24 @@ install_dependencies() {
     info "Installing memory-server dependencies..."
     
     while [[ $retry -lt $max_retries ]]; do
-        if npm install 2>&1; then
+        local log_level="error"
+        if [[ $retry -eq $((max_retries - 1)) ]]; then
+            log_level="notice"
+        fi
+
+        if npm install --loglevel=$log_level 2>&1; then
             break
         fi
         
         retry=$((retry + 1))
         if [[ $retry -lt $max_retries ]]; then
             warn "npm install failed (attempt $retry/$max_retries), retrying..."
+            
+            if [[ "$IS_WINDOWS" -eq 1 ]]; then
+                taskkill.exe /F /IM node.exe /T 2>/dev/null || true
+            fi
+
+            rm -rf node_modules 2>/dev/null || true
             npm cache clean --force 2>/dev/null || true
             sleep 2
         else

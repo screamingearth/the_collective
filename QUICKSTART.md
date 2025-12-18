@@ -22,7 +22,7 @@ Before you begin, ensure you have:
 
 ### 🍎 macOS / Linux / WSL
 ```bash
-sh -c 'U="https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_unix.sh"; (command -v curl >/dev/null && curl -fsSL "$U" || command -v wget >/dev/null && wget -qO- "$U" || python3 -c "import sys,urllib.request;sys.stdout.buffer.write(urllib.request.urlopen(\'$U\').read())") | bash'
+curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_unix.sh | bash
 ```
 
 ### 🪟 Windows (PowerShell)

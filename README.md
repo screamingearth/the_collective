@@ -30,7 +30,7 @@ curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/
 $s = iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_win.ps1; if ($?) { $s.Content | iex }
 ```
 
-> **Troubleshooting:** If the command fails, see [QUICKSTART.md](./QUICKSTART.md) for manual installation steps and fallbacks.
+> **Troubleshooting:** If a command fails, see [QUICKSTART.md](./QUICKSTART.md) for manual installation steps and fallbacks.
 
 ---
 

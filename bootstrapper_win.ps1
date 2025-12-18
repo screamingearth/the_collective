@@ -493,47 +493,35 @@ bash ./setup.sh
                 Log-Error "Setup script failed with exit code: $setupExitCode"
                 Log-Message ""
                 Log-Message "═══════════════════════════════════════════════════════════" "Red"
-                Log-Message "Detailed Setup Log:" "Red"
+                Log-Message "Setup Failed - Recovery Options" "Red"
                 Log-Message "═══════════════════════════════════════════════════════════" "Red"
+                Log-Message ""
+                Log-Message "[K] Kill all Node processes & Retry (Fixes EBUSY/Locked files)" "Cyan"
+                Log-Message "[C] Clean node_modules & Retry (Fixes corrupted installs)" "Cyan"
+                Log-Message "[L] View full log file" "Cyan"
+                Log-Message "[X] Exit" "Gray"
+                Log-Message ""
                 
-                # Show last 100 lines of setup log if it exists
-                if (Test-Path $setupLogPath) {
-                    Log-Message ""
-                    Get-Content $setupLogPath -ErrorAction SilentlyContinue | Select-Object -Last 100 | ForEach-Object {
-                        Log-Message $_
-                    }
-                } elseif (Test-Path ".\.collective\.logs\setup.log") {
-                    Log-Message ""
-                    Get-Content ".\.collective\.logs\setup.log" -ErrorAction SilentlyContinue | Select-Object -Last 100 | ForEach-Object {
-                        Log-Message $_
-                    }
-                } else {
-                    Log-Message "(No detailed setup log found)"
+                $choice = Read-Host "Select an option"
+                if ($choice -eq "k" -or $choice -eq "K") {
+                    Log-Message "Killing all node processes..." "Yellow"
+                    taskkill /F /IM node.exe /T 2>$null
+                    Log-Message "Retrying setup..." "Cyan"
+                    & $bashPath $setupScriptWrapper # This is a bit recursive but works for a quick retry
+                    exit $LASTEXITCODE
+                } elseif ($choice -eq "c" -or $choice -eq "C") {
+                    Log-Message "Cleaning node_modules..." "Yellow"
+                    Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue
+                    Remove-Item -Recurse -Force .collective\memory-server\node_modules -ErrorAction SilentlyContinue
+                    npm cache clean --force
+                    Log-Message "Retrying setup..." "Cyan"
+                    & $bashPath $setupScriptWrapper
+                    exit $LASTEXITCODE
+                } elseif ($choice -eq "l" -or $choice -eq "L") {
+                    notepad $setupLogPath
+                    Log-Message "Press Enter to continue..."
+                    Read-Host
                 }
-                
-                Log-Message ""
-                Log-Message "═══════════════════════════════════════════════════════════" "Red"
-                Log-Message "Troubleshooting:" "Yellow"
-                Log-Message "═══════════════════════════════════════════════════════════" "Red"
-                Log-Message ""
-                Log-Message "1. Missing Visual Studio Build Tools?" "Cyan"
-                Log-Message "   The most common cause of setup.sh failure on Windows" "Gray"
-                Log-Message "   Download: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022" "Yellow"
-                Log-Message "   Select: 'Desktop development with C++'" "Yellow"
-                Log-Message "   Then: bash .\setup.sh" "Gray"
-                Log-Message ""
-                Log-Message "2. Check disk space:" "Cyan"
-                Log-Message "   Need at least 2GB free (for npm packages + ML models)" "Gray"
-                Log-Message ""
-                Log-Message "3. Clear npm cache and retry:" "Cyan"
-                Log-Message "   npm cache clean --force" "Gray"
-                Log-Message "   bash .\setup.sh" "Gray"
-                Log-Message ""
-                Log-Message "4. View full logs:" "Cyan"
-                Log-Message "   Complete log: $setupLogPath" "Gray"
-                Log-Message "   Or: Get-Content .collective\.logs\setup.log -Tail 50" "Gray"
-                Log-Message ""
-                Log-Message "5. For help: https://github.com/screamingearth/the_collective/issues" "Yellow"
                 
                 throw "Setup failed (exit code $setupExitCode)"
             }
