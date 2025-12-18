@@ -137,6 +137,7 @@ const REQUIRED_FILES = [
 const REQUIRED_DIRS = [".github", ".github/agents", ".mcp"];
 
 const MEMORY_BUILD_FILES = ["index.js", "memory-store.js", "bootstrap.js"];
+const GEMINI_BUILD_FILES = ["mcp-server.js", "index.js"];
 
 let warnings = 0;
 let errors = 0;
@@ -255,6 +256,26 @@ function checkMemoryServerBuild() {
     return true;
   } else {
     error("Memory server build incomplete", "Run: npm run rebuild");
+    return false;
+  }
+}
+
+function checkGeminiBridgeBuild() {
+  section("Gemini Bridge Build", "🤖");
+  const geminiDistPath = path.join(process.cwd(), ".collective/gemini-bridge/dist");
+
+  if (!fs.existsSync(geminiDistPath)) {
+    warn("Gemini bridge not built (optional)", "Run: cd .collective/gemini-bridge && npm run build");
+    return false;
+  }
+
+  const allExist = GEMINI_BUILD_FILES.every((f) => fs.existsSync(path.join(geminiDistPath, f)));
+
+  if (allExist) {
+    success("Gemini bridge compiled");
+    return true;
+  } else {
+    warn("Gemini bridge build incomplete", "Run: cd .collective/gemini-bridge && npm run build");
     return false;
   }
 }
@@ -406,6 +427,7 @@ function runFullCheck() {
   checkFiles();
   checkMCPConfig();
   checkMemoryServerBuild();
+  checkGeminiBridgeBuild();
   checkAgentDefinitions();
   checkMemoryDatabase();
   checkDependencies();

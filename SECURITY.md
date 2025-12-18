@@ -1,8 +1,18 @@
 # Security
 
-## Reporting Issues
+## Reporting a Vulnerability
 
-For security vulnerabilities, open a GitHub issue or contact the maintainers directly.
+**Please do NOT create public GitHub issues for security vulnerabilities.**
+
+Email: security@screamingearth.com
+PGP Key: [Coming Soon]
+
+Response timeline:
+- Acknowledgment: 48 hours
+- Initial assessment: 5 business days  
+- Resolution: Based on severity
+
+Scope: Memory server, Gemini bridge, shell scripts, MCP configuration
 
 ## What's Protected
 

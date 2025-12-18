@@ -5,6 +5,14 @@
 # ==============================================================================
 # Internal Setup Script
 # ==============================================================================
+
+# Guard: Detect if accidentally run in PowerShell or CMD
+if [[ -n "${PSModulePath:-}" ]] && [[ -z "${BASH_VERSION:-}" ]]; then
+    echo "ERROR: This script must be run in Bash, not PowerShell"
+    echo "Use Git Bash: bash ./setup.sh"
+    echo "Or run: .\\bootstrapper_win.ps1"
+    exit 1
+fi
 # This script configures an already-cloned repository:
 #   1. Detects your OS
 #   2. Installs Node.js 22 if missing or outdated
@@ -136,13 +144,15 @@ GEMINI_AUTH_TIMEOUT=600  # 10 minutes for OAuth browser flow
 # -----------------------------------------------------------------------------
 
 check_disk_space() {
-    local required_mb=500  # Estimate: 500MB for node_modules + builds
+    local required_mb=2000  # Estimate: node_modules ~300MB, builds ~100MB, ML models ~500MB, cache ~500MB
     local available_mb
     
     if command -v df &> /dev/null; then
-        available_mb=$(df -m . | tail -1 | awk '{print $4}')
-        if [[ "$available_mb" -lt "$required_mb" ]]; then
+        available_mb=$(df -m . 2>/dev/null | tail -1 | awk '{print $4}')
+        if [[ -n "$available_mb" ]] && [[ "$available_mb" -lt "$required_mb" ]]; then
             error "Insufficient disk space: ${available_mb}MB available, ${required_mb}MB required"
+            info "Note: First run downloads ~500MB of ML models for semantic embeddings"
+            info "Tip: Clear npm cache with 'npm cache clean --force' if space is tight"
             exit 1
         fi
     fi
@@ -214,9 +224,19 @@ cleanup_on_exit() {
     local exit_code=$?
     if [[ $exit_code -ne 0 ]]; then
         echo ""
-        warn "Setup interrupted or failed (exit code: $exit_code)"
-        warn "To retry: ./setup.sh"
-        warn "To clean up: npm run clean"
+        error "═══════════════════════════════════════════"
+        error "Setup failed (exit code: $exit_code)"
+        error "═══════════════════════════════════════════"
+        echo ""
+        info "Log file: ${LOG_FILE:-'.collective/.logs/setup.log'}"
+        echo ""
+        info "Recovery steps:"
+        info "  1. Review the error message above"
+        info "  2. Try: npm cache clean --force"
+        info "  3. Try: rm -rf node_modules .collective/*/node_modules"
+        info "  4. Retry: ./setup.sh"
+        echo ""
+        info "For help: https://github.com/screamingearth/the_collective/issues"
     fi
 }
 
@@ -254,6 +274,160 @@ detect_os() {
     else
         OS="linux"
         PKG_MANAGER="unknown"
+    fi
+    
+    # Detect WSL2 specifically
+    if [[ -f /proc/version ]] && grep -qi microsoft /proc/version 2>/dev/null; then
+        IS_WSL=1
+        info "Detected WSL2 environment"
+        
+        # Check if running from Windows filesystem (very slow)
+        if [[ "$(pwd)" == /mnt/* ]]; then
+            warn "Running from Windows filesystem (/mnt/c, /mnt/d, etc.)"
+            warn "This is VERY SLOW for npm operations"
+            warn "Recommended: Move project to Linux filesystem: ~/the_collective"
+            echo ""
+        fi
+    else
+        IS_WSL=0
+    fi
+}
+
+# -----------------------------------------------------------------------------
+# Pre-flight Checks
+# -----------------------------------------------------------------------------
+
+check_network() {
+    info "Checking network connectivity..."
+    
+    # Quick connectivity test to npm registry
+    local connected=0
+    
+    if command -v curl &> /dev/null; then
+        if curl -s --connect-timeout 5 --max-time 10 https://registry.npmjs.org/-/ping &> /dev/null; then
+            connected=1
+        fi
+    elif command -v wget &> /dev/null; then
+        if wget -q --timeout=10 -O /dev/null https://registry.npmjs.org/-/ping &> /dev/null; then
+            connected=1
+        fi
+    else
+        # No curl or wget - skip check, will fail later with better error
+        warn "Neither curl nor wget found - skipping connectivity check"
+        return 0
+    fi
+    
+    if [[ $connected -eq 0 ]]; then
+        error "Cannot reach npm registry (registry.npmjs.org)"
+        error "Check your internet connection"
+        echo ""
+        
+        # Check for proxy settings
+        if [[ -n "${HTTP_PROXY:-}" ]] || [[ -n "${HTTPS_PROXY:-}" ]] || [[ -n "${http_proxy:-}" ]] || [[ -n "${https_proxy:-}" ]]; then
+            info "Proxy detected. Ensure npm is configured:"
+            info "  npm config set proxy \$HTTP_PROXY"
+            info "  npm config set https-proxy \$HTTPS_PROXY"
+        fi
+        
+        exit 1
+    fi
+    
+    success "Network connectivity verified"
+}
+
+check_build_tools() {
+    info "Checking native module build dependencies..."
+    
+    local missing=()
+    local install_cmd=""
+    
+    if [[ "$IS_WINDOWS" -eq 1 ]]; then
+        # Windows: check for build tools (harder to detect reliably)
+        # node-gyp needs either VS Build Tools or windows-build-tools
+        if ! command -v cl &> /dev/null 2>&1; then
+            # cl.exe not in PATH - warn but don't block (might still work via VS env)
+            warn "Visual Studio C++ compiler (cl.exe) not found in PATH"
+            warn "If native module compilation fails, install Visual Studio Build Tools:"
+            info "  https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022"
+            info "  Select 'Desktop development with C++' workload"
+            echo ""
+        fi
+    elif [[ "$OS" == "macos" ]]; then
+        # macOS: Xcode Command Line Tools is CRITICAL
+        if ! xcode-select -p &> /dev/null 2>&1; then
+            error "Xcode Command Line Tools not installed"
+            echo ""
+            info "Installing Xcode Command Line Tools..."
+            info "A dialog will appear - click 'Install' to continue"
+            echo ""
+            
+            # Trigger the install dialog
+            xcode-select --install 2>/dev/null || true
+            
+            # Wait for user to complete installation
+            echo ""
+            echo -e "${YELLOW}Please complete the Xcode CLT installation dialog.${NC}"
+            echo -e "${YELLOW}Press Enter after installation completes...${NC}"
+            read -r
+            
+            # Verify installation succeeded
+            if ! xcode-select -p &> /dev/null 2>&1; then
+                error "Xcode Command Line Tools installation failed or incomplete"
+                error "Please install manually: xcode-select --install"
+                exit 1
+            fi
+            
+            success "Xcode Command Line Tools installed"
+        else
+            success "Xcode Command Line Tools found"
+        fi
+    else
+        # Linux: check for gcc/g++ and make
+        if ! command -v g++ &> /dev/null && ! command -v gcc &> /dev/null; then
+            missing+=("C++ compiler (g++/gcc)")
+            case "$PKG_MANAGER" in
+                apt) install_cmd="sudo apt-get install -y build-essential" ;;
+                dnf) install_cmd="sudo dnf groupinstall -y 'Development Tools'" ;;
+                pacman) install_cmd="sudo pacman -S --noconfirm base-devel" ;;
+                *) install_cmd="Install gcc/g++ for your distribution" ;;
+            esac
+        fi
+        
+        if ! command -v make &> /dev/null; then
+            missing+=("make")
+        fi
+        
+        if [[ ${#missing[@]} -gt 0 ]]; then
+            error "Missing build dependencies: ${missing[*]}"
+            error "Native modules (DuckDB) will fail to compile"
+            echo ""
+            info "Install with: $install_cmd"
+            echo ""
+            exit 1
+        fi
+        
+        success "Build tools verified (g++, make)"
+    fi
+    
+    # Check for Python (required by node-gyp)
+    if ! command -v python3 &> /dev/null && ! command -v python &> /dev/null; then
+        warn "Python not found - node-gyp may fail for some packages"
+        
+        case "$OS" in
+            macos)
+                info "Install: brew install python3"
+                ;;
+            debian)
+                info "Install: sudo apt-get install -y python3"
+                ;;
+            fedora|rhel)
+                info "Install: sudo dnf install -y python3"
+                ;;
+            arch)
+                info "Install: sudo pacman -S --noconfirm python"
+                ;;
+        esac
+        echo ""
     fi
 }
 
@@ -500,38 +674,91 @@ install_nvm() {
 # -----------------------------------------------------------------------------
 
 install_dependencies() {
-    npm install || {
-        error "Failed to install root dependencies"
-        exit 1
-    }
+    local max_retries=3
+    local retry=0
+    
+    info "Installing root dependencies..."
+    
+    while [[ $retry -lt $max_retries ]]; do
+        if npm install 2>&1; then
+            break
+        fi
+        
+        retry=$((retry + 1))
+        if [[ $retry -lt $max_retries ]]; then
+            warn "npm install failed (attempt $retry/$max_retries), retrying..."
+            info "Clearing npm cache..."
+            npm cache clean --force 2>/dev/null || true
+            sleep 2
+        else
+            error "npm install failed after $max_retries attempts"
+            echo ""
+            info "Troubleshooting steps:"
+            info "  1. Check internet: curl -s https://registry.npmjs.org/-/ping"
+            info "  2. Clear cache: npm cache clean --force"
+            info "  3. Remove node_modules: rm -rf node_modules"
+            info "  4. Retry: npm install"
+            exit 1
+        fi
+    done
     success "Root dependencies installed"
 
     cd .collective/memory-server || {
         error "Failed to enter memory-server directory"
         exit 1
     }
-    npm install || {
-        error "Failed to install memory-server dependencies"
-        exit 1
-    }
+    
+    retry=0
+    info "Installing memory-server dependencies..."
+    
+    while [[ $retry -lt $max_retries ]]; do
+        if npm install 2>&1; then
+            break
+        fi
+        
+        retry=$((retry + 1))
+        if [[ $retry -lt $max_retries ]]; then
+            warn "npm install failed (attempt $retry/$max_retries), retrying..."
+            npm cache clean --force 2>/dev/null || true
+            sleep 2
+        else
+            error "Failed to install memory-server dependencies after $max_retries attempts"
+            exit 1
+        fi
+    done
     
     # Rebuild native modules explicitly - critical for DuckDB on Windows
     info "Rebuilding native modules (DuckDB, etc)..."
     
     # Use timeout to prevent indefinite hangs (5 minutes should be enough)
+    local rebuild_status=0
     if command -v timeout &> /dev/null; then
         timeout 300 npm rebuild 2>&1 | head -20
-        local rebuild_status=${PIPESTATUS[0]}
+        rebuild_status=${PIPESTATUS[0]}
     else
         # No timeout command available (macOS by default) - run without timeout
         npm rebuild 2>&1 | head -20
-        local rebuild_status=${PIPESTATUS[0]}
+        rebuild_status=${PIPESTATUS[0]}
     fi
     
     # Check npm rebuild's actual exit code
     if [[ $rebuild_status -ne 0 ]]; then
         warn "npm rebuild encountered issues - attempting to continue"
-        info "If you see DuckDB errors, try: npm rebuild --build-from-source"
+        echo ""
+        info "Native module compilation tips:"
+        if [[ "$IS_WINDOWS" -eq 1 ]]; then
+            info "  • Install Visual Studio Build Tools: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022"
+            info "  • Or via npm: npm install --global windows-build-tools"
+        else
+            info "  • Ensure build tools are installed (gcc, make, python3)"
+            if [[ "$OS" == "debian" ]]; then
+                info "  • Ubuntu/Debian: sudo apt install build-essential python3"
+            elif [[ "$OS" == "macos" ]]; then
+                info "  • macOS: xcode-select --install"
+            fi
+        fi
+        info "  • Force rebuild from source: cd .collective/memory-server && npm rebuild --build-from-source"
+        echo ""
     fi
     success "Memory server dependencies installed"
     cd ../.. || {
@@ -593,15 +820,36 @@ bootstrap_memories() {
     if ! npm run bootstrap; then
         error "Bootstrap failed - likely a native module issue"
         echo ""
-        warn "Troubleshooting for Windows users:"
-        warn "1. If you see 'Segmentation fault', try rebuilding native modules:"
-        warn "   npm rebuild --build-from-source"
-        warn ""
-        warn "2. Ensure you have Windows Build Tools installed:"
-        warn "   npm install --global windows-build-tools"
-        warn ""
-        warn "3. Or install Visual Studio with C++ build tools"
-        warn ""
+        error "Native module (DuckDB) failed to load. This usually means:"
+        echo ""
+        if [[ "$IS_WINDOWS" -eq 1 ]]; then
+            warn "Windows troubleshooting steps:"
+            warn "  1. Install Visual Studio Build Tools:"
+            warn "     https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022"
+            warn "     Select 'Desktop development with C++'"
+            warn ""
+            warn "  2. Or try the automated installer:"
+            warn "     npm install --global windows-build-tools"
+            warn ""
+            warn "  3. Rebuild native modules:"
+            warn "     cd .collective/memory-server && npm rebuild --build-from-source"
+        else
+            warn "Unix/Mac troubleshooting steps:"
+            warn "  1. Ensure build tools are installed:"
+            if [[ "$OS" == "macos" ]]; then
+                warn "     xcode-select --install"
+            elif [[ "$OS" == "debian" ]]; then
+                warn "     sudo apt install build-essential python3"
+            elif [[ "$OS" == "fedora" ]] || [[ "$OS" == "rhel" ]]; then
+                warn "     sudo dnf groupinstall 'Development Tools'"
+            else
+                warn "     Install gcc, make, and python3 for your distro"
+            fi
+            warn ""
+            warn "  2. Rebuild native modules:"
+            warn "     cd .collective/memory-server && npm rebuild --build-from-source"
+        fi
+        echo ""
         warn "After installing tools, run: ./setup.sh"
         cd ../.. > /dev/null 2>&1
         exit 1
@@ -774,6 +1022,9 @@ print_success() {
     echo -e "   1. ${BOLD}Restart VS Code${NC} (to load MCP servers)"
     echo -e "   2. Open Copilot Chat and say \"${MAGENTA}hey nyx${NC}\""
     echo ""
+    echo -e "   ${YELLOW}⚠ First conversation downloads ~400MB of ML models${NC}"
+    echo -e "   ${YELLOW}⚠ This is normal and only happens once${NC}"
+    echo ""
     echo -e "   ${DIM}Verify anytime: npm run check${NC}"
     echo -e "   ${DIM}Enable Gemini later: cd .collective/gemini-bridge && npm run auth${NC}"
     echo ""
@@ -795,12 +1046,18 @@ main() {
     # Set up logging now that we're in the correct directory
     setup_logging
 
-    # Pre-flight checks
+    # Pre-flight checks (run these BEFORE anything else)
     check_disk_space
-
-    # Detect OS
+    
+    # Detect OS first (needed for subsequent checks)
     detect_os
     info "Detected: $OS ($PKG_MANAGER)"
+    
+    # Check network connectivity before trying to download anything
+    check_network
+    
+    # Check build tools before npm install (prevents 10-min failure)
+    check_build_tools
 
     # Determine total steps based on whether we need to install Node
     if check_node; then

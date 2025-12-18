@@ -17,7 +17,8 @@
     "help": "node scripts/help.cjs",
     "validate": "node scripts/validate.cjs",
     "reset:memories": "node scripts/reset-memories.cjs",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "prepare": "husky"
   },
   "keywords": [
     "ai",
@@ -45,6 +46,18 @@
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "eslint": "^9.39.2",
+    "husky": "9.1.7",
+    "lint-staged": "16.2.7",
     "patch-package": "^8.0.1"
+  },
+  "lint-staged": {
+    ".collective/memory-server/src/**/*.ts": [
+      "eslint --fix --ignore-pattern '*.test.ts'",
+      "bash -c 'cd .collective/memory-server && npx tsc --noEmit'"
+    ],
+    ".collective/gemini-bridge/src/**/*.ts": [
+      "eslint --fix --ignore-pattern '*.test.ts'",
+      "bash -c 'cd .collective/gemini-bridge && npx tsc --noEmit'"
+    ]
   }
 }

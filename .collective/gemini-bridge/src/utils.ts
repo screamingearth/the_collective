@@ -41,10 +41,10 @@ export function parseJsonResponse(output: string): GeminiJsonResponse | null {
 
     // Try to find a valid JSON response
     for (let i = lines.length - 1; i >= 0; i--) {
-      const line = lines[i].trim();
-      if (line.startsWith("{") && line.endsWith("}")) {
+      const line = lines[i];
+      if (line && line.trim().startsWith("{") && line.trim().endsWith("}")) {
         try {
-          return JSON.parse(line) as GeminiJsonResponse;
+          return JSON.parse(line.trim()) as GeminiJsonResponse;
         } catch {
           continue;
         }
@@ -95,12 +95,12 @@ export function extractTextFromEvents(events: GeminiStreamEvent[]): string {
  */
 export function buildArgs(options: {
   prompt: string;
-  cwd?: string;
-  includeDirectories?: string[];
-  model?: string;
-  outputFormat?: "text" | "json" | "stream-json";
-  yolo?: boolean;
-  systemInstructions?: string;
+  cwd?: string | undefined;
+  includeDirectories?: string[] | undefined;
+  model?: string | undefined;
+  outputFormat?: "text" | "json" | "stream-json" | undefined;
+  yolo?: boolean | undefined;
+  systemInstructions?: string | undefined;
 }): string[] {
   const args: string[] = [];
 
@@ -138,10 +138,10 @@ export function buildArgs(options: {
 export function spawnGemini(
   args: string[],
   options: {
-    cwd?: string;
-    timeout?: number;
-    onStdout?: (data: string) => void;
-    onStderr?: (data: string) => void;
+    cwd?: string | undefined;
+    timeout?: number | undefined;
+    onStdout?: ((data: string) => void) | undefined;
+    onStderr?: ((data: string) => void) | undefined;
   } = {}
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolvePromise, reject) => {
@@ -190,7 +190,9 @@ export function spawnGemini(
     });
 
     proc.on("close", (code) => {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
 
       if (timedOut) {
         reject(new Error("Gemini CLI timed out"));
@@ -205,7 +207,9 @@ export function spawnGemini(
     });
 
     proc.on("error", (err) => {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       reject(err);
     });
   });
@@ -217,12 +221,12 @@ export function spawnGemini(
 export async function checkAuthStatus(): Promise<EchoStatus> {
   try {
     // Check if OAuth credentials file exists (fast, no API calls)
-    const { existsSync } = await import('fs');
-    const { homedir } = await import('os');
-    const { join } = await import('path');
+    const fs = await import('fs');
+    const os = await import('os');
+    const path = await import('path');
 
-    const credsPath = join(homedir(), '.gemini', 'oauth_creds.json');
-    if (existsSync(credsPath)) {
+    const credsPath = path.join(os.homedir(), '.gemini', 'oauth_creds.json');
+    if (fs.existsSync(credsPath)) {
       return {
         installed: true,
         authenticated: true,

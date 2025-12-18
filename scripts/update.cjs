@@ -45,7 +45,18 @@ const MEMORY_SERVER = path.join(ROOT, ".collective/memory-server");
 const args = process.argv.slice(2);
 const flags = {
   help: args.includes("--help") || args.includes("-h"),
+  version: args.includes("--version") || args.includes("-v"),
 };
+
+/**
+ * Show version and exit
+ */
+function showVersion() {
+  const pkgPath = path.join(ROOT, "package.json");
+  const pkg = JSON.parse(require("fs").readFileSync(pkgPath, "utf8"));
+  log(`${c.cyan}>the_collective${c.reset} update tool ${c.dim}v${pkg.version}${c.reset}`);
+  process.exit(0);
+}
 
 /**
  * Show help and exit
@@ -75,6 +86,10 @@ function showHelp() {
 
   log(`\n${c.dim}Platform: ${process.platform} (${process.arch})${c.reset}\n`);
   process.exit(0);
+}
+
+if (flags.version) {
+  showVersion();
 }
 
 if (flags.help) {

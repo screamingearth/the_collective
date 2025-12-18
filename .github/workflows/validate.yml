@@ -24,8 +24,8 @@ jobs:
           cd $GITHUB_WORKSPACE
           git init
           git remote add origin https://github.com/${{ github.repository }}.git
-          git fetch origin main --depth=1
-          git checkout main
+          git fetch origin ${{ github.ref }} --depth=1
+          git checkout FETCH_HEAD
 
       - name: Verify Node.js
         run: |
@@ -33,6 +33,12 @@ jobs:
           which npm
           node --version
           npm --version
+
+      - name: Security Audit
+        run: |
+          npm audit --audit-level=high
+          cd .collective/memory-server && npm audit --audit-level=high
+          cd ../gemini-bridge && npm audit --audit-level=high
 
       - name: Install Root Dependencies
         run: npm ci

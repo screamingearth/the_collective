@@ -70,24 +70,24 @@ export interface EchoInvocationOptions {
   /** The prompt to send to Echo */
   prompt: string;
   /** Working directory for file context (defaults to cwd) */
-  cwd?: string;
+  cwd?: string | undefined;
   /** Additional directories to include in context */
-  includeDirectories?: string[];
+  includeDirectories?: string[] | undefined;
   /**
    * Specific model to use.
    * - "gemini-2.5-flash" (default): Fast responses (~2-5s), used for all tasks
    */
-  model?: string;
+  model?: string | undefined;
   /** Timeout in milliseconds (defaults to 120000 - 2 minutes) */
-  timeout?: number;
+  timeout?: number | undefined;
   /** Whether to allow tool use (defaults to true) */
-  allowTools?: boolean;
+  allowTools?: boolean | undefined;
   /** Output format: 'text' | 'json' | 'stream-json' */
-  outputFormat?: "text" | "json" | "stream-json";
+  outputFormat?: "text" | "json" | "stream-json" | undefined;
   /** Enable yolo mode (auto-approve tool calls) */
-  yolo?: boolean;
+  yolo?: boolean | undefined;
   /** Custom system instructions to prepend */
-  systemInstructions?: string;
+  systemInstructions?: string | undefined;
 }
 
 /**
@@ -97,17 +97,17 @@ export interface EchoResult {
   /** Whether the invocation succeeded */
   success: boolean;
   /** The response text */
-  response?: string;
+  response?: string | undefined;
   /** Parsed JSON response (if outputFormat was 'json') */
-  json?: GeminiJsonResponse;
+  json?: GeminiJsonResponse | undefined;
   /** Stream events (if outputFormat was 'stream-json') */
-  events?: GeminiStreamEvent[];
+  events?: GeminiStreamEvent[] | undefined;
   /** Error message if failed */
-  error?: string;
+  error?: string | undefined;
   /** Exit code from the process */
-  exitCode?: number;
+  exitCode?: number | undefined;
   /** Execution time in milliseconds */
-  executionTime?: number;
+  executionTime?: number | undefined;
 }
 
 /**
@@ -119,13 +119,13 @@ export interface EchoStatus {
   /** Whether authentication is configured */
   authenticated: boolean;
   /** The detected authentication method */
-  authMethod?: "oauth" | "api-key" | "vertex-ai";
+  authMethod?: "oauth" | "api-key" | "vertex-ai" | undefined;
   /** Gemini CLI version */
-  version?: string;
+  version?: string | undefined;
   /** Path to gemini-cli executable */
-  executablePath?: string;
+  executablePath?: string | undefined;
   /** Error message if status check failed */
-  error?: string;
+  error?: string | undefined;
 }
 
 /**

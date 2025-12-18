@@ -51,7 +51,7 @@ iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/main/b
 
 <br>
 
-> *disclaimer: >the_collective is an experimental open-source framework under active development. While I strive for quality, it may contain bugs or incomplete features. Use at your own risk.*
+> *disclaimer: >the_collective is an experimental open-source framework under active development. While I strive for quality, it likely contains many bugs. Use at your own risk.*
 
 **[→ Detailed Setup Guide & Troubleshooting →](./QUICKSTART.md)**
 
@@ -95,7 +95,7 @@ iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/main/b
 
 ## 📋 Requirements
 
-- **VS Code 1.107+** with **GitHub Copilot**
+- **VS Code 1.107+** with **GitHub Copilot** (free tier or paid)
 - **Node.js 20+** (Auto-installed by bootstrapper)
 - **macOS, Linux, or Windows 10/11**
 

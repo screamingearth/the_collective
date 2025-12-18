@@ -20,7 +20,7 @@ export default tseslint.config(
       // TypeScript-specific rules
       "@typescript-eslint/explicit-function-return-type": ["error", { allowExpressions: true }],
       "@typescript-eslint/explicit-module-boundary-types": "error",
-      "@typescript-eslint/no-explicit-any": "warn", // Relaxed due to DuckDB lack of types
+      "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
       "@typescript-eslint/no-floating-promises": "error",
       "@typescript-eslint/no-misused-promises": "error",
@@ -28,7 +28,7 @@ export default tseslint.config(
       "@typescript-eslint/no-unnecessary-type-assertion": "error",
       "@typescript-eslint/prefer-nullish-coalescing": "warn",
       "@typescript-eslint/prefer-optional-chain": "error",
-      "@typescript-eslint/strict-boolean-expressions": "off", // Too restrictive for DB interaction
+      "@typescript-eslint/strict-boolean-expressions": "off",
       "@typescript-eslint/no-unsafe-assignment": "warn",
       "@typescript-eslint/no-unsafe-member-access": "warn",
       "@typescript-eslint/no-unsafe-call": "warn",

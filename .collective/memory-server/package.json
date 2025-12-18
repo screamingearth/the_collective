@@ -12,9 +12,10 @@
   },
   "scripts": {
     "build": "tsc && cp src/core-memories.json dist/ && cp src/core-memories.schema.json dist/",
-    "test": "node dist/test-memory.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "bootstrap": "node dist/bootstrap.js",
-    "validate": "tsc --noEmit && eslint src/**/*.ts"
+    "validate": "tsc --noEmit && eslint src/**/*.ts --ignore-pattern '*.test.ts'"
   },
   "keywords": [
     "mcp",
@@ -37,8 +38,10 @@
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.17.0",
     "@typescript-eslint/parser": "^8.17.0",
+    "@vitest/coverage-v8": "^4.0.16",
     "eslint": "^9.16.0",
     "typescript": "^5.7.2",
-    "typescript-eslint": "^8.17.0"
+    "typescript-eslint": "^8.17.0",
+    "vitest": "^4.0.16"
   }
 }

@@ -107,7 +107,8 @@ ensure_packages() {
             $SUDO yum install -y "${pkgs[@]}" && return 0 || return 1
             ;;
         pacman)
-            $SUDO pacman -Syu --noconfirm "${pkgs[@]}" && return 0 || return 1
+            # Use -S --needed instead of -Syu to avoid full system upgrade
+            $SUDO pacman -S --noconfirm --needed "${pkgs[@]}" && return 0 || return 1
             ;;
         apk)
             $SUDO apk add --no-cache "${pkgs[@]}" && return 0 || return 1
@@ -221,7 +222,7 @@ INSTALL_DIR="$HOME/the_collective"
 # Clone or Update Repository
 if [ -d "$INSTALL_DIR" ]; then
     log "Repository directory exists. Pulling latest changes..."
-    cd "$INSTALL_DIR"
+    cd "$INSTALL_DIR" || exit 1
     
     if git pull origin main 2>/dev/null; then
         success "Repository updated"
@@ -232,7 +233,7 @@ else
     log "Cloning repository to $INSTALL_DIR..."
     
     if git clone --depth 1 https://github.com/screamingearth/the_collective.git "$INSTALL_DIR"; then
-        cd "$INSTALL_DIR"
+        cd "$INSTALL_DIR" || exit 1
         success "Repository cloned successfully"
     else
         error "Failed to clone repository"

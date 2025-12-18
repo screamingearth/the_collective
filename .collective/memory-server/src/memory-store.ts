@@ -10,7 +10,7 @@
 import { pipeline } from "@xenova/transformers";
 import Database from "duckdb";
 import { mkdir } from "fs/promises";
-import { dirname } from "path";
+import { dirname, normalize, resolve } from "path";
 import { v4 as uuidv4 } from "uuid";
 import type {
   EmbedderFunction,
@@ -72,7 +72,8 @@ export class MemoryStore {
     if (!dbPath || typeof dbPath !== "string") {
       throw new Error("Database path must be a non-empty string");
     }
-    this.dbPath = dbPath;
+    // Normalize and resolve to absolute path to prevent path traversal
+    this.dbPath = normalize(resolve(dbPath));
     this.logger = createLogger("MemoryStore");
   }
 

@@ -9,121 +9,44 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  Tool,
-} from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 import type { GeminiJsonResponse } from "./types.js";
 import { buildArgs, checkAuthStatus, spawnGemini } from "./utils.js";
 
 /**
- * Tool argument types
+ * System instructions for Gemini - defines behavior as research tool for >the_collective
  */
-interface QueryArgs {
-  prompt: string;
-  context?: string;
-  timeout?: number;
-}
+const GEMINI_SYSTEM_PROMPT = `you're being invoked by >the_collective - a multi-agent AI team (nyx, prometheus, cassandra, apollo). you're a different AI model (gemini vs their claude), which provides cognitive diversity - you catch what they miss.
 
-interface AnalyzeCodeArgs {
-  code: string;
-  question: string;
-  language?: string;
-  timeout?: number;
-}
+your role: research assistant and independent validator.
 
-interface ValidateArgs {
-  proposal: string;
-  context: string;
-  criteria?: string;
-  timeout?: number;
-}
+## core behavior
 
-const GEMINI_TOOLS: Tool[] = [
-  {
-    name: "gemini_query",
-    description:
-      "Query Gemini for research, documentation lookup, or general questions. Uses gemini-3-flash-preview (1M+ context, 2-5s response time). Free tier: 60 req/min, 1000 req/day.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        prompt: {
-          type: "string",
-          description: "The research question or query",
-        },
-        context: {
-          type: "string",
-          description: "Optional additional context to include",
-        },
-        timeout: {
-          type: "number",
-          description: "Timeout in milliseconds (default: 120000)",
-          default: 120000,
-        },
-      },
-      required: ["prompt"],
-    },
-  },
-  {
-    name: "gemini_analyze_code",
-    description:
-      "Analyze code with Gemini. Explain logic, identify issues, suggest improvements. Uses gemini-3-flash-preview with 1M+ context window.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        code: {
-          type: "string",
-          description: "The code to analyze",
-        },
-        question: {
-          type: "string",
-          description: "What you want to know about the code",
-        },
-        language: {
-          type: "string",
-          description: "Programming language (optional, helps with context)",
-        },
-        timeout: {
-          type: "number",
-          description: "Timeout in milliseconds (default: 120000)",
-          default: 120000,
-        },
-      },
-      required: ["code", "question"],
-    },
-  },
-  {
-    name: "gemini_validate",
-    description:
-      "Get a second opinion from Gemini on a proposal, approach, or decision. Useful for independent validation from a different model.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        proposal: {
-          type: "string",
-          description: "The proposal, approach, or decision to validate",
-        },
-        context: {
-          type: "string",
-          description: "Background context for the validation",
-        },
-        criteria: {
-          type: "string",
-          description: "Specific criteria to validate against (optional)",
-        },
-        timeout: {
-          type: "number",
-          description: "Timeout in milliseconds (default: 120000)",
-          default: 120000,
-        },
-      },
-      required: ["proposal", "context"],
-    },
-  },
-];
+- **cite everything**: URLs, docs, github repos, version numbers, dates
+- **flag uncertainty**: if you're not certain, say "not certain but..." or "based on 2024 docs..."
+- **be thorough but organized**: use headings, lists, code blocks
+- **provide alternatives**: don't just validate - consider other approaches
+- **question assumptions**: if something seems off, point it out
+- **be practical**: actionable information over theory
+
+## communication style
+
+- lowercase (matches the team's vibe)
+- direct and technical
+- no fluff or filler
+- humble about limitations
+- cite sources inline
+
+## what makes you valuable
+
+- **cognitive diversity**: you're a different model - genuinely different perspective
+- **independent validation**: don't just agree with the team
+- **research depth**: 2M context, google search grounding for current info
+- **parallel processing**: you research while they implement
+
+respond with comprehensive, well-organized, well-cited information. functionality over personality.`;
 
 /**
  * Parse JSON response from gemini-cli
@@ -136,7 +59,7 @@ function parseJsonResponse(output: string): GeminiJsonResponse | null {
         return JSON.parse(line) as GeminiJsonResponse;
       }
     }
-  } catch (err) {
+  } catch {
     // Not JSON, return null
   }
   return null;
@@ -181,135 +104,150 @@ async function executeGemini(
 /**
  * Main server setup
  */
-async function main() {
+async function main(): Promise<void> {
   // Check auth status on startup (non-blocking)
-  // We just warn but don't fail - let individual tool calls fail with proper errors
   const authStatus = await checkAuthStatus();
   if (!authStatus.authenticated) {
     console.error(
       "⚠️ Warning: Gemini CLI may not be authenticated. " +
       "If Gemini tools fail, run: cd gemini-bridge && npm run auth"
     );
-    // Don't exit - let the server start and let individual tool calls fail gracefully
   } else {
     console.error("✓ Gemini CLI authenticated and ready");
   }
 
-  const server = new Server(
+  const server = new McpServer({
+    name: "gemini-bridge",
+    version: "0.1.0",
+  });
+
+  // Register gemini_query tool
+  server.registerTool(
+    "gemini_query",
     {
-      name: "gemini-bridge",
-      version: "0.1.0",
+      description:
+        "Query Gemini for research, documentation lookup, or general questions. " +
+        "Uses gemini-3-flash-preview (1M+ context, 2-5s response time). " +
+        "Free tier: 60 req/min, 1000 req/day.",
+      inputSchema: z.object({
+        prompt: z.string().describe("The research question or query"),
+        context: z
+          .string()
+          .optional()
+          .describe("Optional additional context to include"),
+        timeout: z
+          .number()
+          .default(120000)
+          .describe("Timeout in milliseconds (default: 120000)"),
+      }),
     },
-    {
-      capabilities: {
-        tools: {},
-      },
-    }
-  );
+    async ({ prompt, context, timeout }) => {
+      const userPrompt = context
+        ? `Context:\n${context}\n\nQuestion:\n${prompt}`
+        : prompt;
+      const fullPrompt = `${GEMINI_SYSTEM_PROMPT}\n\n---\n\n${userPrompt}`;
 
-  // List available tools
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: GEMINI_TOOLS,
-  }));
+      const result = await executeGemini(fullPrompt, timeout);
 
-  // Handle tool calls
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
-
-    try {
-      switch (name) {
-        case "gemini_query": {
-          const typedArgs = args as unknown as QueryArgs;
-          const { prompt, context, timeout = 120000 } = typedArgs;
-          const fullPrompt = context
-            ? `Context:\n${context}\n\nQuestion:\n${prompt}`
-            : prompt;
-
-          const result = await executeGemini(fullPrompt, timeout);
-
-          return {
-            content: [
-              {
-                type: "text",
-                text: result.success
-                  ? result.response!
-                  : `Error: ${result.error}`,
-              },
-            ],
-            isError: !result.success,
-          };
-        }
-
-        case "gemini_analyze_code": {
-          const typedArgs = args as unknown as AnalyzeCodeArgs;
-          const { code, question, language, timeout = 120000 } = typedArgs;
-
-          const prompt = language
-            ? `Analyze this ${language} code:\n\n\`\`\`${language}\n${code}\n\`\`\`\n\nQuestion: ${question}`
-            : `Analyze this code:\n\n\`\`\`\n${code}\n\`\`\`\n\nQuestion: ${question}`;
-
-          const result = await executeGemini(prompt, timeout);
-
-          return {
-            content: [
-              {
-                type: "text",
-                text: result.success
-                  ? result.response!
-                  : `Error: ${result.error}`,
-              },
-            ],
-            isError: !result.success,
-          };
-        }
-
-        case "gemini_validate": {
-          const typedArgs = args as unknown as ValidateArgs;
-          const { proposal, context, criteria, timeout = 120000 } = typedArgs;
-
-          const prompt = criteria
-            ? `Validate this proposal:\n\n${proposal}\n\nContext:\n${context}\n\nCriteria:\n${criteria}\n\nProvide an independent assessment considering potential issues, alternatives, and improvements.`
-            : `Validate this proposal:\n\n${proposal}\n\nContext:\n${context}\n\nProvide an independent assessment considering potential issues, alternatives, and improvements.`;
-
-          const result = await executeGemini(prompt, timeout);
-
-          return {
-            content: [
-              {
-                type: "text",
-                text: result.success
-                  ? result.response!
-                  : `Error: ${result.error}`,
-              },
-            ],
-            isError: !result.success,
-          };
-        }
-
-        default:
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Unknown tool: ${name}`,
-              },
-            ],
-            isError: true,
-          };
-      }
-    } catch (error) {
-      const err = error as Error;
       return {
         content: [
           {
-            type: "text",
-            text: `Error executing tool: ${err.message}`,
+            type: "text" as const,
+            text: result.success
+              ? (result.response ?? "")
+              : `Error: ${result.error}`,
           },
         ],
-        isError: true,
+        isError: !result.success,
       };
     }
-  });
+  );
+
+  // Register gemini_analyze_code tool
+  server.registerTool(
+    "gemini_analyze_code",
+    {
+      description:
+        "Analyze code with Gemini. Explain logic, identify issues, suggest improvements. " +
+        "Uses gemini-3-flash-preview with 1M+ context window.",
+      inputSchema: z.object({
+        code: z.string().describe("The code to analyze"),
+        question: z.string().describe("What you want to know about the code"),
+        language: z
+          .string()
+          .optional()
+          .describe("Programming language (optional, helps with context)"),
+        timeout: z
+          .number()
+          .default(120000)
+          .describe("Timeout in milliseconds (default: 120000)"),
+      }),
+    },
+    async ({ code, question, language, timeout }) => {
+      const userPrompt = language
+        ? `Analyze this ${language} code:\n\n\`\`\`${language}\n${code}\n\`\`\`\n\nQuestion: ${question}`
+        : `Analyze this code:\n\n\`\`\`\n${code}\n\`\`\`\n\nQuestion: ${question}`;
+      const fullPrompt = `${GEMINI_SYSTEM_PROMPT}\n\n---\n\n${userPrompt}`;
+
+      const result = await executeGemini(fullPrompt, timeout);
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: result.success
+              ? (result.response ?? "")
+              : `Error: ${result.error}`,
+          },
+        ],
+        isError: !result.success,
+      };
+    }
+  );
+
+  // Register gemini_validate tool
+  server.registerTool(
+    "gemini_validate",
+    {
+      description:
+        "Get a second opinion from Gemini on a proposal, approach, or decision. " +
+        "Useful for independent validation from a different model.",
+      inputSchema: z.object({
+        proposal: z
+          .string()
+          .describe("The proposal, approach, or decision to validate"),
+        context: z.string().describe("Background context for the validation"),
+        criteria: z
+          .string()
+          .optional()
+          .describe("Specific criteria to validate against (optional)"),
+        timeout: z
+          .number()
+          .default(120000)
+          .describe("Timeout in milliseconds (default: 120000)"),
+      }),
+    },
+    async ({ proposal, context, criteria, timeout }) => {
+      const userPrompt = criteria
+        ? `Validate this proposal:\n\n${proposal}\n\nContext:\n${context}\n\nCriteria:\n${criteria}\n\nProvide an independent assessment considering potential issues, alternatives, and improvements.`
+        : `Validate this proposal:\n\n${proposal}\n\nContext:\n${context}\n\nProvide an independent assessment considering potential issues, alternatives, and improvements.`;
+      const fullPrompt = `${GEMINI_SYSTEM_PROMPT}\n\n---\n\n${userPrompt}`;
+
+      const result = await executeGemini(fullPrompt, timeout);
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: result.success
+              ? (result.response ?? "")
+              : `Error: ${result.error}`,
+          },
+        ],
+        isError: !result.success,
+      };
+    }
+  );
 
   // Start server
   const transport = new StdioServerTransport();
@@ -318,7 +256,7 @@ async function main() {
   console.error("Gemini Bridge MCP server running on stdio");
 }
 
-main().catch((error) => {
+main().catch((error: unknown) => {
   console.error("Fatal error:", error);
   process.exit(1);
 });

@@ -15,6 +15,8 @@ Different AI model = different perspective = catches blind spots. The team uses 
 
 ## Setup
 
+**All commands below run from workspace root unless specified otherwise.**
+
 ### 1. Install Dependencies
 
 ```bash

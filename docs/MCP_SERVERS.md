@@ -36,7 +36,7 @@ Servers are defined in `.vscode/mcp.json`:
     "memory": {
       "type": "stdio",
       "command": "node",
-      "args": ["${workspaceFolder}/memory-server/dist/index.js"],
+      "args": ["${workspaceFolder}/.collective/memory-server/dist/index.js"],
       "env": { "MEMORY_DB_PATH": "${workspaceFolder}/.mcp/collective_memory.duckdb" }
     },
     "gemini": {

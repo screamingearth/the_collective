@@ -42,13 +42,25 @@ const {
 
 const ROOT = path.resolve(__dirname, "..");
 const MEMORY_SERVER = path.join(ROOT, ".collective/memory-server");
+const GEMINI_BRIDGE = path.join(ROOT, ".collective/gemini-bridge");
 
 // Parse CLI arguments
 const args = process.argv.slice(2);
 const flags = {
   help: args.includes("--help") || args.includes("-h"),
   fix: args.includes("--fix") || args.includes("-f"),
+  version: args.includes("--version") || args.includes("-v"),
 };
+
+/**
+ * Show version and exit
+ */
+function showVersion() {
+  const pkgPath = path.join(ROOT, "package.json");
+  const pkg = JSON.parse(require("fs").readFileSync(pkgPath, "utf8"));
+  log(`${c.cyan}>the_collective${c.reset} validate tool ${c.dim}v${pkg.version}${c.reset}`);
+  process.exit(0);
+}
 
 /**
  * Show help and exit
@@ -77,6 +89,10 @@ function showHelp() {
 
   log(`\n${c.dim}Platform: ${process.platform} (${process.arch})${c.reset}\n`);
   process.exit(0);
+}
+
+if (flags.version) {
+  showVersion();
 }
 
 if (flags.help) {
@@ -173,7 +189,18 @@ function main() {
 
   // ESLint on memory-server
   step("ESLint (memory-server)", () => {
-    return npx(`eslint src/**/*.ts${fixFlag}`, { cwd: MEMORY_SERVER, ignoreError: true });
+    return npx(`eslint src/**/*.ts --ignore-pattern '*.test.ts'${fixFlag}`, { cwd: MEMORY_SERVER, ignoreError: true });
+  });
+
+  // TypeScript check on gemini-bridge
+  step("TypeScript (gemini-bridge)", () => {
+    const tscCmd = IS_WINDOWS ? "npx.cmd" : "npx";
+    return run(`${tscCmd} tsc --noEmit`, { cwd: GEMINI_BRIDGE, ignoreError: true });
+  });
+
+  // ESLint on gemini-bridge
+  step("ESLint (gemini-bridge)", () => {
+    return npx(`eslint src/**/*.ts --ignore-pattern '*.test.ts'${fixFlag}`, { cwd: GEMINI_BRIDGE, ignoreError: true });
   });
 
   // Summary

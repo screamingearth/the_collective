@@ -17,11 +17,7 @@ cd the_collective
 ```powershell
 git clone https://github.com/YOUR_USERNAME/the_collective.git
 cd the_collective
-.\setup.bat       # Recommended
-# OR
-.\setup.ps1       # Advanced (may require execution policy setup)
-# OR
-./setup.sh        # Git Bash/WSL only
+./setup.sh        # Run in Git Bash or WSL
 ```
 
 ## Making Changes
@@ -35,6 +31,17 @@ cd the_collective
 Restart VS Code after changes.
 
 ## Before You Push
+
+Run validation checks:
+
+```bash
+npm run check           # Health check all systems
+npm run validate        # ESLint + TypeScript
+
+# Test individual packages
+cd .collective/memory-server && npm test
+cd .collective/gemini-bridge && npm test
+```
 
 Double check `.gitignore` to avoid committing sensitive data. By default, the memory database and logs are ignored along with other commonly ignored files.
 

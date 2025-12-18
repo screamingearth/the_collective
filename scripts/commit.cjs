@@ -38,7 +38,9 @@
  *   --all, -a        Stage all changes before commit
  *   --dry-run        Preview what would happen without making changes
  *   --help, -h       Show this help
+ * 
  * ============================================================================
+ * 
  * This file is part of >the_collective.
  * Copyright (c) 2025 screamingearth.
  *
@@ -146,6 +148,7 @@ function escapeCommitMessage(msg) {
 const args = process.argv.slice(2);
 const flags = {
   help: args.includes("--help") || args.includes("-h"),
+  version: args.includes("--version") || args.includes("-v"),
   noCommit: args.includes("--no-commit"),
   noChangelog: args.includes("--no-changelog"),
   push: args.includes("--push") || args.includes("-p"),
@@ -154,13 +157,15 @@ const flags = {
   dryRun: args.includes("--dry-run"),
   breaking: args.includes("--breaking") || args.includes("-b"),
   generate: args.includes("--generate") || args.includes("-g"),
+  skipHooks: args.includes("--no-verify") || args.includes("--skip-hooks"),
 };
 
-// Extract --type value
+// Extract --type value and validate
 let changeType = null;
 const typeIndex = args.findIndex((a) => a === "--type" || a === "-t");
 if (typeIndex !== -1 && args[typeIndex + 1]) {
-  changeType = args[typeIndex + 1];
+  const requestedType = args[typeIndex + 1].toLowerCase();
+  changeType = requestedType;
 }
 
 // Extract --message value
@@ -204,16 +209,26 @@ const CHANGE_TYPES = {
     description: "A code change that improves performance",
   },
   test: { emoji: "✅", label: "Tests", description: "Adding or updating tests" },
+  build: {
+    emoji: "📦",
+    label: "Build",
+    description: "Changes to build system or dependencies",
+  },
+  ci: {
+    emoji: "🤖",
+    label: "CI/CD",
+    description: "Changes to CI/CD configuration",
+  },
   chore: {
     emoji: "🔧",
     label: "Chores",
-    description: "Changes to build process or auxiliary tools",
+    description: "Other changes that don't modify src or test files",
   },
   breaking: { emoji: "💥", label: "Breaking Changes", description: "A breaking change to the API" },
   security: { emoji: "🔒", label: "Security", description: "A security fix or improvement" },
 };
 
-function log(msg, color = "") {
+function log(msg = "", color = "") {
   console.log(color ? `${color}${msg}${colors.reset}` : msg);
 }
 
@@ -250,7 +265,7 @@ function showHelp() {
   drawBox(
     "Workflow Flags",
     [
-      "--type, -t <type>   Change type (feat, fix, docs, refactor, etc.)",
+      "--type, -t <type>   Change type (feat, fix, docs, build, ci, etc.)",
       "--scope, -s <name>  Set commit scope (e.g., api, ui)",
       "--breaking, -b      Mark this commit as breaking (adds !)",
       "--message, -m       Commit message (skips prompt)",
@@ -261,7 +276,9 @@ function showHelp() {
       "--push, -p          Push to remote after commit",
       "--amend             Amend last commit",
       "--all, -a           Stage all changes first",
+      "--no-verify         Skip pre-commit hooks (husky/lint-staged)",
       "--dry-run           Preview without changes",
+      "--version, -v       Show version",
     ],
     { color: colors.magenta },
   );
@@ -282,6 +299,17 @@ function showHelp() {
 
 if (flags.help) {
   showHelp();
+}
+
+if (flags.version) {
+  // Read version from package.json
+  try {
+    const pkg = require("../package.json");
+    log(`${colors.cyan}>the_collective${colors.reset} commit tool v${pkg.version}`);
+  } catch {
+    log(`${colors.cyan}>the_collective${colors.reset} commit tool`);
+  }
+  process.exit(0);
 }
 
 // Use shared Spinner from lib/ui
@@ -364,15 +392,25 @@ function stageFiles(files) {
 
 /**
  * Create a git commit
+ * @param {string} message - Commit message
+ * @param {boolean} amend - Whether to amend the last commit
+ * @param {boolean} skipHooks - Whether to skip pre-commit hooks (--no-verify)
+ * @returns {{ success: boolean, error?: string }}
  */
-function createCommit(message, amend = false) {
+function createCommit(message, amend = false, skipHooks = false) {
   try {
     const amendFlag = amend ? "--amend " : "";
+    const noVerifyFlag = skipHooks ? "--no-verify " : "";
     const escapedMsg = escapeCommitMessage(message);
-    execSync(`git commit ${amendFlag}-m "${escapedMsg}"`, { encoding: "utf8" });
-    return true;
-  } catch (_err) {
-    return false;
+    execSync(`git commit ${amendFlag}${noVerifyFlag}-m "${escapedMsg}"`, {
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"], // Capture stderr
+    });
+    return { success: true };
+  } catch (err) {
+    // Extract useful error message from git output
+    const stderr = err.stderr?.toString() || err.message || "Unknown error";
+    return { success: false, error: stderr.trim() };
   }
 }
 
@@ -625,10 +663,11 @@ function generateMessagesFromDiff(files, existingType = null) {
 
 /**
  * Parse conventional commit prefix from message
+ * Supports all standard conventional commit types including build and ci
  */
 function parseConventionalCommit(message) {
   const match = message.match(
-    /^(feat|fix|docs|refactor|perf|test|chore|breaking|security)(\(([^)]+)\))?(!)?:\s*/i,
+    /^(feat|fix|docs|refactor|perf|test|build|ci|chore|breaking|security)(\(([^)]+)\))?(!)?:\s*/i,
   );
   if (match) {
     return {
@@ -1036,6 +1075,19 @@ async function main() {
       // Interactive: prompt for type
       changeType = await promptChangeType(detectedType);
     }
+  } else if (!CHANGE_TYPES[changeType]) {
+    // Validate that the provided type is valid
+    logWarning(`"${changeType}" is not a recognized type.`);
+    const validTypes = Object.keys(CHANGE_TYPES).join(", ");
+    logInfo(`Valid types: ${validTypes}`);
+
+    // In interactive mode, reprompt; in non-interactive, exit
+    if (!flags.dryRun && !messageFromArgs) {
+      changeType = await promptChangeType(detectedType);
+    } else {
+      logError("Invalid type provided in non-interactive mode.");
+      process.exit(1);
+    }
   }
 
   const typeInfo = CHANGE_TYPES[changeType] || CHANGE_TYPES.chore;
@@ -1336,40 +1388,70 @@ async function main() {
   // ═══════════════════════════════════════════════════════════
   log("");
 
-  // Update changelog first (so it's included in the commit)
-  if (!flags.noChangelog) {
+  // ARCHITECTURE NOTE:
+  // We use a "commit-first, changelog-second" approach to handle husky/pre-commit hooks:
+  // 1. First commit the user's staged files (this triggers husky validation)
+  // 2. If commit succeeds → update changelog → amend commit to include it
+  // 3. If commit fails → nothing to clean up, changelog remains unchanged
+  // This prevents the changelog from being modified if hooks reject the commit.
+
+  let commitSucceeded = false;
+  let commitResult = { success: false, error: "" };
+
+  // Create initial commit (without changelog)
+  if (!flags.noCommit) {
+    const spinner = new Spinner(flags.amend ? "Amending commit..." : "Creating commit...");
+    spinner.start();
+
+    commitResult = createCommit(formattedCommitMessage, flags.amend, flags.skipHooks);
+
+    if (commitResult.success) {
+      const newCommit = getHeadCommit();
+      spinner.stop(true, `Committed: ${newCommit}`);
+      commitSucceeded = true;
+    } else {
+      spinner.stop(false, "Failed to create commit");
+      // Show the actual error from git/husky
+      if (commitResult.error) {
+        log(`\n${colors.dim}Git output:${colors.reset}`);
+        // Limit error output to avoid flooding terminal
+        const errorLines = commitResult.error.split("\n").slice(0, 15);
+        errorLines.forEach((line) => log(`   ${colors.red}${line}${colors.reset}`));
+        if (commitResult.error.split("\n").length > 15) {
+          log(`   ${colors.dim}... (truncated)${colors.reset}`);
+        }
+      }
+      log(`\n${colors.yellow}Tip:${colors.reset} Fix the issues above, or use ${colors.cyan}--no-verify${colors.reset} to skip hooks.`);
+      process.exit(1);
+    }
+  }
+
+  // Update changelog AFTER successful commit, then amend to include it
+  if (!flags.noChangelog && (commitSucceeded || flags.noCommit)) {
     const spinner = new Spinner("Updating changelog...");
     spinner.start();
 
     const entry = formatEntry(changeType, changelogMessage, files);
     appendToChangelog(entry);
 
-    // Stage the changelog
-    if (!flags.noCommit) {
+    // If we committed, amend to include the changelog (skip hooks on amend since we already passed)
+    if (commitSucceeded) {
       stageFiles([CHANGELOG_FILE]);
-    }
-
-    spinner.stop(true, `Updated ${CHANGELOG_FILE}`);
-  }
-
-  // Create commit
-  if (!flags.noCommit) {
-    const spinner = new Spinner(flags.amend ? "Amending commit..." : "Creating commit...");
-    spinner.start();
-
-    const success = createCommit(formattedCommitMessage, flags.amend);
-
-    if (success) {
-      const newCommit = getHeadCommit();
-      spinner.stop(true, `Committed: ${newCommit}`);
+      const amendResult = createCommit(formattedCommitMessage, true, true); // amend=true, skipHooks=true
+      if (!amendResult.success) {
+        spinner.stop(false, `Failed to include changelog in commit: ${amendResult.error}`);
+        logWarning("Changelog was updated but not included in the commit. Run 'git add CHANGELOG.md && git commit --amend' to fix.");
+      } else {
+        spinner.stop(true, `Updated ${CHANGELOG_FILE}`);
+      }
     } else {
-      spinner.stop(false, "Failed to create commit");
-      process.exit(1);
+      // No commit mode - just update changelog
+      spinner.stop(true, `Updated ${CHANGELOG_FILE}`);
     }
   }
 
   // Push if requested (via flag or interactive prompt)
-  if (shouldPush && !flags.noCommit) {
+  if (shouldPush && commitSucceeded) {
     const spinner = new Spinner(`Pushing to ${finalBranch}...`);
     spinner.start();
 

@@ -9,7 +9,7 @@
 Before you begin, ensure you have:
 - **VS Code 1.107+** (December 2025) // [Download](https://code.visualstudio.com/)
 - **GitHub Copilot** // Subscription with Chat access
-- **Disk Space:** ~500MB (for dependencies + vector database)
+- **Disk Space:** ~2GB (dependencies + vector database + ML models)
 - **RAM:** 4GB+ recommended
 
 ---
@@ -29,6 +29,8 @@ iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/main/b
 ```
 
 **After installation:** Restart VS Code, open the `the_collective` folder, and say "hey nyx" in Copilot Chat.
+
+> **Note:** The first conversation will download ~400MB of ML models for embeddings. This is normal and only happens once.
 
 ---
 
@@ -84,11 +86,11 @@ If the scripts fail entirely, follow these steps manually:
 **Windows:**
 1. Install [Node.js](https://nodejs.org/) (LTS).
 2. Install [Git for Windows](https://git-scm.com/download/win) (Select "Git Bash" during install).
-3. Open PowerShell:
-   ```powershell
+3. Open Git Bash:
+   ```bash
    git clone https://github.com/screamingearth/the_collective.git
    cd the_collective
-   .\setup.bat
+   ./setup.sh
    ```
 
 ---
@@ -102,6 +104,7 @@ When you open the workspace, VS Code will ask to run tasks:
 
 **Click "Allow" (or "Trust this folder").**
 *   **Why?** This "eager loads" the memory system so Copilot has context immediately when you start chatting.
+*   **First time?** The memory server will bootstrap 34 core memories automatically. This takes ~10-30 seconds and downloads ~400-500MB of ML models (one time only).
 *   **Disable it:** Delete the tasks from `.vscode/tasks.json` if you prefer manual startup.
 
 ### Gemini Tools (Optional)
@@ -132,8 +135,10 @@ npm run check -- --quick   # Fast validation
 |-------|----------|
 | **Database Locked** | Close all VS Code windows, wait 5s, reopen. |
 | **Bash Not Found (Win)** | Reinstall Git, ensure "Git Bash" is selected. |
-| **Build Failed** | Run `npm run clean`, then `./setup.sh` (or `.\\setup.bat`). |
+| **Build Failed** | Run `npm run clean`, then `./setup.sh`. |
 | **Reset Memory** | `npm run reset:memories -- --keep-core` |
+
+**See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for the complete troubleshooting guide.**
 
 ### Logs
 If you need to report a bug, check `.collective/.logs/`:

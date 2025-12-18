@@ -329,7 +329,7 @@ the_collective uses autonomous memory—agents decide when to remember without e
 # Full setup (first time)
 ./setup.sh
 
-# Test memory system
+# Test memory system (from workspace root)
 cd .collective/memory-server && npm run test
 
 # Bootstrap fresh memories

@@ -58,11 +58,13 @@ function main() {
 
   section("💻 Development Workflow");
   command("commit", "Smart commit tool with changelog integration", [
-    { flag: "-t, --type <type>", desc: "Change type (feat, fix, docs, etc.)" },
+    { flag: "-t, --type <type>", desc: "Change type (feat, fix, docs, build, ci, chore, refactor, perf, test, breaking, security)" },
     { flag: "-m, --message <msg>", desc: "Commit message" },
     { flag: "-g, --generate", desc: "Auto-generate messages from diff" },
     { flag: "-p, --push", desc: "Auto-push after commit" },
+    { flag: "--no-verify", desc: "Skip pre-commit hooks" },
     { flag: "--dry-run", desc: "Preview without making changes" },
+    { flag: "-v, --version", desc: "Show version" },
   ]);
 
   section("🔍 Validation & Testing");

@@ -9,8 +9,9 @@
 # Set error action to stop on error
 $ErrorActionPreference = "Stop"
 
-# Define Logging
-$LogFile = "$env:TEMP\the_collective_install.log"
+# Define Logging (cross-platform temp path)
+$TempPath = if ($env:TEMP) { $env:TEMP } else { [System.IO.Path]::GetTempPath() }
+$LogFile = Join-Path $TempPath "the_collective_install.log"
 function Log-Message {
     param([string]$Message, [string]$Color = "Cyan")
     $TimeStamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
@@ -43,25 +44,50 @@ try {
     Log-Message "Starting installation for Windows..."
     Log-Message "Log file: $LogFile"
     
+    # Check if running as Administrator (Windows-only check)
+    if ($IsWindows -or $PSVersionTable.PSEdition -eq 'Desktop') {
+        $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        if (-not $isAdmin) {
+            Log-Message "Running as standard user (some installations may require admin rights)" "Yellow"
+        }
+    } else {
+        Log-Message "Running on non-Windows platform (testing mode)" "Yellow"
+    }
+    
     # Check for Git & Install if missing
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
         Log-Message "Git not found. Installing Git via winget..."
         
         # Verify winget exists (standard on Windows 10 1709+, Windows 11)
         if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-            Log-Error "winget not found. Please install Git manually from: https://git-scm.com/download/win"
-            Log-Error "Or install winget (App Installer) from Microsoft Store"
+            Log-Error "winget not found."
+            Log-Message ""
+            Log-Message "To get winget (Windows Package Manager):" "Yellow"
+            Log-Message "  1. Open Microsoft Store" "Yellow"
+            Log-Message "  2. Search for 'App Installer'" "Yellow"
+            Log-Message "  3. Install or Update it" "Yellow"
+            Log-Message ""
+            Log-Message "Or download directly:" "Yellow"
+            Log-Message "  https://aka.ms/getwinget" "Yellow"
+            Log-Message ""
+            Log-Message "Alternative: Install Git manually from:" "Yellow"
+            Log-Message "  https://git-scm.com/download/win" "Yellow"
             Pause
             exit 1
         }
         
         # Install Git
         try {
+            Log-Message "Installing Git (this may take a minute)..."
             winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements --silent | Out-Null
             Log-Success "Git installed successfully"
         } catch {
             Log-Error "Failed to install Git via winget"
-            Log-Message "Please install Git manually: https://git-scm.com/download/win"
+            Log-Message ""
+            Log-Message "Manual installation options:" "Yellow"
+            Log-Message "  1. Download from: https://git-scm.com/download/win" "Yellow"
+            Log-Message "  2. Run the installer with default options" "Yellow"
+            Log-Message "  3. Restart this script" "Yellow"
             Pause
             exit 1
         }
@@ -69,9 +95,31 @@ try {
         # Refresh environment variables to access git immediately
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
         
+        # Also check common Git installation paths
+        $gitPaths = @(
+            "C:\Program Files\Git\cmd",
+            "C:\Program Files\Git\bin",
+            "C:\Program Files (x86)\Git\cmd",
+            "$env:LOCALAPPDATA\Programs\Git\cmd"
+        )
+        foreach ($p in $gitPaths) {
+            if ((Test-Path $p) -and ($env:Path -notlike "*$p*")) {
+                $env:Path = "$p;$env:Path"
+            }
+        }
+        
         # Verify git is now accessible
         if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-            Log-Error "Git installed but not found in PATH. Please restart your terminal."
+            Log-Error "Git installed but not found in PATH"
+            Log-Message ""
+            Log-Message "Please try one of these:" "Yellow"
+            Log-Message "  1. Close this window and open a NEW PowerShell/Terminal" "Yellow"
+            Log-Message "  2. Run this command again in the new terminal" "Yellow"
+            Log-Message ""
+            Log-Message "If that doesn't work:" "Yellow"
+            Log-Message "  1. Open Git Bash (search for 'Git Bash' in Start menu)" "Yellow"
+            Log-Message "  2. Run: cd ~ && git clone https://github.com/screamingearth/the_collective.git" "Yellow"
+            Log-Message "  3. Run: cd the_collective && ./setup.sh" "Yellow"
             Pause
             exit 1
         }
@@ -86,13 +134,19 @@ try {
         Log-Success "Node.js already installed: $(node --version)"
     }
     
-    # Determine installation directory
-    $InstallDir = "$HOME\the_collective"
+    # Determine installation directory (cross-platform)
+    $InstallDir = Join-Path $HOME "the_collective"
     
     # Clone or Update Repository
     if (Test-Path $InstallDir) {
         Log-Message "Repository directory exists. Pulling latest changes..."
-        Set-Location $InstallDir
+        try {
+            Set-Location $InstallDir -ErrorAction Stop
+        } catch {
+            Log-Error "Failed to change to directory: $InstallDir"
+            Pause
+            exit 1
+        }
         
         try {
             git pull origin main
@@ -106,7 +160,13 @@ try {
         
         try {
             git clone --depth 1 https://github.com/screamingearth/the_collective.git $InstallDir
-            Set-Location $InstallDir
+            try {
+                Set-Location $InstallDir -ErrorAction Stop
+            } catch {
+                Log-Error "Failed to change to directory: $InstallDir"
+                Pause
+                exit 1
+            }
             Log-Success "Repository cloned successfully"
         } catch {
             Log-Error "Failed to clone repository"
@@ -123,14 +183,51 @@ try {
     Log-Message ""
     
     # Run setup.sh via Git Bash (which we just installed)
-    if (Test-Path ".\setup.sh") {
-        # Git Bash should now be in PATH after installation
+    if (Test-Path "./setup.sh") {
+        # Try to find bash in PATH or common locations
+        $bashPath = $null
+        
         if (Get-Command bash -ErrorAction SilentlyContinue) {
-            bash .\setup.sh
+            $bashPath = "bash"
         } else {
-            Log-Error "Git Bash not found in PATH after Git installation"
-            Log-Message "Please restart your terminal and run: bash setup.sh"
-            Log-Message "Or open Git Bash and run: ./setup.sh"
+            # Check common Git Bash locations (Windows-specific)
+            $bashLocations = @(
+                "C:\Program Files\Git\bin\bash.exe",
+                "C:\Program Files (x86)\Git\bin\bash.exe",
+                "$env:LOCALAPPDATA\Programs\Git\bin\bash.exe",
+                "C:\Program Files\Git\usr\bin\bash.exe"
+            )
+            foreach ($loc in $bashLocations) {
+                if (Test-Path $loc) {
+                    $bashPath = $loc
+                    break
+                }
+            }
+        }
+        
+        if ($bashPath) {
+            & $bashPath ./setup.sh
+            if ($LASTEXITCODE -ne 0) {
+                Log-Error "Setup script failed with exit code: $LASTEXITCODE"
+                throw "Setup failed"
+            }
+        } else {
+            Log-Error "Git Bash (bash.exe) not found"
+            Log-Message ""
+            Log-Message "The setup script requires Git Bash to run." "Yellow"
+            Log-Message ""
+            Log-Message "Please try one of these options:" "Yellow"
+            Log-Message ""
+            Log-Message "Option 1: Use Git Bash directly" "Cyan"
+            Log-Message "  1. Open Git Bash (search 'Git Bash' in Start menu)"
+            Log-Message "  2. Run: cd ~/the_collective"
+            Log-Message "  3. Run: ./setup.sh"
+            Log-Message ""
+            Log-Message "Option 2: Restart and retry" "Cyan"
+            Log-Message "  1. Close this window"
+            Log-Message "  2. Open a new PowerShell window"
+            Log-Message "  3. Run: cd $InstallDir; bash .\setup.sh"
+            Log-Message ""
             Pause
             exit 1
         }

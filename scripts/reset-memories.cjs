@@ -40,7 +40,7 @@ const {
 
 const ROOT = path.resolve(__dirname, "..");
 const MCP_DIR = path.join(ROOT, ".mcp");
-const DB_PATH = path.join(MCP_DIR, "memories.db");
+const DB_PATH = path.join(MCP_DIR, "collective_memory.duckdb");
 const MEMORY_SERVER = path.join(ROOT, ".collective/memory-server");
 
 // Parse CLI arguments
@@ -69,8 +69,7 @@ ${c.bold}Options:${c.reset}
   -h, --help       Show this help message
 
 ${c.bold}What this does:${c.reset}
-  1. Deletes the memory database (.mcp/memories.db)
-  2. Optionally re-bootstraps core framework memories
+  1. Deletes the memory database (.mcp/collective_memory.duckdb)
 
 ${c.bold}When to use:${c.reset}
   - Preparing framework for public release/distribution
