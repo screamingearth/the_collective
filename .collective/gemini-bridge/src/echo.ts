@@ -142,8 +142,8 @@ export class Echo {
         const json = parseJsonResponse(result.stdout);
         return {
           success: true,
-          response: json?.response || result.stdout,
-          json: json || undefined,
+          response: json?.response ?? result.stdout,
+          json: json ?? undefined,
           exitCode: result.exitCode,
           executionTime,
         };
@@ -187,7 +187,7 @@ export class Echo {
       outputFormat: "text",
     });
 
-    return result.success ? (result.response || "") : `Error: ${result.error}`;
+    return result.success ? (result.response ?? "") : `Error: ${result.error}`;
   }
 
   /**
@@ -204,7 +204,7 @@ export class Echo {
       outputFormat: "text",
     });
 
-    return result.success ? (result.response || "") : `Error: ${result.error}`;
+    return result.success ? (result.response ?? "") : `Error: ${result.error}`;
   }
 
   /**
@@ -236,7 +236,7 @@ As Echo, provide your independent analysis. Do you see any issues, alternatives,
       outputFormat: "text",
     });
 
-    return result.success ? (result.response || "") : `Error: ${result.error}`;
+    return result.success ? (result.response ?? "") : `Error: ${result.error}`;
   }
 }
 
