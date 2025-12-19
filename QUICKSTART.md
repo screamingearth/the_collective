@@ -8,9 +8,8 @@
 
 Before you begin, ensure you have:
 - **VS Code 1.107+** (December 2025) // [Download](https://code.visualstudio.com/)
-- **GitHub Copilot** // Subscription with Chat access
+- **GitHub Copilot** // Chat access with free or paid plan
 - **Node.js v20 or v22 (LTS)** // [Download](https://nodejs.org/) (Avoid v23, v25)
-- **Python 3.10+** // Required for native modules (Windows)
 - **Disk Space:** ~2GB (dependencies + vector database + ML models)
 - **RAM:** 4GB+ recommended
 
@@ -18,7 +17,7 @@ Before you begin, ensure you have:
 
 ## 🚀 One-Line Install (Recommended)
 
-**What it does:** Installs Git, Node.js, and Python (if missing), clones the repo, and builds the memory server.
+**What it does:** Installs Git, Node.js, and VS Code (if missing), clones the repo, builds the memory server, and launches VS Code.
 
 ### 🍎 macOS / Linux / WSL
 ```bash
@@ -37,7 +36,6 @@ iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/main/b
 Once opened, say "hey nyx" in Copilot Chat.
 
 > **Note:** The first conversation will download ~400MB of ML models for embeddings. This is normal and only happens once.
-> **Windows Users:** The bootstrapper will attempt to install **Visual Studio C++ Build Tools** if missing. This takes ~5-15 minutes and is required for the local memory database.
 
 ---
 
@@ -100,8 +98,7 @@ If the scripts fail entirely, follow these steps manually:
 **Windows:**
 1. Install [Node.js](https://nodejs.org/) (LTS).
 2. Install [Git for Windows](https://git-scm.com/download/win) (Select "Git Bash" during install).
-3. Install [Visual Studio Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022) (Select "Desktop development with C++").
-4. Open Git Bash:
+3. Open Git Bash:
    ```bash
    # Navigate to Documents
    cd ~/Documents
@@ -142,8 +139,8 @@ npm run build
 ```
 See [docs/GEMINI_BRIDGE.md](docs/GEMINI_BRIDGE.md) for details.
 
-### Docker Deployment (Optional)
-To run Memory and Gemini servers in Docker containers:
+### Docker Deployment (Default)
+Memory and Gemini servers run in Docker containers by default for better performance and reliability.
 
 ```bash
 # First, authenticate Gemini if you want to use Gemini tools
@@ -190,8 +187,8 @@ npm run check -- --quick   # Fast validation
 |-------|----------|
 | **MCP Servers Not Loading** | Go to the **Extensions** window (`Ctrl+Shift+X`), click the **cog icon** on each MCP server under "MCP Servers - Installed". Ensure they are running; start them manually if not. |
 | **Database Locked (EBUSY)** | Close all VS Code windows, run `taskkill /F /IM node.exe` (Win), wait 5s, reopen. |
-| **Python Not Found** | Run `winget install Python.Python.3` (Win) or `brew install python3` (Mac). |
-| **Node Version Error** | Use Node v22 (LTS). Avoid v23/v25 for native module stability. |
+| **Docker Not Running** | Start Docker (or Docker Desktop on Windows/Mac). Ensure containers are running via VS Code Docker extension. |
+| **Node Version Error** | Use Node v20 or v22 (LTS). Avoid v23/v25 for native module stability. |
 | **Bash Not Found (Win)** | Reinstall Git, ensure "Git Bash" is selected. |
 | **Build Failed** | Run `npm run clean`, then `./setup.sh`. |
 | **Reset Memory** | `npm run reset:memories -- --keep-core` |

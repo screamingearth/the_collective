@@ -373,16 +373,9 @@ check_build_tools() {
     local install_cmd=""
     
     if [[ "$IS_WINDOWS" -eq 1 ]]; then
-        # Windows: check for build tools (harder to detect reliably)
-        # node-gyp needs either VS Build Tools or windows-build-tools
-        if ! command -v cl &> /dev/null 2>&1; then
-            # cl.exe not in PATH - warn but don't block (might still work via VS env)
-            warn "Visual Studio C++ compiler (cl.exe) not found in PATH"
-            warn "If native module compilation fails, install Visual Studio Build Tools:"
-            info "  https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022"
-            info "  Select 'Desktop development with C++' workload"
-            echo ""
-        fi
+        # Windows: Native modules (DuckDB) use prebuilt binaries for Node.js LTS
+        # No build tools required unless using unsupported Node.js versions
+        success "Windows detected - using prebuilt binaries"
     elif [[ "$OS" == "macos" ]]; then
         # macOS: Xcode Command Line Tools is CRITICAL
         if ! xcode-select -p &> /dev/null 2>&1; then
@@ -866,27 +859,26 @@ install_dependencies() {
         warn "npm rebuild encountered issues - this often means missing build tools"
         echo ""
         error "═══════════════════════════════════════════════════════════"
-        error "Native module compilation failed"
+        error "Native module installation failed"
         error "═══════════════════════════════════════════════════════════"
         echo ""
         
         if [[ "$IS_WINDOWS" -eq 1 ]]; then
-            error "WINDOWS: You need Visual Studio C++ Build Tools"
+            error "WINDOWS: Prebuilt binaries failed to install"
             echo ""
-            info "Installation steps:"
-            info "1. Download Visual Studio Build Tools (free):"
-            info "   https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022"
+            info "This usually means you're using an unsupported Node.js version."
+            info "DuckDB only provides prebuilt binaries for Node.js LTS (v20, v22)."
             echo ""
-            info "2. Run the installer and select:"
-            info "   ✓ Desktop development with C++"
+            info "Check your Node.js version:"
+            info "  node -v"
             echo ""
-            info "3. Complete installation (~5-10 minutes)"
+            info "If using Node.js v23+, install v22 LTS instead:"
+            info "  winget install --id OpenJS.NodeJS.LTS"
             echo ""
-            info "4. Restart this setup script:"
-            info "   bash ./setup.sh"
+            info "Then retry: ./setup.sh"
             echo ""
         else
-            error "Unix/Mac: Missing build tools required for DuckDB"
+            error "Unix/Mac: Prebuilt binaries failed to install"
             echo ""
             if [[ "$OS" == "macos" ]]; then
                 info "Install Xcode Command Line Tools:"
@@ -977,15 +969,16 @@ bootstrap_memories() {
         echo ""
         
         if [[ "$IS_WINDOWS" -eq 1 ]]; then
-            error "WINDOWS: Your C++ build tools are not installed"
+            error "WINDOWS: Prebuilt binary not found for your Node.js version"
             echo ""
-            error "Quick fix:"
-            error "1. Download: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022"
-            error "2. Select: 'Desktop development with C++'"
-            error "3. Install and restart this script"
+            info "Ensure you're using Node.js LTS (v20 or v22):"
+            info "  node -v"
+            echo ""
+            info "If using an unsupported version, install LTS:"
+            info "  winget install --id OpenJS.NodeJS.LTS"
             echo ""
         else
-            error "UNIX/MAC: Your build tools are incomplete"
+            error "UNIX/MAC: Prebuilt binary not found"
             echo ""
             if [[ "$OS" == "macos" ]]; then
                 error "Run: xcode-select --install"

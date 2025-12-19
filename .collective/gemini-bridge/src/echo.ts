@@ -87,7 +87,7 @@ export class Echo {
   /**
    * Check if Echo is ready (gemini-cli installed and authenticated)
    */
-  async status(): Promise<EchoStatus> {
+  status(): EchoStatus {
     return checkAuthStatus();
   }
 

@@ -46,19 +46,23 @@ Common issues and solutions when installing or running >the_collective.
    & "C:\Program Files\Git\bin\bash.exe" .\setup.sh
    ```
 
-#### Native module compilation fails
+#### Native module installation fails
 
-**Cause:** Visual Studio Build Tools are not installed or misconfigured.
+**Cause:** Network issues or unsupported Node.js version.
 
 **Solutions:**
 
-1. **Run the bootstrapper again:** The `bootstrapper_win.ps1` script now attempts to install these automatically using `winget`.
+1. **Use Node.js LTS (v20 or v22):** Prebuilt binaries are only available for LTS versions.
+   ```bash
+   node -v  # Should show v20.x or v22.x
+   ```
 
-2. **Manual Install:**
-   - Download from [Visual Studio Downloads](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022)
-   - Run installer
-   - Select "Desktop development with C++" workload
-   - Restart terminal and retry
+2. **Clear npm cache and retry:**
+   ```bash
+   npm cache clean --force
+   rm -rf node_modules .collective/*/node_modules
+   ./setup.sh
+   ```
 
 3. **Check for errors in setup.log:**
    ```bash

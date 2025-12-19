@@ -185,46 +185,13 @@ function checkEnvironment() {
   if (majorVersion >= 20 && majorVersion <= 22) {
     success(`Node.js ${nodeVersion} (LTS)`);
   } else if (majorVersion > 22) {
-    warn(`Node.js ${nodeVersion} (Current)`, "Native modules (DuckDB) may fail to compile. Recommended: v22 (LTS)");
+    warn(`Node.js ${nodeVersion} (Current)`, "Prebuilt binaries (DuckDB) may not be available. Recommended: v22 (LTS)");
   } else {
     error(`Node.js ${nodeVersion} (Unsupported)`, "Minimum required: v20. Recommended: v22 (LTS)");
   }
 
-  // Python Version (required for node-gyp)
-  let pythonVersion = "";
-  try {
-    const p3 = spawnSync("python3", ["--version"], { encoding: "utf8" });
-    if (p3.status === 0) pythonVersion = p3.stdout.trim();
-  } catch (e) { }
-
-  if (!pythonVersion) {
-    try {
-      const p = spawnSync("python", ["--version"], { encoding: "utf8" });
-      if (p.status === 0) pythonVersion = p.stdout.trim();
-    } catch (e) { }
-  }
-
-  if (pythonVersion) {
-    success(pythonVersion);
-  } else {
-    error("Python not found", "Required for native module compilation (node-gyp)");
-  }
-
-  // Windows Build Tools
-  if (process.platform === "win32") {
-    const vsToolsLocations = [
-      "C:\\Program Files\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC",
-      "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC",
-      "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC",
-      "C:\\Program Files\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC",
-    ];
-    const found = vsToolsLocations.some((loc) => fs.existsSync(loc));
-    if (found) {
-      success("Visual Studio Build Tools detected");
-    } else {
-      warn("Visual Studio Build Tools not detected", "Required if native binaries fail to install");
-    }
-  }
+  // Note: Python and VS Build Tools are no longer required
+  // DuckDB and other native modules ship prebuilt binaries for Node.js LTS versions
 }
 
 function checkDirectories() {

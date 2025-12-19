@@ -42,7 +42,7 @@ function getApiKey(): string | null {
   if (existsSync(envPath)) {
     try {
       const content = readFileSync(envPath, "utf-8");
-      const match = content.match(/^GEMINI_API_KEY=(.+)$/m);
+      const match = /^GEMINI_API_KEY=(.+)$/m.exec(content);
       if (match?.[1]?.trim()) {
         return match[1].trim();
       }
@@ -215,7 +215,9 @@ function spawnGemini(
     });
 
     proc.on("close", (code: number | null) => {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
 
       if (timedOut) {
         reject(new Error(`Gemini CLI timed out after ${options.timeout}ms`));
@@ -226,7 +228,9 @@ function spawnGemini(
     });
 
     proc.on("error", (err: Error) => {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       reject(err);
     });
   });
@@ -286,7 +290,7 @@ async function executeViaSubprocess(
  */
 export async function executeGeminiQuery(
   prompt: string,
-  timeout: number = 120000
+  timeout = 120000
 ): Promise<{ success: boolean; response?: string; error?: string }> {
   // Try API key first (fast path)
   const apiKey = getApiKey();

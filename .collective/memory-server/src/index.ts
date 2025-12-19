@@ -390,7 +390,7 @@ async function main(): Promise<void> {
       try {
         await transport.handleRequest(req, res, req.body);
       } catch (error) {
-        logger.error(`Error handling MCP request: ${error}`);
+        logger.error(`Error handling MCP request: ${String(error)}`);
         if (!res.headersSent) {
           res.status(500).json({ error: "Internal server error" });
         }
@@ -418,15 +418,19 @@ async function main(): Promise<void> {
         await transport.close();
         logger.info("MCP transport closed");
       } catch (err) {
-        logger.error(`Error closing transport: ${err}`);
+        logger.error(`Error closing transport: ${String(err)}`);
       }
 
       logger.info("Graceful shutdown complete");
       process.exit(0);
     }
 
-    process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-    process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+    process.on("SIGTERM", () => {
+      void gracefulShutdown("SIGTERM");
+    });
+    process.on("SIGINT", () => {
+      void gracefulShutdown("SIGINT");
+    });
 
     // Prevent crash on unhandled errors - keep server running indefinitely
     process.on("uncaughtException", (error: Error) => {

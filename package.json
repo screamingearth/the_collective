@@ -56,11 +56,11 @@
   "lint-staged": {
     ".collective/memory-server/src/**/*.ts": [
       "eslint --fix --ignore-pattern '*.test.ts'",
-      "bash -c 'cd .collective/memory-server && npx tsc --noEmit'"
+      "node scripts/lint-tsc.cjs"
     ],
     ".collective/gemini-bridge/src/**/*.ts": [
       "eslint --fix --ignore-pattern '*.test.ts'",
-      "bash -c 'cd .collective/gemini-bridge && npx tsc --noEmit'"
+      "node scripts/lint-tsc.cjs"
     ]
   }
 }

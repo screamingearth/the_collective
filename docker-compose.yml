@@ -37,9 +37,13 @@ services:
       - "3101:3101"
     volumes:
       # Mount gemini CLI OAuth directory (google_accounts.json, etc.)
-      # For OAuth: Run 'npm run auth' before 'docker compose up'
+      # For OAuth: Run 'npm run auth' in .collective/gemini-bridge before 'docker compose up'
       # For API key: Set GEMINI_API_KEY env var (faster, recommended)
-      - ${HOME}/.gemini:/root/.gemini:ro
+      #
+      # Cross-platform path handling:
+      # - Linux/macOS: ${HOME}/.gemini maps correctly
+      # - Windows: ${USERPROFILE}/.gemini (set GEMINI_HOME env var if issues)
+      - ${GEMINI_HOME:-${HOME:-${USERPROFILE}}}/.gemini:/root/.gemini:ro
     environment:
       - NODE_ENV=production
       - MCP_TRANSPORT=sse

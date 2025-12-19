@@ -4,7 +4,7 @@
     {
       "label": "Start Docker Containers",
       "type": "shell",
-      "command": "docker compose up -d --build && echo 'Waiting for servers to be ready...' && sleep 8 && curl -s http://localhost:3100/health http://localhost:3101/health > /dev/null && echo 'MCP servers ready!'",
+      "command": "docker compose up -d --build && node -e \"console.log('Waiting for servers...'); setTimeout(() => { const http = require('http'); let done = 0; ['3100','3101'].forEach(p => http.get('http://localhost:'+p+'/health', r => { if(++done === 2) console.log('MCP servers ready!'); }).on('error', () => console.log('Port '+p+' not ready'))); }, 8000)\"",
       "presentation": {
         "reveal": "silent",
         "panel": "shared",
@@ -28,7 +28,7 @@
     {
       "label": "Switch to Docker Mode",
       "type": "shell",
-      "command": "cp .vscode/mcp.docker.json .vscode/mcp.json && echo 'Switched to Docker mode. Please reload VS Code.'",
+      "command": "node -e \"require('fs').copyFileSync('.vscode/mcp.docker.json', '.vscode/mcp.json'); console.log('Switched to Docker mode. Please reload VS Code.')\"",
       "presentation": {
         "reveal": "always",
         "panel": "shared"
@@ -38,7 +38,7 @@
     {
       "label": "Switch to stdio Mode",
       "type": "shell",
-      "command": "cp .vscode/mcp.stdio.json .vscode/mcp.json && echo 'Switched to stdio mode. Please reload VS Code.'",
+      "command": "node -e \"require('fs').copyFileSync('.vscode/mcp.stdio.json', '.vscode/mcp.json'); console.log('Switched to stdio mode. Please reload VS Code.')\"",
       "presentation": {
         "reveal": "always",
         "panel": "shared"
@@ -213,7 +213,7 @@
     {
       "label": "Full Setup (Fresh Clone)",
       "type": "shell",
-      "command": "./setup.sh",
+      "command": "node -e \"const {platform} = require('os'); const {execSync, spawnSync} = require('child_process'); const fs = require('fs'); if(platform() === 'win32') { const gitBash = ['C:/Program Files/Git/bin/bash.exe', 'C:/Program Files (x86)/Git/bin/bash.exe'].find(p => fs.existsSync(p)); if(gitBash) { spawnSync(gitBash, ['-c', './setup.sh'], {stdio:'inherit'}); } else { console.error('Git Bash not found. Install Git for Windows first.'); process.exit(1); } } else { execSync('bash setup.sh', {stdio:'inherit'}); }\"",
       "problemMatcher": [
         "$tsc"
       ],

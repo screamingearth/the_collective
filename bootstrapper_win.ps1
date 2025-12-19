@@ -9,10 +9,9 @@
 # Set error action to stop on error
 $ErrorActionPreference = "Stop"
 
-# Define Logging (cross-platform temp path)
+# Define Logging
 $LogFile = Join-Path ([System.IO.Path]::GetTempPath()) "the_collective_install.log"
 if ($env:USERPROFILE) {
-    # Try to put it in the user's home directory for better visibility
     $LogFile = Join-Path $env:USERPROFILE ".collective_install.log"
 }
 
@@ -39,6 +38,27 @@ function Refresh-Path {
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 }
 
+function Test-Winget {
+    return (Get-Command winget -ErrorAction SilentlyContinue) -ne $null
+}
+
+function Require-Winget {
+    if (-not (Test-Winget)) {
+        Log-Error "winget not found."
+        Log-Message ""
+        Log-Message "To get winget (Windows Package Manager):" "Yellow"
+        Log-Message "  1. Open Microsoft Store" "Yellow"
+        Log-Message "  2. Search for 'App Installer'" "Yellow"
+        Log-Message "  3. Install or Update it" "Yellow"
+        Log-Message ""
+        Log-Message "Or download directly:" "Yellow"
+        Log-Message "  https://aka.ms/getwinget" "Yellow"
+        Log-Message ""
+        Pause
+        exit 1
+    }
+}
+
 # Banner
 Write-Host ""
 Write-Host "   ▀█▀ █ █ █▀▀" -ForegroundColor Cyan
@@ -53,368 +73,172 @@ try {
     Log-Message "Starting installation for Windows..."
     Log-Message "Log file: $LogFile"
     
-    # Check if running as Administrator (Windows-only check)
+    # Check if running as Administrator
     $isAdmin = $false
     if ($IsWindows -or $PSVersionTable.PSEdition -eq 'Desktop') {
         $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
         if (-not $isAdmin) {
-            Log-Message "Running as standard user (some installations may require admin rights)" "Yellow"
-        }
-    } else {
-        Log-Message "Running on non-Windows platform (testing mode)" "Yellow"
-    }
-    
-    # Helper function: Check if Visual Studio Build Tools are installed
-    function Test-VisualStudioBuildTools {
-        # Check for cl.exe (MSVC compiler) in common locations
-        $vsToolsLocations = @(
-            "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC",
-            "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC",
-            "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC",
-            "C:\Program Files\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC"
-        )
-        
-        foreach ($location in $vsToolsLocations) {
-            if (Test-Path $location) {
-                return $true
-            }
-        }
-        
-        # Also check if cl.exe is in PATH
-        if (Get-Command cl.exe -ErrorAction SilentlyContinue) {
-            return $true
-        }
-        
-        return $false
-    }
-    
-    # Helper function: Install Visual Studio Build Tools with elevation if needed
-    function Install-VisualStudioBuildTools {
-        Log-Message ""
-        Log-Message "Checking for Visual Studio C++ Build Tools..." "Cyan"
-        
-        if (Test-VisualStudioBuildTools) {
-            Log-Success "Visual Studio C++ Build Tools already installed"
-            return $true
-        }
-        
-        Log-Message "Visual Studio Build Tools not detected" "Yellow"
-        Log-Message ""
-        
-        if (-not $isAdmin) {
-            Log-Message "Admin privileges required to install build tools" "Yellow"
-            Log-Message "Requesting elevation..." "Yellow"
-            Log-Message ""
-            
-            # Create a flag file to prevent elevation loops
-            $elevationFlag = Join-Path $env:TEMP "vs_build_tools_elevation_attempt.flag"
-            if (Test-Path $elevationFlag) {
-                # Already tried elevation once, don't loop
-                $attemptCount = [int](Get-Content $elevationFlag -ErrorAction SilentlyContinue)
-                if ($attemptCount -ge 2) {
-                    Log-Error "Elevation attempt already tried 2 times. Giving up to prevent loop."
-                    Log-Message "Please manually install Visual Studio Build Tools." "Yellow"
-                    return $false
-                }
-                $attemptCount++
-            } else {
-                $attemptCount = 1
-            }
-            Set-Content -Path $elevationFlag -Value $attemptCount
-            
-            # Re-run this script with admin privileges
-            $params = @{
-                'FilePath' = 'powershell.exe'
-                'ArgumentList' = @(
-                    '-NoProfile',
-                    '-ExecutionPolicy', 'Bypass',
-                    '-Command', "& {Set-Location '$PWD'; & '$PSCommandPath'}"
-                )
-                'Verb' = 'RunAs'
-                'Wait' = $true
-            }
-            
-            try {
-                Start-Process @params
-                $elevationExitCode = $LASTEXITCODE
-                # Clean up flag after successful elevation
-                if ($elevationExitCode -eq 0) {
-                    Remove-Item $elevationFlag -ErrorAction SilentlyContinue
-                }
-                # After elevation completes, exit this process
-                exit 0
-            } catch {
-                Log-Error "Failed to request elevation: $_"
-                Log-Message "Please run PowerShell as Administrator and try again" "Yellow"
-                Remove-Item $elevationFlag -ErrorAction SilentlyContinue
-                return $false
-            }
-        }
-        
-        # If we get here, we're running as admin
-        Log-Success "Running with admin privileges - installing build tools"
-        Log-Message ""
-        Log-Message "Downloading and installing Visual Studio Build Tools..." "Cyan"
-        Log-Message "This will take 5-10 minutes. Please wait..." "Cyan"
-        Log-Message ""
-        
-        try {
-            # Try winget first (cleaner, no need for manual command)
-            if (Get-Command winget -ErrorAction SilentlyContinue) {
-                Log-Message "Using winget to install Visual Studio Build Tools..."
-                # The --no-upgrade flag prevents updating existing versions
-                winget install --id Microsoft.VisualStudio.2022.BuildTools `
-                    --accept-package-agreements `
-                    --accept-source-agreements `
-                    --silent `
-                    --override "--passive --wait" 2>&1 | ForEach-Object { Log-Message $_ "Gray" }
-                
-                if ($LASTEXITCODE -eq 0) {
-                    Log-Success "Visual Studio Build Tools installed via winget"
-                    return $true
-                } else {
-                    Log-Message "winget install had issues, trying direct download..." "Yellow"
-                }
-            }
-            
-            # Fallback: Direct download and install
-            Log-Message "Downloading Visual Studio Build Tools installer..." "Cyan"
-            $installerUrl = "https://aka.ms/vs/17/release/vs_buildtools.exe"
-            $installerPath = Join-Path $env:TEMP "vs_buildtools.exe"
-            
-            # Download with progress
-            $ProgressPreference = 'SilentlyContinue'  # Suppress progress bar for cleaner logs
-            Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -ErrorAction Stop
-            Log-Success "Downloaded Visual Studio Build Tools installer"
-            
-            # Install with C++ workload
-            Log-Message "Running installer with C++ workload..." "Cyan"
-            $setupArgs = @(
-                "--quiet",
-                "--wait",
-                "--add Microsoft.VisualStudio.Workload.VCTools",
-                "--add Microsoft.VisualStudio.Component.VC.CMake.Project"
-            )
-            
-            & $installerPath $setupArgs
-            
-            if ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq 3010) {  # 3010 = restart required
-                Log-Success "Visual Studio Build Tools installed successfully"
-                
-                # Clean up installer
-                Remove-Item $installerPath -ErrorAction SilentlyContinue
-                
-                # If restart required, ask user
-                if ($LASTEXITCODE -eq 3010) {
-                    Log-Message ""
-                    Log-Message "Installation complete but a system restart is recommended" "Yellow"
-                    Log-Message "Restarting now..." "Yellow"
-                    Log-Message ""
-                    Start-Sleep -Seconds 3
-                    Restart-Computer -Force
-                    exit 0
-                }
-                
-                return $true
-            } else {
-                Log-Error "Visual Studio Build Tools installation failed with exit code: $LASTEXITCODE"
-                Remove-Item $installerPath -ErrorAction SilentlyContinue
-                return $false
-            }
-        } catch {
-            Log-Error "Failed to install Visual Studio Build Tools: $_"
-            Log-Message ""
-            Log-Message "═══════════════════════════════════════════════════════════" "Yellow"
-            Log-Message "Manual Installation (if automated install failed):" "Yellow"
-            Log-Message "═══════════════════════════════════════════════════════════" "Yellow"
-            Log-Message ""
-            Log-Message "Step 1: Download the Visual Studio Build Tools installer" "Cyan"
-            Log-Message "   → Visit: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022" "Yellow"
-            Log-Message "   → Click the 'Download' button for 'Build Tools for Visual Studio 2022'" "Gray"
-            Log-Message ""
-            Log-Message "Step 2: Run the installer (vs_buildtools.exe)" "Cyan"
-            Log-Message "   → Opens: Visual Studio Installer window" "Gray"
-            Log-Message "   → Look for the 'Desktop development with C++' tile/card" "Gray"
-            Log-Message "   → Click the checkbox next to 'Desktop development with C++'" "Gray"
-            Log-Message ""
-            Log-Message "Step 3: Installation details appear on the RIGHT panel" "Cyan"
-            Log-Message "   → Verify these are selected:" "Gray"
-            Log-Message "      ✓ MSVC v143 - VS 2022 C++ x64/x86 build tools" "Gray"
-            Log-Message "      ✓ Windows 11 SDK" "Gray"
-            Log-Message "      ✓ CMake tools for Windows" "Gray"
-            Log-Message ""
-            Log-Message "Step 4: Click 'Install' button" "Cyan"
-            Log-Message "   → Installation location: C:\Program Files\Microsoft Visual Studio\2022\BuildTools" "Gray"
-            Log-Message "   → Takes 5-15 minutes (depending on your internet speed)" "Gray"
-            Log-Message ""
-            Log-Message "Step 5: After installation completes" "Cyan"
-            Log-Message "   → Restart this script: bash .\setup.sh" "Gray"
-            Log-Message ""
-            return $false
+            Log-Message "Running as standard user (winget may prompt for elevation)" "Yellow"
         }
     }
     
-    # Helper function: Check if Python is installed
-    function Test-Python {
-        if (Get-Command python -ErrorAction SilentlyContinue) {
-            $version = python --version 2>&1
-            if ($version -match "Python 3") {
-                return $true
-            }
-        }
-        if (Get-Command python3 -ErrorAction SilentlyContinue) {
-            return $true
-        }
-        return $false
-    }
-
-    # Helper function: Install Python via winget
-    function Install-Python {
-        Log-Message "Checking for Python (required for native module compilation)..." "Cyan"
-        
-        if (Test-Python) {
-            Log-Success "Python already installed"
-            return $true
-        }
-        
-        Log-Message "Python not detected. Installing via winget..." "Yellow"
-        
-        if (Get-Command winget -ErrorAction SilentlyContinue) {
-            try {
-                winget install --id Python.Python.3 --accept-package-agreements --accept-source-agreements --silent 2>&1 | ForEach-Object { Log-Message $_ "Gray" }
-                if ($LASTEXITCODE -eq 0) {
-                    Log-Success "Python installed successfully"
-                    Refresh-Path
-                    return $true
-                }
-            } catch {
-                Log-Error "Failed to install Python via winget: $_"
-            }
-        }
-        
-        Log-Message "Manual Python installation recommended: https://www.python.org/downloads/windows/" "Yellow"
-        return $false
-    }
-
-    # Attempt to install build tools if missing
-    if (-not (Test-VisualStudioBuildTools)) {
-        if (-not (Install-VisualStudioBuildTools)) {
-            Log-Error "Build tools installation failed or was skipped"
-            Log-Message "Setup cannot continue without C++ build tools" "Red"
-            Pause
-            exit 1
-        }
-    }
-
-    # Attempt to install Python if missing
-    Install-Python
+    # ══════════════════════════════════════════════════════════════════════════
+    # [1/5] Check winget availability
+    # ══════════════════════════════════════════════════════════════════════════
+    Log-Message ""
+    Log-Message "[1/5] Checking winget..." "White"
+    Log-Message "────────────────────────────────────────" "DarkGray"
+    Require-Winget
+    Log-Success "winget is available"
     
-    # Check for Git & Install if missing
-    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-        Log-Message "Git not found. Installing Git via winget..."
-        
-        # Verify winget exists (standard on Windows 10 1709+, Windows 11)
-        if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-            Log-Error "winget not found."
-            Log-Message ""
-            Log-Message "To get winget (Windows Package Manager):" "Yellow"
-            Log-Message "  1. Open Microsoft Store" "Yellow"
-            Log-Message "  2. Search for 'App Installer'" "Yellow"
-            Log-Message "  3. Install or Update it" "Yellow"
-            Log-Message ""
-            Log-Message "Or download directly:" "Yellow"
-            Log-Message "  https://aka.ms/getwinget" "Yellow"
-            Log-Message ""
-            Log-Message "Alternative: Install Git manually from:" "Yellow"
-            Log-Message "  https://git-scm.com/download/win" "Yellow"
-            Pause
-            exit 1
-        }
-        
-        # Install Git
-        try {
-            Log-Message "Installing Git (this may take a minute)..."
-            winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements --silent | Out-Null
-            Log-Success "Git installed successfully"
-            Refresh-Path
-        } catch {
-            Log-Error "Failed to install Git via winget"
-            Log-Message ""
-            Log-Message "Manual installation options:" "Yellow"
-            Log-Message "  1. Download from: https://git-scm.com/download/win" "Yellow"
-            Log-Message "  2. Run the installer with default options" "Yellow"
-            Log-Message "  3. Restart this script" "Yellow"
-            Pause
-            exit 1
-        }
-        
-        # Also check common Git installation paths
-        $gitPaths = @(
-            "C:\Program Files\Git\cmd",
-            "C:\Program Files\Git\bin",
-            "C:\Program Files (x86)\Git\cmd",
-            "$env:LOCALAPPDATA\Programs\Git\cmd"
-        )
-        foreach ($p in $gitPaths) {
-            if ((Test-Path $p) -and ($env:Path -notlike "*$p*")) {
-                $env:Path = "$p;$env:Path"
-            }
-        }
-        
-        # Verify git is now accessible
-        if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-            Log-Error "Git installed but not found in PATH"
-            Log-Message ""
-            Log-Message "Please try one of these:" "Yellow"
-            Log-Message "  1. Close this window and open a NEW PowerShell/Terminal" "Yellow"
-            Log-Message "  2. Run this command again in the new terminal" "Yellow"
-            Log-Message ""
-            Log-Message "If that doesn't work:" "Yellow"
-            Log-Message "  1. Open Git Bash (search for 'Git Bash' in Start menu)" "Yellow"
-            Log-Message "  2. Run: cd ~ && git clone https://github.com/screamingearth/the_collective.git" "Yellow"
-            Log-Message "  3. Run: cd the_collective && ./setup.sh" "Yellow"
-            Pause
-            exit 1
-        }
-    } else {
+    # ══════════════════════════════════════════════════════════════════════════
+    # [2/5] Install Git
+    # ══════════════════════════════════════════════════════════════════════════
+    Log-Message ""
+    Log-Message "[2/5] Installing Git" "White"
+    Log-Message "────────────────────────────────────────" "DarkGray"
+    
+    if (Get-Command git -ErrorAction SilentlyContinue) {
         Log-Success "Git already installed: $(git --version)"
+    } else {
+        Log-Message "Installing Git via winget..."
+        try {
+            winget install --id Git.Git -e --accept-package-agreements --accept-source-agreements --silent 2>&1 | Out-Null
+            Refresh-Path
+            
+            # Add common Git paths manually if needed
+            $gitPaths = @(
+                "C:\Program Files\Git\cmd",
+                "C:\Program Files\Git\bin",
+                "$env:LOCALAPPDATA\Programs\Git\cmd"
+            )
+            foreach ($p in $gitPaths) {
+                if ((Test-Path $p) -and ($env:Path -notlike "*$p*")) {
+                    $env:Path = "$p;$env:Path"
+                }
+            }
+            
+            if (Get-Command git -ErrorAction SilentlyContinue) {
+                Log-Success "Git installed successfully"
+            } else {
+                throw "Git installed but not in PATH. Please restart your terminal and try again."
+            }
+        } catch {
+            Log-Error "Failed to install Git: $_"
+            Log-Message "Manual install: https://git-scm.com/download/win" "Yellow"
+            Pause
+            exit 1
+        }
     }
     
-    # Check for Node.js (setup.sh will install if missing, but check anyway)
-    if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-        Log-Message "Node.js not found. It will be installed by setup.sh"
-    } else {
+    # ══════════════════════════════════════════════════════════════════════════
+    # [3/5] Install Node.js LTS
+    # ══════════════════════════════════════════════════════════════════════════
+    Log-Message ""
+    Log-Message "[3/5] Installing Node.js" "White"
+    Log-Message "────────────────────────────────────────" "DarkGray"
+    
+    $nodeInstalled = Get-Command node -ErrorAction SilentlyContinue
+    if ($nodeInstalled) {
         $nodeVersion = node -v
         Log-Success "Node.js already installed: $nodeVersion"
         
-        # Refuse Node version if too new (Current vs LTS)
+        # Check for unsupported versions (v23+ lack prebuilt binaries for some native modules)
         if ($nodeVersion -match "v2[3-9]") {
-            Log-Error "Node.js $nodeVersion is NOT supported."
-            Log-Message "Native modules (like DuckDB) lack pre-built binaries for Node v23/v25." "Yellow"
-            Log-Message "This WILL cause compilation failures during setup." "Yellow"
-            Log-Message "Please install Node.js v22 (LTS) before continuing." "Cyan"
-            Log-Message ""
-            Log-Message "You can use nvm-windows to switch versions: winget install coreybutler.nvm-windows" "Gray"
-            Log-Message ""
+            Log-Message "Node.js $nodeVersion may lack prebuilt binaries for some packages." "Yellow"
+            Log-Message "Recommended: Use Node.js v22 (LTS) for best compatibility." "Yellow"
+            Log-Message "You can switch with: nvm install 22 && nvm use 22" "Gray"
+        }
+    } else {
+        Log-Message "Installing Node.js LTS via winget..."
+        try {
+            winget install --id OpenJS.NodeJS.LTS -e --accept-package-agreements --accept-source-agreements --silent 2>&1 | Out-Null
+            Refresh-Path
+            
+            # Add common Node.js paths
+            $nodePaths = @(
+                "C:\Program Files\nodejs",
+                "$env:LOCALAPPDATA\Programs\nodejs",
+                "$env:APPDATA\npm"
+            )
+            foreach ($p in $nodePaths) {
+                if ((Test-Path $p) -and ($env:Path -notlike "*$p*")) {
+                    $env:Path = "$p;$env:Path"
+                }
+            }
+            
+            if (Get-Command node -ErrorAction SilentlyContinue) {
+                $nodeVersion = node -v
+                Log-Success "Node.js installed successfully: $nodeVersion"
+            } else {
+                throw "Node.js installed but not in PATH. Please restart your terminal and try again."
+            }
+        } catch {
+            Log-Error "Failed to install Node.js: $_"
+            Log-Message "Manual install: https://nodejs.org" "Yellow"
             Pause
             exit 1
         }
     }
-
+    
+    # ══════════════════════════════════════════════════════════════════════════
+    # [4/5] Install VS Code
+    # ══════════════════════════════════════════════════════════════════════════
+    Log-Message ""
+    Log-Message "[4/5] Installing VS Code" "White"
+    Log-Message "────────────────────────────────────────" "DarkGray"
+    
+    if (Get-Command code -ErrorAction SilentlyContinue) {
+        Log-Success "VS Code already installed"
+    } else {
+        Log-Message "Installing VS Code via winget..."
+        try {
+            winget install --id Microsoft.VisualStudioCode -e --accept-package-agreements --accept-source-agreements --silent 2>&1 | Out-Null
+            Refresh-Path
+            
+            # Add common VS Code paths
+            $codePaths = @(
+                "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin",
+                "C:\Program Files\Microsoft VS Code\bin"
+            )
+            foreach ($p in $codePaths) {
+                if ((Test-Path $p) -and ($env:Path -notlike "*$p*")) {
+                    $env:Path = "$p;$env:Path"
+                }
+            }
+            
+            if (Get-Command code -ErrorAction SilentlyContinue) {
+                Log-Success "VS Code installed successfully"
+            } else {
+                Log-Message "VS Code installed but 'code' command not in PATH yet" "Yellow"
+                Log-Message "You may need to restart your terminal or launch VS Code manually" "Yellow"
+            }
+        } catch {
+            Log-Error "Failed to install VS Code: $_"
+            Log-Message "Manual install: https://code.visualstudio.com" "Yellow"
+            # Don't exit - VS Code is important but we can continue
+        }
+    }
+    
+    # ══════════════════════════════════════════════════════════════════════════
+    # [5/5] Clone Repository & Run Setup
+    # ══════════════════════════════════════════════════════════════════════════
+    Log-Message ""
+    Log-Message "[5/5] Setting up >the_collective" "White"
+    Log-Message "────────────────────────────────────────" "DarkGray"
+    
     # Check for running node processes that might lock files
     $runningNode = Get-Process node -ErrorAction SilentlyContinue
     if ($runningNode) {
         Log-Message "" "Yellow"
         Log-Message "⚠️  WARNING: Detected running Node.js processes." "Yellow"
-        Log-Message "   These may lock files and cause 'EBUSY' or 'EPERM' errors during installation." "Yellow"
-        Log-Message "   Please close VS Code and any other Node.js applications before continuing." "Yellow"
+        Log-Message "   These may cause 'EBUSY' errors during installation." "Yellow"
+        Log-Message "   Please close VS Code and other Node.js apps before continuing." "Yellow"
         Log-Message "" "Yellow"
         Read-Host "Press Enter once you have closed other Node.js processes..."
     }
     
     # Determine installation directory
-    # Windows: C:\Users\{YourUsername}\Documents\the_collective
-    # (visible in Windows Explorer under Documents folder)
     $DocumentsPath = [Environment]::GetFolderPath('MyDocuments')
     $InstallDir = Join-Path $DocumentsPath "the_collective"
     
@@ -422,66 +246,58 @@ try {
     
     # Clone or Update Repository
     if (Test-Path $InstallDir) {
-        Log-Message "Repository directory exists. Checking integrity..." "Cyan"
+        Log-Message "Repository directory exists. Checking integrity..."
         try {
             Set-Location $InstallDir -ErrorAction Stop
             
-            # Check if it's a valid git repo
             $isGitRepo = git rev-parse --is-inside-work-tree 2>$null
             if ($LASTEXITCODE -eq 0) {
                 Log-Message "Valid repository found. Pulling latest changes..."
-                git pull origin main
+                git pull origin main 2>&1 | Out-Null
                 Log-Success "Repository updated"
             } else {
                 Log-Message "Directory exists but is not a valid git repository." "Yellow"
-                Log-Message "Moving existing directory to backup and re-cloning..." "Yellow"
                 $BackupDir = "${InstallDir}_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
                 Move-Item -Path $InstallDir -Destination $BackupDir -Force
                 
-                Log-Message "Cloning repository to $InstallDir..." "Cyan"
                 git clone --depth 1 https://github.com/screamingearth/the_collective.git $InstallDir
                 Set-Location $InstallDir -ErrorAction Stop
                 Log-Success "Repository cloned successfully"
             }
         } catch {
             Log-Error "Failed to update repository: $($_.Exception.Message)"
-            Log-Message "Continuing with existing local version if possible..." "Yellow"
+            Log-Message "Continuing with existing local version..." "Yellow"
         }
     } else {
-        Log-Message "Cloning repository to $InstallDir..."
-        
+        Log-Message "Cloning repository..."
         try {
             git clone --depth 1 https://github.com/screamingearth/the_collective.git $InstallDir
             Set-Location $InstallDir -ErrorAction Stop
             Log-Success "Repository cloned successfully"
         } catch {
-            Log-Error "Failed to clone repository"
-            Log-Message "Please check your internet connection and try again"
+            Log-Error "Failed to clone repository: $_"
+            Log-Message "Please check your internet connection and try again" "Yellow"
             Pause
             exit 1
         }
     }
     
-    # Hand over to internal setup script
+    # Run setup.sh via Git Bash
     Log-Message ""
     Log-Message "Running internal setup script..."
-    Log-Message "This will install Node.js (if missing), dependencies, and configure the environment"
+    Log-Message "This will install dependencies and configure the environment"
     Log-Message ""
     
-    # Run setup.sh via Git Bash (which we just installed)
     if (Test-Path "./setup.sh") {
-        # Try to find bash in PATH or common locations
+        # Find bash
         $bashPath = $null
-        
         if (Get-Command bash -ErrorAction SilentlyContinue) {
             $bashPath = "bash"
         } else {
-            # Check common Git Bash locations (Windows-specific)
             $bashLocations = @(
                 "C:\Program Files\Git\bin\bash.exe",
                 "C:\Program Files (x86)\Git\bin\bash.exe",
-                "$env:LOCALAPPDATA\Programs\Git\bin\bash.exe",
-                "C:\Program Files\Git\usr\bin\bash.exe"
+                "$env:LOCALAPPDATA\Programs\Git\bin\bash.exe"
             )
             foreach ($loc in $bashLocations) {
                 if (Test-Path $loc) {
@@ -492,89 +308,26 @@ try {
         }
         
         if ($bashPath) {
-            # Create a wrapper script to capture bash output properly
-            $setupLogPath = Join-Path (Get-Location) ".collective\.logs\setup-full.log"
-            $setupScriptWrapper = Join-Path $env:TEMP "setup_wrapper_$([System.Guid]::NewGuid()).sh"
-            
-            # Create wrapper that tees output to both console and file
-            $wrapperContent = @"
-#!/bin/bash
-set -e
-# Source the setup script but capture all output
-exec 1> >(tee -a "$setupLogPath")
-exec 2>&1
-echo "[Bootstrap] Starting setup.sh at $(date)"
-echo "[Bootstrap] Current directory: \$(pwd)"
-echo "[Bootstrap] Bash version: \$(bash --version | head -1)"
-echo "[Bootstrap] Node version: \$(node --version 2>/dev/null || echo 'NOT FOUND')"
-echo "[Bootstrap] npm version: \$(npm --version 2>/dev/null || echo 'NOT FOUND')"
-echo ""
-bash ./setup.sh
-"@
-            
-            # Write wrapper to temp file
-            $wrapperContent | Out-File -FilePath $setupScriptWrapper -Encoding UTF8 -NoNewline
-            
-            # Run wrapper through bash
-            & $bashPath $setupScriptWrapper
+            & $bashPath -c "./setup.sh"
             $setupExitCode = $LASTEXITCODE
-            
-            # Clean up wrapper
-            Remove-Item $setupScriptWrapper -ErrorAction SilentlyContinue
             
             if ($setupExitCode -ne 0) {
                 Log-Error "Setup script failed with exit code: $setupExitCode"
                 Log-Message ""
-                Log-Message "═══════════════════════════════════════════════════════════" "Red"
-                Log-Message "Setup Failed - Recovery Options" "Red"
-                Log-Message "═══════════════════════════════════════════════════════════" "Red"
+                Log-Message "Recovery options:" "Yellow"
+                Log-Message "  1. Close VS Code and other Node.js apps" "Yellow"
+                Log-Message "  2. Run: npm cache clean --force" "Yellow"
+                Log-Message "  3. Run: rm -rf node_modules .collective/*/node_modules" "Yellow"
+                Log-Message "  4. Retry: ./setup.sh" "Yellow"
                 Log-Message ""
-                Log-Message "[K] Kill all Node processes & Retry (Fixes EBUSY/Locked files)" "Cyan"
-                Log-Message "[C] Clean node_modules & Retry (Fixes corrupted installs)" "Cyan"
-                Log-Message "[L] View full log file" "Cyan"
-                Log-Message "[X] Exit" "Gray"
-                Log-Message ""
-                
-                $choice = Read-Host "Select an option"
-                if ($choice -eq "k" -or $choice -eq "K") {
-                    Log-Message "Killing all node processes..." "Yellow"
-                    taskkill /F /IM node.exe /T 2>$null
-                    Log-Message "Retrying setup..." "Cyan"
-                    & $bashPath $setupScriptWrapper # This is a bit recursive but works for a quick retry
-                    exit $LASTEXITCODE
-                } elseif ($choice -eq "c" -or $choice -eq "C") {
-                    Log-Message "Cleaning node_modules..." "Yellow"
-                    Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue
-                    Remove-Item -Recurse -Force .collective\memory-server\node_modules -ErrorAction SilentlyContinue
-                    npm cache clean --force
-                    Log-Message "Retrying setup..." "Cyan"
-                    & $bashPath $setupScriptWrapper
-                    exit $LASTEXITCODE
-                } elseif ($choice -eq "l" -or $choice -eq "L") {
-                    notepad $setupLogPath
-                    Log-Message "Press Enter to continue..."
-                    Read-Host
-                }
-                
-                throw "Setup failed (exit code $setupExitCode)"
+                Pause
+                exit $setupExitCode
             }
         } else {
             Log-Error "Git Bash (bash.exe) not found"
             Log-Message ""
-            Log-Message "The setup script requires Git Bash to run." "Yellow"
-            Log-Message ""
-            Log-Message "Please try one of these options:" "Yellow"
-            Log-Message ""
-            Log-Message "Option 1: Use Git Bash directly" "Cyan"
-            Log-Message "  1. Open Git Bash (search 'Git Bash' in Start menu)"
-            Log-Message "  2. Run: cd ~/Documents/the_collective"
-            Log-Message "  3. Run: ./setup.sh"
-            Log-Message ""
-            Log-Message "Option 2: Restart and retry" "Cyan"
-            Log-Message "  1. Close this window"
-            Log-Message "  2. Open a new PowerShell window"
-            Log-Message "  3. Run: cd $InstallDir; bash .\setup.sh"
-            Log-Message ""
+            Log-Message "Please open Git Bash and run:" "Yellow"
+            Log-Message "  cd ~/Documents/the_collective && ./setup.sh" "Cyan"
             Pause
             exit 1
         }
@@ -584,45 +337,51 @@ bash ./setup.sh
         exit 1
     }
     
-    # Success
+    # ══════════════════════════════════════════════════════════════════════════
+    # Success - Launch VS Code
+    # ══════════════════════════════════════════════════════════════════════════
     Write-Host ""
     Write-Host "════════════════════════════════════════════════" -ForegroundColor Green
     Write-Host "🎉 Installation Complete!" -ForegroundColor Green
     Write-Host "════════════════════════════════════════════════" -ForegroundColor Green
     Write-Host ""
-    Write-Host "   📁 Your installation:" -ForegroundColor Cyan
-    Write-Host "      Location: $InstallDir" -ForegroundColor Gray
-    Write-Host "      (Visible in: Windows Explorer → Documents → the_collective)" -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "   🚀 Next steps:" -ForegroundColor Cyan
-    Write-Host "      1. Open VS Code and select 'Open Folder...'" -ForegroundColor Gray
-    Write-Host "      2. Select the ROOT folder: " -NoNewline
-    Write-Host "$InstallDir" -ForegroundColor Yellow
-    Write-Host "         (CRITICAL: You must open the root folder for MCP servers to load)" -ForegroundColor Red
-    Write-Host "      3. Or run: " -NoNewline
-    Write-Host "code '$InstallDir'" -ForegroundColor Yellow
-    Write-Host "      4. In VS Code, open Copilot Chat sidebar" -ForegroundColor Gray
-    Write-Host "      5. Type: " -NoNewline
-    Write-Host '"hey nyx"' -ForegroundColor Magenta
+    Write-Host "   📁 Installed to: $InstallDir" -ForegroundColor Cyan
     Write-Host ""
     
-    # Offer to open VS Code if installed
+    # Launch VS Code automatically
     if (Get-Command code -ErrorAction SilentlyContinue) {
-        $OpenCode = Read-Host "Open in VS Code now? (y/n)"
-        if ($OpenCode -eq "y" -or $OpenCode -eq "Y") {
-            code "$InstallDir"
-        }
+        Write-Host "   🚀 Launching VS Code..." -ForegroundColor Cyan
+        Write-Host ""
+        Start-Sleep -Seconds 2
+        code "$InstallDir"
+        
+        Write-Host "   ✨ VS Code is opening!" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "   Next steps:" -ForegroundColor White
+        Write-Host "      1. Wait for MCP servers to initialize (bottom-right status)" -ForegroundColor Gray
+        Write-Host "      2. Open Copilot Chat sidebar (Ctrl+Shift+I)" -ForegroundColor Gray
+        Write-Host "      3. Type: " -NoNewline
+        Write-Host '"hey nyx"' -ForegroundColor Magenta
+        Write-Host ""
     } else {
-        Write-Host "Tip: Install VS Code from https://code.visualstudio.com" -ForegroundColor Yellow
+        Write-Host "   ⚠️  VS Code 'code' command not in PATH" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "   To complete setup:" -ForegroundColor White
+        Write-Host "      1. Open VS Code manually" -ForegroundColor Gray
+        Write-Host "      2. File → Open Folder → $InstallDir" -ForegroundColor Gray
+        Write-Host "      3. Open Copilot Chat and say: " -NoNewline
+        Write-Host '"hey nyx"' -ForegroundColor Magenta
+        Write-Host ""
     }
     
-    Pause
+    Write-Host "   Press Enter to close this window..." -ForegroundColor DarkGray
+    Read-Host
     
 } catch {
     Log-Error "ERROR: $($_.Exception.Message)"
     Write-Host ""
-    Write-Host "Please check the log file at: $LogFile" -ForegroundColor Red
-    Write-Host "For support, visit: https://github.com/screamingearth/the_collective/issues" -ForegroundColor Yellow
+    Write-Host "Log file: $LogFile" -ForegroundColor Red
+    Write-Host "For support: https://github.com/screamingearth/the_collective/issues" -ForegroundColor Yellow
     Write-Host ""
     Pause
     exit 1

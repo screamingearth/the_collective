@@ -15,17 +15,16 @@ import { checkAuthStatus, parseJsonResponse } from "./utils.js";
 
 describe("Gemini Bridge Utils (SDK-based)", () => {
   describe("parseJsonResponse", () => {
-    it("should wrap text output as response", () => {
-      const input = "Hello";
+    it("should parse valid JSON with response field", () => {
+      const input = '{"response": "Hello"}';
       const result = parseJsonResponse(input);
       expect(result).toBeDefined();
       expect(result?.response).toBe("Hello");
     });
 
-    it("should accept any string and wrap as response", () => {
+    it("should return null for non-JSON input", () => {
       const result = parseJsonResponse("not json at all");
-      expect(result).toBeDefined();
-      expect(result?.response).toBe("not json at all");
+      expect(result).toBeNull();
     });
   });
 

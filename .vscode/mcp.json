@@ -2,13 +2,11 @@
   "servers": {
     "memory": {
       "type": "sse",
-      "url": "http://localhost:3100/mcp",
-      "description": "Semantic memory with retriever-reranker pipeline (Docker mode)"
+      "url": "http://localhost:3100/mcp"
     },
     "gemini": {
       "type": "sse",
-      "url": "http://localhost:3101/mcp",
-      "description": "Google Gemini research bridge (Docker mode)"
+      "url": "http://localhost:3101/mcp"
     }
   }
 }

@@ -177,16 +177,13 @@
   // ═══════════════════════════════════════════════════════════════════
   // POWERSHELL CONFIGURATION
   // ═══════════════════════════════════════════════════════════════════
-  // PowerShell extension: disabled on Linux (optional, mainly for Windows)
-  // If you want to use PowerShell as your terminal, install it via: sudo apt install powershell
-  // Or use: /home/yep/.local/bin/pwsh from terminal manually
-  "powershell.powerShellAdditionalExePaths": {
-    "PowerShell (local)": "/home/yep/.local/bin/pwsh"
-  },
+  // PowerShell is optional on Linux/macOS, built-in on Windows
+  // On Linux: sudo apt install powershell (or snap install powershell --classic)
+  // On macOS: brew install powershell
   // ═══════════════════════════════════════════════════════════════════
   // DOCKER CONFIGURATION
   // ═══════════════════════════════════════════════════════════════════
-  "docker.host": "unix:///var/run/docker.sock",
+  // Docker Desktop handles socket configuration automatically on all platforms
   "docker.dockerComposeBuild": true,
   "docker.dockerComposeDetached": true,
   // ═══════════════════════════════════════════════════════════════════

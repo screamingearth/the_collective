@@ -12,13 +12,13 @@
 
 >*\>the_collective is a team of AI agents that work together inside VS Code. Instead of one AI assistant, you get specialised personalities that debate, research, and build things collaboratively using powerful tools.*
 
-**No AI expertise required.** If you can install VS Code and run a single command, you are ready.
+**No AI expertise required.** If you can install VS Code and run a single command, you're good to go.
 
 </div><br>
 
 ## 🚀 Quick Install
 
-**One command, zero prerequisites.** The bootstrapper installs everything (Git, Python, Node.js, dependencies) automatically.
+**One command, zero prerequisites.** The bootstrapper installs everything (Git, Node.js, VS Code, Docker containers) automatically.
 
 ### 🍎 macOS / Linux / WSL
 ```bash
@@ -53,7 +53,7 @@ $s = iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/m
 
 <br>
 
-> *disclaimer: >the_collective is an experimental open-source framework under active development. While I strive for quality, it likely contains many bugs. Use at your own risk.*
+> *disclaimer: >the_collective is an experimental open-source framework under active development. while I strive for quality, it likely contains many bugs. use at your own risk. and let me know how it goes!*
 
 **[→ Detailed Setup Guide & Troubleshooting →](./QUICKSTART.md)**
 
@@ -105,6 +105,7 @@ $s = iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/m
 
 - **VS Code 1.107+** with **GitHub Copilot** (free tier or paid)
 - **Node.js 20+** (Auto-installed by bootstrapper)
+- **Docker Engine** (Containers auto-start via VSCode Containers extension)
 - **macOS, Linux, or Windows 10/11**
 
 **[→ System requirements & troubleshooting](./QUICKSTART.md)**
