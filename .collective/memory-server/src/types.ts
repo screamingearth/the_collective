@@ -99,7 +99,7 @@ export interface TagRow {
 }
 
 /**
- * Embedder output from @xenova/transformers.
+ * Embedder output from @huggingface/transformers.
  * The library doesn't export proper types, so we define our own.
  */
 export interface EmbedderOutput {
@@ -107,7 +107,7 @@ export interface EmbedderOutput {
 }
 
 /**
- * Embedder function signature from @xenova/transformers.
+ * Embedder function signature from @huggingface/transformers.
  */
 export type EmbedderFunction = (
   text: string,
@@ -115,7 +115,7 @@ export type EmbedderFunction = (
 ) => Promise<EmbedderOutput>;
 
 /**
- * Reranker (cross-encoder) output from @xenova/transformers.
+ * Reranker (cross-encoder) output from @huggingface/transformers.
  * Returns an array of classification results with relevance scores.
  */
 export interface RerankerOutput {
@@ -124,7 +124,7 @@ export interface RerankerOutput {
 }
 
 /**
- * Reranker function signature from @xenova/transformers.
+ * Reranker function signature from @huggingface/transformers.
  * Cross-encoder that scores (query, document) pairs for relevance.
  */
 export type RerankerFunction = (

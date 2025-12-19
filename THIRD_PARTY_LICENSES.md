@@ -37,12 +37,11 @@ SOFTWARE.
 
 ---
 
-## Xenova Transformers
+## Hugging Face Transformers (Node.js)
 
 **License:** Apache License 2.0  
-**Copyright:** Copyright (c) 2023 Xenova  
-**Website:** https://github.com/xenova/transformers.js  
-**Package:** `@xenova/transformers` (^2.17.2)
+**Website:** https://github.com/huggingface/transformers  
+**Package:** `@huggingface/transformers` (^3.8.1)
 
 ```
 Apache License

@@ -52,9 +52,9 @@ Common issues and solutions when installing or running >the_collective.
 
 **Solutions:**
 
-1. **Windows - Install Visual C++ Redistributable:**
+1. **Windows - Install Visual C++ Redistributable (if needed):**
    
-   Native modules like `onnxruntime-node` require the Visual C++ runtime libraries. The bootstrapper installs this automatically, but if you installed manually:
+   Local model inference depends on `onnxruntime-node`, which requires the Visual C++ runtime libraries on Windows. The bootstrapper automatically installs the runtime when necessary. If you prefer to install manually, run:
    
    ```powershell
    winget install --id Microsoft.VCRedist.2015+.x64 -e
@@ -62,10 +62,7 @@ Common issues and solutions when installing or running >the_collective.
    
    Or download directly from: [aka.ms/vs/17/release/vc_redist.x64.exe](https://aka.ms/vs/17/release/vc_redist.x64.exe)
 
-2. **Use Node.js LTS (v20 or v22):** Prebuilt binaries are only available for LTS versions.
-   ```bash
-   node -v  # Should show v20.x or v22.x
-   ```
+2. **Use Node.js LTS (v20 or v22):** Prebuilt native binaries are provided for the LTS releases. If you encounter native module errors, re-run `./setup.sh` (the installer will verify runtimes and retry installation).
 
 3. **Clear npm cache and retry:**
    ```bash

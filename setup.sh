@@ -1072,7 +1072,7 @@ bootstrap_memories() {
         exit 1
     fi
     
-    # Check onnxruntime-node (required by @xenova/transformers for embeddings)
+    # Check onnxruntime-node (required by @huggingface/transformers for Node.js embeddings)
     if ! node -e "require('onnxruntime-node')" 2>/dev/null; then
         error "═══════════════════════════════════════════════════════════"
         error "Native module (onnxruntime-node) is not available!"

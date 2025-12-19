@@ -27,7 +27,7 @@ We implement a two-stage pipeline that decouples **recall** from **precision**:
 │  • Input: Query → BiEncoder → 384-dim embedding             │
 │  • Search: HNSW index, O(log n) lookup                      │
 │  • Output: Top-K candidates (K = limit × multiplier)        │
-│  • Model: Xenova/all-MiniLM-L6-v2                           │
+│  • Model: all-MiniLM-L6-v2 (local via `@huggingface/transformers` + ONNX Runtime)                           │
 │  • Latency: ~10-50ms                                        │
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -38,7 +38,7 @@ We implement a two-stage pipeline that decouples **recall** from **precision**:
 │  • Input: (query, candidate) pairs                          │
 │  • Model: Cross-encoder evaluates jointly                   │
 │  • Output: Relevance scores, re-sorted                      │
-│  • Model: Xenova/ms-marco-MiniLM-L-6-v2                     │
+│  • Model: ms-marco-MiniLM-L-6-v2 (local via `@huggingface/transformers` + ONNX Runtime)                     │
 │  • Latency: ~10-30ms per candidate                          │
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -70,7 +70,7 @@ The cross-encoder sees the query and document _together_, allowing it to underst
 | Index         | HNSW                          | Approximate nearest neighbor |
 | Interface     | Model Context Protocol        | VS Code integration          |
 
-All models run locally via `@xenova/transformers`. No API calls.
+All models run locally via `@huggingface/transformers` with ONNX Runtime (no external API calls). On Windows, the Visual C++ Redistributable may be required — the bootstrapper installs it automatically when needed.
 
 ## Schema Design
 

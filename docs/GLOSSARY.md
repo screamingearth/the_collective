@@ -9,5 +9,5 @@
 | **HNSW** | **Hierarchical Navigable Small World**. An algorithm used for approximate nearest neighbor search. It's the indexing method used by DuckDB to make vector search fast. |
 | **Embeddings** | Vector representations of text. We convert your code and memories into lists of numbers (vectors) so we can search them by meaning (semantics) rather than just keywords. |
 | **DuckDB** | An in-process SQL OLAP database management system. We use it as our local vector database because it's fast, file-based (no server to manage), and supports vector operations. |
-| **Xenova** | The JavaScript/WASM implementation of Hugging Face Transformers. It allows us to run AI models (like our embedders and rerankers) locally on your machine without needing Python or a GPU. |
+| **Hugging Face Transformers (Node.js)** | The JavaScript/Node.js implementation for running transformer models locally. We use `@huggingface/transformers` for embedders and rerankers; on desktop platforms it relies on `onnxruntime-node` for native inference. |
 | **Gemini Bridge** | Our integration with Google's Gemini model. It acts as a "bridge" between the MCP protocol and the Google AI Studio API, providing a second opinion and cognitive diversity. |

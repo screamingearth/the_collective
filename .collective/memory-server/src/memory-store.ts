@@ -7,7 +7,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import { pipeline } from "@xenova/transformers";
+import { pipeline } from "@huggingface/transformers";
 import Database from "duckdb";
 import { mkdir } from "fs/promises";
 import { dirname, normalize, resolve } from "path";
