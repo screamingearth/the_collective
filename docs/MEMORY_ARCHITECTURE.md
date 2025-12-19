@@ -70,7 +70,7 @@ The cross-encoder sees the query and document _together_, allowing it to underst
 | Index         | HNSW                          | Approximate nearest neighbor |
 | Interface     | Model Context Protocol        | VS Code integration          |
 
-All models run locally via `@huggingface/transformers` with ONNX Runtime (no external API calls). On Windows, the Visual C++ Redistributable may be required — the bootstrapper installs it automatically when needed.
+All models run locally via `@huggingface/transformers` with ONNX Runtime (no external API calls).
 
 ## Schema Design
 
