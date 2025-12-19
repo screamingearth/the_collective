@@ -43,7 +43,8 @@ services:
       # Cross-platform path handling:
       # - Linux/macOS: ${HOME}/.gemini maps correctly
       # - Windows: ${USERPROFILE}/.gemini (set GEMINI_HOME env var if issues)
-      - ${GEMINI_HOME:-${HOME:-${USERPROFILE}}}/.gemini:/root/.gemini:ro
+      # Note: rw required for gemini-cli 0.21+ (writes chat history to tmp/)
+      - ${GEMINI_HOME:-${HOME:-${USERPROFILE}}}/.gemini:/root/.gemini:rw
     environment:
       - NODE_ENV=production
       - MCP_TRANSPORT=sse
