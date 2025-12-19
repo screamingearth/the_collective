@@ -45,12 +45,12 @@ services:
       # - Windows: ${USERPROFILE}/.gemini (set GEMINI_HOME env var if issues)
       # Note: rw required for gemini-cli 0.21+ (writes chat history to tmp/)
       - ${GEMINI_HOME:-${HOME:-${USERPROFILE}}}/.gemini:/root/.gemini:rw
+    env_file:
+      - .collective/gemini-bridge/.env
     environment:
       - NODE_ENV=production
       - MCP_TRANSPORT=sse
       - MCP_PORT=3101
-      # Optional: pass API key from host into container for auth fallback
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3101/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" ]

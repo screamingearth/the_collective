@@ -75,7 +75,7 @@ export interface EchoInvocationOptions {
   includeDirectories?: string[] | undefined;
   /**
    * Specific model to use.
-   * - "gemini-2.5-flash" (default): Fast responses (~2-5s), used for all tasks
+   * - "gemini-3-flash-preview" (default): Fast responses (~2-5s), used for all tasks
    */
   model?: string | undefined;
   /** Timeout in milliseconds (defaults to 120000 - 2 minutes) */

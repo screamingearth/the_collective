@@ -21,8 +21,10 @@ const __dirname = dirname(__filename);
 // Configuration
 // ============================================================================
 
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models";
-const DEFAULT_MODEL = "gemini-2.5-flash";
+const GEMINI_API_URL_V1BETA = "https://generativelanguage.googleapis.com/v1beta/models";
+const GEMINI_API_URL_V1 = "https://generativelanguage.googleapis.com/v1/models";
+const DEFAULT_MODEL = "gemini-3-flash-preview";
+const FALLBACK_MODEL = "gemini-2.5-flash";
 
 /**
  * Get API key from environment or config file
@@ -86,24 +88,48 @@ async function executeViaApiKey(
   timeout: number,
   apiKey: string
 ): Promise<{ success: boolean; response?: string; error?: string }> {
+  // Try gemini-3-flash-preview first (requires v1beta)
+  const result = await tryApiCall(prompt, timeout, apiKey, DEFAULT_MODEL, GEMINI_API_URL_V1BETA);
+
+  // If gemini-3 fails, fallback to gemini-2.5-flash (v1 stable)
+  if (!result.success && result.error?.includes("404")) {
+    console.log("[gemini] gemini-3-flash-preview not available, falling back to gemini-2.5-flash");
+    return tryApiCall(prompt, timeout, apiKey, FALLBACK_MODEL, GEMINI_API_URL_V1);
+  }
+
+  return result;
+}
+
+async function tryApiCall(
+  prompt: string,
+  timeout: number,
+  apiKey: string,
+  model: string,
+  apiUrl: string
+): Promise<{ success: boolean; response?: string; error?: string }> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
+    const body: any = {
+      contents: [
+        {
+          parts: [{ text: prompt }],
+        },
+      ],
+    };
+
+    // Note: thinking_level not yet available in API (as of Dec 2024)
+    // Will be added when Google releases it to the public API
+
     const response = await fetch(
-      `${GEMINI_API_URL}/${DEFAULT_MODEL}:generateContent?key=${apiKey}`,
+      `${apiUrl}/${model}:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: prompt }],
-            },
-          ],
-        }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       }
     );
@@ -245,9 +271,16 @@ async function executeViaSubprocess(
   timeout: number
 ): Promise<{ success: boolean; response?: string; error?: string }> {
   try {
-    // gemini-cli flags: -m for model, -p for prompt (non-interactive mode)
-    const args = ["-m", DEFAULT_MODEL, "-p", prompt];
-    const result = await spawnGemini(args, { timeout });
+    // Try gemini-3-flash-preview first
+    let args = ["-m", DEFAULT_MODEL, "-p", prompt];
+    let result = await spawnGemini(args, { timeout });
+
+    // If gemini-3 fails with model error, fallback to gemini-2.5-flash
+    if (result.exitCode !== 0 && (result.stderr.includes("model") || result.stderr.includes("not found"))) {
+      console.log("[gemini] gemini-3-flash-preview not available via CLI, trying gemini-2.5-flash");
+      args = ["-m", FALLBACK_MODEL, "-p", prompt];
+      result = await spawnGemini(args, { timeout });
+    }
 
     if (result.exitCode !== 0) {
       if (result.stderr.includes("not authenticated") || result.stderr.includes("login")) {

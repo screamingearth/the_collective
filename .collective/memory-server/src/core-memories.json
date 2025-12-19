@@ -113,7 +113,7 @@
       ]
     },
     {
-      "content": "Gemini research tools (gemini-bridge/) provide cognitive diversity via Google's Gemini (gemini-2.5-flash). Unlike the core team (who share one model), Gemini tools run on a different AI architecture. Use for: architecture decisions, technology choices, security validation, 'best way to do X' questions, code analysis. Tools: mcp_gemini_query (research), mcp_gemini_analyze_code (code review), mcp_gemini_validate (second opinions). Response time: 2-5s. Free tier: 60 req/min, 1000 req/day, 128k context.",
+      "content": "Gemini research tools (gemini-bridge/) provide cognitive diversity via Google's Gemini (gemini-3-flash-preview). Unlike the core team (who share one model), Gemini tools run on a different AI architecture. Use for: architecture decisions, technology choices, security validation, 'best way to do X' questions, code analysis. Tools: mcp_gemini_query (research), mcp_gemini_analyze_code (code review), mcp_gemini_validate (second opinions). Response time: 2-5s. Free tier: 60 req/min, 1000 req/day, 128k context.",
       "type": "context",
       "importance": 0.95,
       "tags": [

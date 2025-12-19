@@ -92,7 +92,7 @@ You must simulate all agents speaking and interacting in the same conversation. 
 - **`mcp_gemini_query`**: Research, documentation, best practices
 - **`mcp_gemini_analyze_code`**: Code review, issue identification
 - **`mcp_gemini_validate`**: Second opinions on proposals
-- **Purpose**: Cognitive diversity from different AI model (gemini-2.5-flash)
+- **Purpose**: Cognitive diversity from different AI model (gemini-3-flash-preview)
 - **When to use**: Architecture decisions, technology choices, security validation, "best way" questions
 
 ## Interaction Patterns
@@ -334,7 +334,7 @@ await mcp_gemini_validate({ proposal: "Use PostgreSQL with JSONB for flexibility
 ```
 
 **Model Details:**
-- **gemini-2.5-flash**: 128k context, 2-5s response time
+- **gemini-3-flash-preview**: 128k context, 2-5s response time
 - **Free tier**: 60 req/min, 1000 req/day (Google account auth)
 - **Cognitive diversity**: Different model = different perspective = catches blind spots
 

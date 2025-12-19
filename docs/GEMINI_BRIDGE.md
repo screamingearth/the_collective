@@ -1,6 +1,6 @@
 # Gemini Bridge - Research Tools
 
-Google Gemini (gemini-2.5-flash) via MCP. Provides cognitive diversity for the_collective team.
+Google Gemini (gemini-3-flash-preview) via MCP. Provides cognitive diversity for the_collective team.
 
 ## Why Gemini Tools?
 
@@ -11,42 +11,64 @@ Different AI model = different perspective = catches blind spots. The team uses 
 - **Validation** — Second opinions on proposals, risk assessment
 - **Cognitive Diversity** — Prevents team groupthink
 
-**Free Tier:** 60 requests/minute, 1000 requests/day (Google account only)
+**Free Tier:** 60 requests/minute, 1000-1500 requests/day (Google account only)
 
-## Setup
-
-**All commands below run from workspace root unless specified otherwise.**
-
-### 1. Install Dependencies
+## Quick Start
 
 ```bash
+# 1. Install dependencies
 cd .collective/gemini-bridge
 npm install
-```
 
-### 2. Authenticate
+# 2. Set up authentication (choose one)
+cp .env.example .env        # Then add your API key
+# OR
+npm run auth                 # Browser-based OAuth
 
-```bash
-npm run auth
-```
-
-Opens browser for Google OAuth (secure, no credentials stored).
-
-### 3. Build
-
-```bash
+# 3. Build
 npm run build
-```
 
-### 4. Verify
-
-```bash
+# 4. Verify
 npm test
 ```
 
+## Authentication
+
+### Option 1: API Key (Recommended)
+
+Faster responses (~3-5s), higher daily limit.
+
+1. Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+2. Sign in with your Google account
+3. Click "Create API Key"
+4. Copy the key (starts with `AIza...`)
+
+```bash
+cd .collective/gemini-bridge
+cp .env.example .env
+# Edit .env and paste your key:
+# GEMINI_API_KEY=AIza...your-key-here
+```
+
+**Free tier:** 60 req/min, 1500 req/day
+
+### Option 2: OAuth (Browser Login)
+
+No API key needed, but slower (~10-20s per query).
+
+```bash
+cd .collective/gemini-bridge
+npm run auth
+# Follow browser prompt to sign in with Google
+```
+
+Tokens are stored in `~/.gemini/`.
+
+**Free tier:** 60 req/min, 1000 req/day
+
 ## Usage
 
-### Three Research Tools
+### Available Tools
 
 **`mcp_gemini_query`** — Research, documentation, best practices
 
@@ -119,50 +141,20 @@ Server auto-starts via `.vscode/mcp.json`:
 }
 ```
 
-## Authentication
+## Docker Mode
 
-### Option 1: API Key (Recommended - Fast)
+When running via `docker compose`, you need to pass credentials into the container.
 
-Get a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+### API Key (Recommended)
 
-```bash
-# Add to .env file in gemini-bridge/
-echo "GEMINI_API_KEY=your-key-here" > .collective/gemini-bridge/.env
-
-# Or set environment variable
-export GEMINI_API_KEY="your-key-here"
-```
-
-**Performance:** ~3-5s per query (direct HTTP)  
-**Free tier:** 60 req/min, 1000 req/day
-
-### Option 2: Google OAuth (Fallback)
+Set the environment variable before starting:
 
 ```bash
-cd .collective/gemini-bridge
-npm run auth
-# Follow browser prompt
-```
-
-**Performance:** ~10-20s per query (subprocess overhead)  
-**Free tier:** 60 req/min, 1000 req/day  
-**Note:** Uses gemini-cli subprocess - slower but no API key needed
-
-### Docker Mode: Auth Options
-
-When running the Gemini Bridge in Docker (via `docker compose`), you have two ways to provide credentials to the container:
-
-#### 1) API Key (Recommended - Faster)
-
-- Get a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
-- Set it before starting Docker:
-
-```bash
-export GEMINI_API_KEY=YOUR_KEY
+export GEMINI_API_KEY=your-key-here
 docker compose up -d
 ```
 
-- The compose file propagates the variable into the container:
+The compose file propagates it into the container:
 
 ```yaml
 services:
@@ -171,11 +163,11 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
 ```
 
-**Performance:** ~3-5s per query (5x faster than OAuth)
+**Performance:** ~3-5s per query
 
-#### 2) OAuth (Fallback)
+### OAuth (Fallback)
 
-- Authenticate once on the host:
+First authenticate on your host machine:
 
 ```bash
 cd .collective/gemini-bridge
@@ -183,70 +175,44 @@ npm install
 npm run auth
 ```
 
-- The compose file mounts your host credentials directory:
+The compose file mounts your credentials:
 
 ```yaml
 services:
   gemini-bridge:
     volumes:
-      - ${HOME}/.gemini:/root/.gemini:ro
+      - ${HOME}/.gemini:/root/.gemini:rw
 ```
-
-The container detects OAuth credentials in `~/.gemini/google_accounts.json` and uses gemini-cli subprocess.
 
 **Performance:** ~10-20s per query (subprocess overhead)
 
-- Set your API key in the shell before starting compose:
+### Verify Docker Auth
 
 ```bash
-export GEMINI_API_KEY=YOUR_KEY
-docker compose up -d
+docker logs collective-gemini --tail 5
 ```
 
-- The compose file propagates the variable into the container:
-
-```yaml
-services:
-  gemini-bridge:
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-```
-
-The server detects the API key and treats it as authenticated (`authMethod: "api-key"`).
-
-### Verify Authentication (Docker)
-
-```bash
-docker logs collective-gemini --tail 30
-```
-
-You should see one of:
+You should see:
 
 ```
 ✓ Gemini ready (API key (direct HTTP))
-Gemini Bridge running on http://localhost:3101 (SSE mode)
 ```
 
 or
 
 ```
 ✓ Gemini ready (OAuth (gemini-cli subprocess))
-Gemini Bridge running on http://localhost:3101 (SSE mode)
 ```
-
-If you see a warning about authentication:
-
-- Set `GEMINI_API_KEY` in the shell before `docker compose up`, or
-- Run `npm run auth` on the host to set up OAuth credentials
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---------|-----|
-| **"not authenticated"** | Run `npm run auth` |
+| **"not authenticated"** | Set `GEMINI_API_KEY` in `.env` or run `npm run auth` |
 | **"command not found"** | Run `cd .collective/gemini-bridge && npm install` |
-| **Timeout errors** | Gemini typically 2-5s. Check network connection |
-| **Rate limit errors** | Free tier: 60 req/min, 1000 req/day. Wait or upgrade |
+| **Timeout errors** | Check network connection. Gemini typically responds in 2-5s |
+| **Rate limit errors** | Free tier: 60 req/min. Wait a minute or check daily limit |
+| **Docker auth issues** | Run `npm run auth` on host, then restart container |
 
 ## See Also
 

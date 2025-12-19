@@ -2,6 +2,20 @@
 
 Production-grade semantic memory for the_collective, featuring a two-stage **Retriever-Reranker** pipeline.
 
+## Quick Start
+
+```bash
+cd .collective/memory-server
+npm install
+npm run build
+npm test
+
+# Optional: Pre-load core memories about the_collective
+npm run bootstrap
+```
+
+**Models auto-download on first use** (~50MB). All inference runs locally via ONNX Runtime.
+
 ## Why Retriever-Reranker?
 
 Most RAG implementations use naive vector similarity:
@@ -71,6 +85,60 @@ The cross-encoder sees the query and document _together_, allowing it to underst
 | Interface     | Model Context Protocol        | VS Code integration          |
 
 All models run locally via `@huggingface/transformers` with ONNX Runtime (no external API calls).
+
+## Usage
+
+### Available Tools
+
+**`store_memory`** — Save content with metadata
+
+```typescript
+store_memory({
+  content: "User prefers TypeScript over JavaScript",
+  memory_type: "conversation",  // conversation | code | decision | context
+  importance: 0.8,               // 0.0 - 1.0
+  tags: ["preference", "typescript"]
+})
+```
+
+**`search_memories`** — Semantic search with optional reranking
+
+```typescript
+// Precise search (default - uses reranker)
+search_memories({
+  query: "What languages does the user prefer?",
+  limit: 5,
+  use_reranker: true,           // High precision (default)
+  min_similarity: 0.7,           // Bi-encoder threshold
+  retrieval_multiplier: 3        // Retrieve 15 candidates, rerank to 5
+})
+
+// Fast search (skip reranker)
+search_memories({
+  query: "recent architecture decisions",
+  limit: 10,
+  use_reranker: false,           // Speed over precision
+  memory_type: "decision"        // Filter by type
+})
+```
+
+**`get_recent_memories`** — Retrieve by recency
+
+```typescript
+get_recent_memories({
+  limit: 20,
+  memory_type: "conversation",
+  min_importance: 0.5
+})
+```
+
+**`delete_memory`** — Remove by ID
+
+```typescript
+delete_memory({
+  memory_id: "uuid-here"
+})
+```
 
 ## Schema Design
 

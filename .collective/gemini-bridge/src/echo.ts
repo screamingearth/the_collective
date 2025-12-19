@@ -79,7 +79,7 @@ export class Echo {
     this.defaultOptions = {
       timeout: 120000, // 2 minutes default
       outputFormat: "json",
-      model: "gemini-2.5-flash", // Flash-only for all tasks (optimal speed/capability)
+      model: "gemini-3-flash-preview", // gemini-3-flash with fallback to 2.5-flash
       ...options,
     };
   }

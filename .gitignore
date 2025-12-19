@@ -3,6 +3,7 @@
 # See SECURITY.md for handling secrets properly
 .env
 .env.*
+!.env.example
 .env.local
 .env.*.local
 *.key

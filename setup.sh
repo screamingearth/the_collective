@@ -1190,7 +1190,7 @@ setup_gemini_optional() {
         info "Validating API key..."
         if command -v curl &> /dev/null; then
             HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-                -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$API_KEY" \
+                -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=$API_KEY" \
                 -H "Content-Type: application/json" \
                 -d '{"contents":[{"parts":[{"text":"Hi"}]}]}' \
                 --connect-timeout 10 --max-time 30 2>/dev/null)

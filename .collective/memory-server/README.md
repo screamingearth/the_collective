@@ -6,42 +6,76 @@ Licensed under Mozilla Public License 2.0 (MPL 2.0)
 
 See LICENSE file in this directory for full terms.
 
+---
+
 # memory-server
 
-semantic memory for the_collective with retriever-reranker pipeline.
+Semantic memory with production-grade retriever-reranker pipeline.
 
-## quick start
+## What is this?
+
+Persistent memory for >the_collective that actually remembers important context. Uses two-stage search: fast bi-encoder finds candidates, precise cross-encoder ranks them.
+
+**All local.** No API calls, models run on your machine (~50MB download first time).
+
+## Quick Start
 
 ```bash
-npm install      # install dependencies
-npm run build    # compile TypeScript
-npm run test     # verify everything works
-npm start        # start MCP server
+# 1. Install
+npm install
+
+# 2. Build & test
+npm run build
+npm test
+
+# 3. Bootstrap (optional - pre-loads core memories)
+npm run bootstrap
 ```
 
-## what it does
+## Available Tools
 
-two-stage search: fast bi-encoder retrieval → precise cross-encoder reranking.
-
-all models run locally. no API calls. first run downloads ~50MB of weights.
-
-## api
-
-| tool | purpose |
+| Tool | Purpose |
 |------|---------|
-| `store_memory` | save content with type, importance, tags |
-| `search_memories` | semantic search with optional reranking |
-| `get_recent_memories` | retrieve by recency |
-| `delete_memory` | remove by id |
+| `store_memory` | Save content with type, importance, tags |
+| `search_memories` | Semantic search (with optional reranking) |
+| `get_recent_memories` | Retrieve by recency |
+| `delete_memory` | Remove by ID |
 
-## development
+## Quick Examples
 
-```bash
-npm run lint       # check code style
-npm run format     # auto-format
-npm run validate   # full check
+```typescript
+// Store a memory
+store_memory({
+  content: "User prefers TypeScript over JavaScript",
+  memory_type: "conversation",
+  importance: 0.8,
+  tags: ["preference", "typescript"]
+})
+
+// Search with reranking (default)
+search_memories({
+  query: "What languages does the user like?",
+  limit: 5,
+  use_reranker: true  // Precise results
+})
+
+// Fast search without reranking
+search_memories({
+  query: "recent decisions",
+  limit: 10,
+  use_reranker: false  // Speed over precision
+})
 ```
 
-## docs
+## Troubleshooting
 
-see [MEMORY_ARCHITECTURE.md](../docs/MEMORY_ARCHITECTURE.md) for schema, query patterns, and technical details.
+| Problem | Fix |
+|---------|-----|
+| Models not downloading | Check network; ~50MB download on first run |
+| Out of memory | Reduce `retrieval_multiplier` in search options |
+| Slow queries | Set `use_reranker: false` for speed over precision |
+
+## More Info
+
+- **Architecture deep-dive:** [docs/MEMORY_ARCHITECTURE.md](../../docs/MEMORY_ARCHITECTURE.md)
+- **Schema & queries:** [docs/MEMORY_ARCHITECTURE.md#schema-design](../../docs/MEMORY_ARCHITECTURE.md#schema-design)

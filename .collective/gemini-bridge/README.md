@@ -6,104 +6,74 @@ Licensed under Mozilla Public License 2.0 (MPL 2.0)
 
 See LICENSE file in this directory for full terms.
 
+---
+
 # gemini-bridge
 
-MCP server providing Google Gemini integration for >the_collective.
+MCP server providing Google Gemini research tools for >the_collective.
 
-See [docs/GEMINI_BRIDGE.md](../docs/GEMINI_BRIDGE.md) for full documentation.
+## What is this?
 
-## quick start
+Gives the AI team access to Google's Gemini for research, code review, and second opinions. Different AI model = catches blind spots.
+
+## Quick Start
 
 ```bash
-# install dependencies
+# 1. Install
 npm install
 
-# authenticate with google (opens browser)
-npm run auth
+# 2. Authenticate (pick one)
+cp .env.example .env   # Add your API key (recommended)
+npm run auth           # Or use browser OAuth
 
-# build
+# 3. Build & test
 npm run build
-
-# test
 npm test
 ```
 
-## what is this?
+## Get an API Key (Recommended)
 
-gemini-bridge provides **gemini research tools** for >the_collective via MCP server. These tools give the core team access to Google's Gemini (via CLI) for research, code analysis, and validation.
+1. Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+2. Sign in with Google
+3. Click "Create API Key"
+4. Copy to `.env`:
 
-**Key benefits:**
-- Different AI model = cognitive diversity
-- 128k token context window (free tier)
-- Google Search grounding for current information
-- Independent validation perspective
-
-## available tools
-
-### `mcp_gemini_query`
-General research, documentation lookup, best practices
-
-```typescript
-// Example invocation
-mcp_gemini_query({
-  prompt: "Best practices for JWT authentication in Node.js 2024",
-  context: "Building a SaaS auth system"
-})
+```bash
+cp .env.example .env
+# Edit .env: GEMINI_API_KEY=AIza...your-key
 ```
 
-### `mcp_gemini_analyze_code`
-Code review, explanation, issue identification
+**Free tier:** 60 req/min, 1500 req/day, no credit card needed.
 
-```typescript
-// Example invocation
-mcp_gemini_analyze_code({
-  code: "const token = jwt.sign({userId}, secret);",
-  question: "Any security issues?",
-  language: "javascript"
-})
+## Available Tools
+
+| Tool | Purpose |
+|------|---------|
+| `mcp_gemini_query` | Research, docs, best practices |
+| `mcp_gemini_analyze_code` | Code review, security analysis |
+| `mcp_gemini_validate` | Second opinions on proposals |
+
+## Switching from OAuth to API Key
+
+Already using OAuth but want faster responses? Add an API key:
+
+```bash
+cp .env.example .env
+# Edit .env: GEMINI_API_KEY=AIza...your-key
+# Restart Docker: docker compose restart gemini-bridge
 ```
 
-### `mcp_gemini_validate`
-Second opinion on proposals, approaches, decisions
+API key is checked first (fast), OAuth is fallback (slower).
 
-```typescript
-// Example invocation
-mcp_gemini_validate({
-  proposal: "Use MongoDB for auth data",
-  context: "SaaS with 1000s of users",
-  criteria: "Security and data integrity"
-})
-```
+## Troubleshooting
 
-## authentication
+| Problem | Fix |
+|---------|-----|
+| "not authenticated" | Add API key to `.env` or run `npm run auth` |
+| Timeout errors | Check network; Gemini typically responds in 2-5s |
+| Rate limit | Free tier: 60/min. Wait and retry |
 
-Free tier requires only a Google account:
+## More Info
 
-- 60 requests/minute
-- 1,000 requests/day
-- 128k token context window
-- No API key or credit card required
-
-Run `npm run auth` and sign in via browser.
-
-## model
-
-| Model | Speed | Use Case |
-|-------|-------|----------|
-| `gemini-2.5-flash` | **Fast** (~2-5s) | All tasks - research, validation, analysis |
-
-All tools use `gemini-2.5-flash` for optimal speed/capability balance.
-
-## usage in >the_collective
-
-The core team (Nyx, Prometheus, Cassandra, Apollo) invokes these tools when they need:
-- **External research** - documentation, best practices, current approaches
-- **Code analysis** - review from a different model's perspective
-- **Second opinions** - independent validation of proposals
-- **Alternative perspectives** - cognitive diversity from different AI
-
-These are **tools**, not a separate agent. The team uses them like they use `fetch_webpage` or `mcp_github_search_code`.
-
-## system instructions
-
-Gemini receives instructions from [GEMINI.md](../GEMINI.md) which defines its role as a research assistant for >the_collective.
+- **Full documentation:** [docs/GEMINI_BRIDGE.md](../../docs/GEMINI_BRIDGE.md)
+- **System instructions:** [GEMINI.md](../../GEMINI.md)

@@ -57,7 +57,7 @@ Technology moves fast. The patterns in a codebase might be outdated. The "right"
 
 ## Gemini Research Tools
 
-**Gemini integration via MCP tools.** These tools provide access to Google's Gemini (gemini-2.5-flash) for research, code analysis, and validation. Gemini is a **different AI model** - this provides cognitive diversity.
+**Gemini integration via MCP tools.** These tools provide access to Google's Gemini (gemini-3-flash-preview) for research, code analysis, and validation. Gemini is a **different AI model** - this provides cognitive diversity.
 
 ### Available Tools
 
@@ -92,7 +92,7 @@ Technology moves fast. The patterns in a codebase might be outdated. The "right"
 
 ### Tool Specifications
 
-- **Model:** gemini-2.5-flash (128k context)
+- **Model:** gemini-3-flash-preview (128k context)
 - **Speed:** 2-5 seconds typical response (with API key), 10-20s (OAuth subprocess)
 - **Free tier:** 60 req/min, 1000 req/day
 - **Auth:** API key (get free at aistudio.google.com/apikey) OR Google account OAuth
