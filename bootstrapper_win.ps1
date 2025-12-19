@@ -406,16 +406,23 @@ try {
                 if ($nodeModulesExist) {
                     Log-Message ""
                     Log-Message "Previous installation detected." "Cyan"
-                    Log-Message "If you're having issues, cleaning node_modules may help." "Cyan"
-                    $cleanChoice = Read-Host "Clean node_modules for fresh install? [y/N]"
-                    if ($cleanChoice -eq "y" -or $cleanChoice -eq "Y") {
-                        Log-Message "Cleaning node_modules..."
-                        Show-Progress "Removing old dependencies"
-                        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "node_modules"
-                        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue ".collective/memory-server/node_modules"
-                        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue ".collective/gemini-bridge/node_modules"
-                        Log-Success "Old dependencies removed"
-                    }
+                    Log-Message "Cleaning old dependencies for fresh install..." "Cyan"
+                    Show-Progress "Removing old dependencies"
+                    
+                    # Remove node_modules
+                    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "node_modules"
+                    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue ".collective/memory-server/node_modules"
+                    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue ".collective/gemini-bridge/node_modules"
+                    
+                    # Remove package-lock.json files to force fresh dependency resolution
+                    Remove-Item -Force -ErrorAction SilentlyContinue "package-lock.json"
+                    Remove-Item -Force -ErrorAction SilentlyContinue ".collective/memory-server/package-lock.json"
+                    Remove-Item -Force -ErrorAction SilentlyContinue ".collective/gemini-bridge/package-lock.json"
+                    
+                    # Clear npm cache
+                    npm cache clean --force 2>&1 | Out-Null
+                    
+                    Log-Success "Old dependencies removed - will install fresh"
                 }
             } else {
                 Log-Message "Directory exists but is not a valid git repository." "Yellow"
