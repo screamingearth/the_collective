@@ -48,23 +48,33 @@ Common issues and solutions when installing or running >the_collective.
 
 #### Native module installation fails
 
-**Cause:** Network issues or unsupported Node.js version.
+**Cause:** Network issues, unsupported Node.js version, or missing system dependencies.
 
 **Solutions:**
 
-1. **Use Node.js LTS (v20 or v22):** Prebuilt binaries are only available for LTS versions.
+1. **Windows - Install Visual C++ Redistributable:**
+   
+   Native modules like `onnxruntime-node` require the Visual C++ runtime libraries. The bootstrapper installs this automatically, but if you installed manually:
+   
+   ```powershell
+   winget install --id Microsoft.VCRedist.2015+.x64 -e
+   ```
+   
+   Or download directly from: [aka.ms/vs/17/release/vc_redist.x64.exe](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+
+2. **Use Node.js LTS (v20 or v22):** Prebuilt binaries are only available for LTS versions.
    ```bash
    node -v  # Should show v20.x or v22.x
    ```
 
-2. **Clear npm cache and retry:**
+3. **Clear npm cache and retry:**
    ```bash
    npm cache clean --force
    rm -rf node_modules .collective/*/node_modules
    ./setup.sh
    ```
 
-3. **Check for errors in setup.log:**
+4. **Check for errors in setup.log:**
    ```bash
    cat .collective/.logs/setup.log
    ```

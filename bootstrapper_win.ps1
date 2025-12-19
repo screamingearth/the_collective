@@ -139,10 +139,57 @@ try {
     }
     
     # ══════════════════════════════════════════════════════════════════════════
-    # [3/5] Install Node.js LTS (v22)
+    # [3/6] Install Visual C++ Redistributable (required for native modules)
     # ══════════════════════════════════════════════════════════════════════════
     Log-Message ""
-    Log-Message "[3/5] Installing Node.js" "White"
+    Log-Message "[3/6] Installing Visual C++ Redistributable" "White"
+    Log-Message "────────────────────────────────────────" "DarkGray"
+    
+    # Check for VC++ Redistributable via multiple methods
+    $vcRedistFound = $false
+    
+    # Method 1: Registry check (VS 14.0+ / 2015+)
+    $regPaths = @(
+        "HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X64",
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\14.0\VC\Runtimes\X64"
+    )
+    foreach ($regPath in $regPaths) {
+        $vcRedist = Get-ItemProperty $regPath -ErrorAction SilentlyContinue
+        if ($vcRedist -and $vcRedist.Installed -eq 1) {
+            $vcRedistFound = $true
+            break
+        }
+    }
+    
+    # Method 2: Check installed programs
+    if (-not $vcRedistFound) {
+        $vcRedistPackages = Get-AppxPackage | Where-Object { $_.Name -like "*VCLibs*" -or $_.Name -like "*VCRedist*" }
+        if ($vcRedistPackages) {
+            $vcRedistFound = $true
+        }
+    }
+    
+    if ($vcRedistFound) {
+        Log-Success "Visual C++ Redistributable already installed"
+    } else {
+        Log-Message "Installing Visual C++ Redistributable (required for onnxruntime-node)..."
+        Show-Progress "Downloading and installing VC++ Redistributable"
+        try {
+            winget install --id Microsoft.VCRedist.2015+.x64 -e --accept-package-agreements --accept-source-agreements --silent 2>&1 | Out-Null
+            Log-Success "Visual C++ Redistributable installed"
+        } catch {
+            Log-Message "Failed to install VC++ Redistributable automatically" "Yellow"
+            Log-Message "If native module errors occur, manually install from:" "Yellow"
+            Log-Message "  https://aka.ms/vs/17/release/vc_redist.x64.exe" "Yellow"
+            # Don't exit - continue and handle native module errors later if they occur
+        }
+    }
+    
+    # ══════════════════════════════════════════════════════════════════════════
+    # [4/6] Install Node.js LTS (v22)
+    # ══════════════════════════════════════════════════════════════════════════
+    Log-Message ""
+    Log-Message "[4/6] Installing Node.js" "White"
     Log-Message "────────────────────────────────────────" "DarkGray"
     
     $nodeOK = $false
@@ -279,10 +326,10 @@ try {
     }
     
     # ══════════════════════════════════════════════════════════════════════════
-    # [4/5] Install VS Code
+    # [5/6] Install VS Code
     # ══════════════════════════════════════════════════════════════════════════
     Log-Message ""
-    Log-Message "[4/5] Installing VS Code" "White"
+    Log-Message "[5/6] Installing Visual Studio Code" "White"
     Log-Message "────────────────────────────────────────" "DarkGray"
     
     if (Get-Command code -ErrorAction SilentlyContinue) {
@@ -319,10 +366,10 @@ try {
     }
     
     # ══════════════════════════════════════════════════════════════════════════
-    # [5/5] Clone Repository & Run Setup
+    # [6/6] Clone Repository & Run Setup
     # ══════════════════════════════════════════════════════════════════════════
     Log-Message ""
-    Log-Message "[5/5] Setting up >the_collective" "White"
+    Log-Message "[6/6] Setting up >the_collective" "White"
     Log-Message "────────────────────────────────────────" "DarkGray"
     
     # Check for running node processes that might lock files
