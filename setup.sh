@@ -545,6 +545,38 @@ check_running_processes() {
     fi
 }
 
+show_native_module_help() {
+    # Show platform-specific help for native module failures
+    echo ""
+    if [[ "$IS_WINDOWS" -eq 1 ]]; then
+        warn "WINDOWS: Prebuilt binary not found for your Node.js version"
+        echo ""
+        info "Ensure you're using Node.js LTS (v20 or v22):"
+        info "  node -v"
+        echo ""
+        info "If using an unsupported version, install LTS:"
+        info "  winget install --id OpenJS.NodeJS.LTS"
+        echo ""
+    elif [[ "$OS" == "macos" ]]; then
+        error "MACOS: Native module failed"
+        echo ""
+        info "Install Xcode Command Line Tools:"
+        info "  xcode-select --install"
+        echo ""
+    elif [[ "$OS" == "debian" ]]; then
+        error "LINUX: Native module failed"
+        echo ""
+        info "Install build tools:"
+        info "  sudo apt update && sudo apt install -y build-essential python3"
+        echo ""
+    else
+        error "UNIX: Native module failed"
+        echo ""
+        info "Install gcc, make, and python3 for your system"
+        echo ""
+    fi
+}
+
 # -----------------------------------------------------------------------------
 # Node.js Management
 # -----------------------------------------------------------------------------
@@ -1026,40 +1058,48 @@ bootstrap_memories() {
         exit 1
     }
     
-    # Pre-flight: Check if DuckDB native module was compiled successfully
-    # If npm rebuild failed, this will catch it immediately
+    # Pre-flight: Check if native modules are available
+    # DuckDB for vector storage, onnxruntime-node for embeddings
     info "Verifying native modules are available..."
-    if ! node -e "require.resolve('better-sqlite3')" 2>/dev/null; then
+    
+    # Check DuckDB
+    if ! node -e "require.resolve('duckdb')" 2>/dev/null; then
         error "═══════════════════════════════════════════════════════════"
-        error "Native module (better-sqlite3/DuckDB) is not available!"
+        error "Native module (DuckDB) is not available!"
+        error "═══════════════════════════════════════════════════════════"
+        show_native_module_help
+        cd ../.. > /dev/null 2>&1
+        exit 1
+    fi
+    
+    # Check onnxruntime-node (required by @xenova/transformers for embeddings)
+    if ! node -e "require('onnxruntime-node')" 2>/dev/null; then
+        error "═══════════════════════════════════════════════════════════"
+        error "Native module (onnxruntime-node) is not available!"
         error "═══════════════════════════════════════════════════════════"
         echo ""
         
         if [[ "$IS_WINDOWS" -eq 1 ]]; then
-            error "WINDOWS: Prebuilt binary not found for your Node.js version"
+            warn "WINDOWS: This usually means Visual C++ Redistributable is missing"
             echo ""
-            info "Ensure you're using Node.js LTS (v20 or v22):"
-            info "  node -v"
+            info "Install Visual C++ Redistributable:"
+            info "  winget install --id Microsoft.VCRedist.2015+.x64"
             echo ""
-            info "If using an unsupported version, install LTS:"
-            info "  winget install --id OpenJS.NodeJS.LTS"
+            info "Or download directly:"
+            info "  https://aka.ms/vs/17/release/vc_redist.x64.exe"
+            echo ""
+            info "After installing, clean and retry:"
+            info "  rm -rf node_modules"
+            info "  npm install"
             echo ""
         else
-            error "UNIX/MAC: Prebuilt binary not found"
-            echo ""
-            if [[ "$OS" == "macos" ]]; then
-                error "Run: xcode-select --install"
-            elif [[ "$OS" == "debian" ]]; then
-                error "Run: sudo apt update && sudo apt install -y build-essential python3"
-            else
-                error "Install gcc, make, and python3 for your system"
-            fi
-            echo ""
+            show_native_module_help
         fi
         
         cd ../.. > /dev/null 2>&1
         exit 1
     fi
+    
     success "Native modules verified"
     
     # Try bootstrap with better error handling for native module issues

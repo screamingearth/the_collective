@@ -504,6 +504,20 @@ if [ -d "$INSTALL_DIR" ]; then
         else
             warn "Failed to update repository. Continuing with existing local version..."
         fi
+        
+        # Check for previous failed installs - offer to clean
+        if [ -d "node_modules" ] || [ -d ".collective/memory-server/node_modules" ]; then
+            echo ""
+            log "Previous installation detected."
+            log "If you're having issues, cleaning node_modules may help."
+            printf "Clean node_modules for fresh install? [y/N] "
+            read -r clean_choice
+            if [[ "$clean_choice" == "y" || "$clean_choice" == "Y" ]]; then
+                log "Cleaning node_modules..."
+                rm -rf node_modules .collective/memory-server/node_modules .collective/gemini-bridge/node_modules 2>/dev/null
+                success "Old dependencies removed"
+            fi
+        fi
     else
         warn "Directory exists but is not a valid git repository."
         log "Moving existing directory to backup and re-cloning..."

@@ -245,7 +245,8 @@ async function executeViaSubprocess(
   timeout: number
 ): Promise<{ success: boolean; response?: string; error?: string }> {
   try {
-    const args = ["-m", DEFAULT_MODEL, "-o", "json", prompt];
+    // gemini-cli flags: -m for model, -p for prompt (non-interactive mode)
+    const args = ["-m", DEFAULT_MODEL, "-p", prompt];
     const result = await spawnGemini(args, { timeout });
 
     if (result.exitCode !== 0) {

@@ -208,13 +208,13 @@ try {
             # Check if nvm is already installed
             $nvmInstalled = Get-Command nvm -ErrorAction SilentlyContinue
             if ($nvmInstalled) {
-                Log-Message "nvm detected! Installing Node.js v22..." "Cyan"
+                Log-Message "nvm detected! Installing Node.js v20 (best native module support)..." "Cyan"
                 try {
-                    nvm install 22
-                    nvm use 22
+                    nvm install 20
+                    nvm use 20
                     Refresh-Path
                     $newVersion = node -v
-                    if ($newVersion -match "v22") {
+                    if ($newVersion -match "v20") {
                         Log-Success "Switched to Node.js $newVersion via nvm"
                         $nodeOK = $true
                     }
@@ -250,8 +250,8 @@ try {
                         Log-Message "⚠️  IMPORTANT: You need to restart your terminal for nvm to work." "Yellow"
                         Log-Message ""
                         Log-Message "After restarting, run these commands:" "White"
-                        Log-Message "  nvm install 22" "Cyan"
-                        Log-Message "  nvm use 22" "Cyan"
+                        Log-Message "  nvm install 20" "Cyan"
+                        Log-Message "  nvm use 20" "Cyan"
                         Log-Message "  cd ~/Documents/the_collective" "Cyan"
                         Log-Message "  ./setup.sh" "Cyan"
                         Log-Message ""
@@ -269,7 +269,7 @@ try {
                     Log-Message ""
                     Log-Message "Continuing with Node.js $nodeVersion..." "Yellow"
                     Log-Message "⚠️  Native modules may fail to load. You can fix this later with:" "Yellow"
-                    Log-Message "   nvm install 22 && nvm use 22 && ./setup.sh" "Gray"
+                    Log-Message "   nvm install 20 && nvm use 20 && ./setup.sh" "Gray"
                     Log-Message ""
                     $nodeOK = $true  # Let them try, they were warned
                 }
@@ -284,11 +284,11 @@ try {
             $nodeOK = $true
         }
     } else {
-        Log-Message "Installing Node.js v22 (LTS) via winget..."
-        Show-Progress "Downloading and installing Node.js v22"
+        Log-Message "Installing Node.js v20 (LTS - best native module support) via winget..."
+        Show-Progress "Downloading and installing Node.js v20"
         try {
-            # Install v22 specifically, not generic LTS (which may be misconfigured)
-            winget install --id OpenJS.NodeJS --version 22.16.0 -e --accept-package-agreements --accept-source-agreements --silent 2>&1 | Out-Null
+            # Install v20 LTS specifically - best native module support for onnxruntime/DuckDB
+            winget install --id OpenJS.NodeJS.LTS --version 20.19.2 -e --accept-package-agreements --accept-source-agreements --silent 2>&1 | Out-Null
             Refresh-Path
             
             # Add common Node.js paths
@@ -319,7 +319,7 @@ try {
             }
         } catch {
             Log-Error "Failed to install Node.js: $_"
-            Log-Message "Manual install: https://nodejs.org (choose v22 LTS)" "Yellow"
+            Log-Message "Manual install: https://nodejs.org (choose v20 LTS)" "Yellow"
             Pause
             exit 1
         }
@@ -400,6 +400,23 @@ try {
                 Log-Message "Valid repository found. Pulling latest changes..."
                 git pull origin main 2>&1 | Out-Null
                 Log-Success "Repository updated"
+                
+                # Check for previous failed installs - offer to clean
+                $nodeModulesExist = (Test-Path "node_modules") -or (Test-Path ".collective/memory-server/node_modules")
+                if ($nodeModulesExist) {
+                    Log-Message ""
+                    Log-Message "Previous installation detected." "Cyan"
+                    Log-Message "If you're having issues, cleaning node_modules may help." "Cyan"
+                    $cleanChoice = Read-Host "Clean node_modules for fresh install? [y/N]"
+                    if ($cleanChoice -eq "y" -or $cleanChoice -eq "Y") {
+                        Log-Message "Cleaning node_modules..."
+                        Show-Progress "Removing old dependencies"
+                        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "node_modules"
+                        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue ".collective/memory-server/node_modules"
+                        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue ".collective/gemini-bridge/node_modules"
+                        Log-Success "Old dependencies removed"
+                    }
+                }
             } else {
                 Log-Message "Directory exists but is not a valid git repository." "Yellow"
                 $BackupDir = "${InstallDir}_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
