@@ -27,7 +27,8 @@
   "overrides": {
     "node-gyp": "^11.0.0",
     "glob": "^11.0.0",
-    "rimraf": "^6.0.0"
+    "rimraf": "^6.0.0",
+    "@npmcli/move-file": "npm:@npmcli/fs@^4.0.0"
   },
   "author": "screamingearth",
   "license": "MPL-2.0",

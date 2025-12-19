@@ -38,6 +38,12 @@ function Refresh-Path {
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 }
 
+function Show-Progress {
+    param([string]$Activity)
+    Write-Host "   ⏳ " -NoNewline -ForegroundColor Yellow
+    Write-Host "$Activity (this may take a minute)..." -ForegroundColor Gray
+}
+
 function Test-Winget {
     return (Get-Command winget -ErrorAction SilentlyContinue) -ne $null
 }
@@ -102,6 +108,7 @@ try {
         Log-Success "Git already installed: $(git --version)"
     } else {
         Log-Message "Installing Git via winget..."
+        Show-Progress "Downloading and installing Git"
         try {
             winget install --id Git.Git -e --accept-package-agreements --accept-source-agreements --silent 2>&1 | Out-Null
             Refresh-Path
@@ -132,27 +139,109 @@ try {
     }
     
     # ══════════════════════════════════════════════════════════════════════════
-    # [3/5] Install Node.js LTS
+    # [3/5] Install Node.js LTS (v22)
     # ══════════════════════════════════════════════════════════════════════════
     Log-Message ""
     Log-Message "[3/5] Installing Node.js" "White"
     Log-Message "────────────────────────────────────────" "DarkGray"
     
+    $nodeOK = $false
     $nodeInstalled = Get-Command node -ErrorAction SilentlyContinue
     if ($nodeInstalled) {
         $nodeVersion = node -v
         Log-Success "Node.js already installed: $nodeVersion"
         
-        # Check for unsupported versions (v23+ lack prebuilt binaries for some native modules)
-        if ($nodeVersion -match "v2[3-9]") {
-            Log-Message "Node.js $nodeVersion may lack prebuilt binaries for some packages." "Yellow"
-            Log-Message "Recommended: Use Node.js v22 (LTS) for best compatibility." "Yellow"
-            Log-Message "You can switch with: nvm install 22 && nvm use 22" "Gray"
+        # Check for unsupported versions (v23+ lack prebuilt binaries for native modules)
+        if ($nodeVersion -match "v2[3-9]|v[3-9][0-9]") {
+            Log-Message ""
+            Log-Message "⚠️  Node.js $nodeVersion is not supported!" "Yellow"
+            Log-Message "   Native modules (onnxruntime, DuckDB) require Node.js v20 or v22 (LTS)." "Yellow"
+            Log-Message ""
+            
+            # Check if nvm is already installed
+            $nvmInstalled = Get-Command nvm -ErrorAction SilentlyContinue
+            if ($nvmInstalled) {
+                Log-Message "nvm detected! Installing Node.js v22..." "Cyan"
+                try {
+                    nvm install 22
+                    nvm use 22
+                    Refresh-Path
+                    $newVersion = node -v
+                    if ($newVersion -match "v22") {
+                        Log-Success "Switched to Node.js $newVersion via nvm"
+                        $nodeOK = $true
+                    }
+                } catch {
+                    Log-Error "Failed to switch Node.js version via nvm: $_"
+                }
+            } else {
+                # Offer to install nvm-windows
+                Log-Message "You have multiple options:" "White"
+                Log-Message ""
+                Log-Message "  [1] Install nvm-windows (recommended for developers)" "Cyan"
+                Log-Message "      Lets you switch between Node.js versions for different projects" "Gray"
+                Log-Message ""
+                Log-Message "  [2] Skip and continue anyway" "Cyan"
+                Log-Message "      May cause native module errors - not recommended" "Gray"
+                Log-Message ""
+                
+                $choice = Read-Host "Enter choice (1 or 2)"
+                
+                if ($choice -eq "1") {
+                    Log-Message ""
+                    Log-Message "Installing nvm-windows..." "Cyan"
+                    Show-Progress "Downloading and installing nvm-windows"
+                    
+                    try {
+                        winget install --id CoreyButler.NVMforWindows -e --accept-package-agreements --accept-source-agreements --silent 2>&1 | Out-Null
+                        Refresh-Path
+                        
+                        # nvm-windows requires a new terminal session to work
+                        Log-Message ""
+                        Log-Success "nvm-windows installed!"
+                        Log-Message ""
+                        Log-Message "⚠️  IMPORTANT: You need to restart your terminal for nvm to work." "Yellow"
+                        Log-Message ""
+                        Log-Message "After restarting, run these commands:" "White"
+                        Log-Message "  nvm install 22" "Cyan"
+                        Log-Message "  nvm use 22" "Cyan"
+                        Log-Message "  cd ~/Documents/the_collective" "Cyan"
+                        Log-Message "  ./setup.sh" "Cyan"
+                        Log-Message ""
+                        Log-Message "Or re-run this bootstrapper after restarting your terminal." "Gray"
+                        Log-Message ""
+                        Pause
+                        exit 0
+                    } catch {
+                        Log-Error "Failed to install nvm-windows: $_"
+                        Log-Message "Manual install: https://github.com/coreybutler/nvm-windows/releases" "Yellow"
+                        Pause
+                        exit 1
+                    }
+                } else {
+                    Log-Message ""
+                    Log-Message "Continuing with Node.js $nodeVersion..." "Yellow"
+                    Log-Message "⚠️  Native modules may fail to load. You can fix this later with:" "Yellow"
+                    Log-Message "   nvm install 22 && nvm use 22 && ./setup.sh" "Gray"
+                    Log-Message ""
+                    $nodeOK = $true  # Let them try, they were warned
+                }
+            }
+        } else {
+            # Node version is supported (v20, v21, v22) - ensure npm is up to date
+            Log-Message "Updating npm to latest version..."
+            npm install -g npm@latest 2>&1 | Out-Null
+            Refresh-Path
+            $npmVersion = npm -v
+            Log-Success "npm updated: v$npmVersion"
+            $nodeOK = $true
         }
     } else {
-        Log-Message "Installing Node.js LTS via winget..."
+        Log-Message "Installing Node.js v22 (LTS) via winget..."
+        Show-Progress "Downloading and installing Node.js v22"
         try {
-            winget install --id OpenJS.NodeJS.LTS -e --accept-package-agreements --accept-source-agreements --silent 2>&1 | Out-Null
+            # Install v22 specifically, not generic LTS (which may be misconfigured)
+            winget install --id OpenJS.NodeJS --version 22.16.0 -e --accept-package-agreements --accept-source-agreements --silent 2>&1 | Out-Null
             Refresh-Path
             
             # Add common Node.js paths
@@ -170,12 +259,20 @@ try {
             if (Get-Command node -ErrorAction SilentlyContinue) {
                 $nodeVersion = node -v
                 Log-Success "Node.js installed successfully: $nodeVersion"
+                $nodeOK = $true
+                
+                # Update npm to latest to avoid deprecated internal package warnings
+                Log-Message "Updating npm to latest version..."
+                npm install -g npm@latest 2>&1 | Out-Null
+                Refresh-Path
+                $npmVersion = npm -v
+                Log-Success "npm updated: v$npmVersion"
             } else {
                 throw "Node.js installed but not in PATH. Please restart your terminal and try again."
             }
         } catch {
             Log-Error "Failed to install Node.js: $_"
-            Log-Message "Manual install: https://nodejs.org" "Yellow"
+            Log-Message "Manual install: https://nodejs.org (choose v22 LTS)" "Yellow"
             Pause
             exit 1
         }
@@ -192,6 +289,7 @@ try {
         Log-Success "VS Code already installed"
     } else {
         Log-Message "Installing VS Code via winget..."
+        Show-Progress "Downloading and installing VS Code"
         try {
             winget install --id Microsoft.VisualStudioCode -e --accept-package-agreements --accept-source-agreements --silent 2>&1 | Out-Null
             Refresh-Path
@@ -286,6 +384,7 @@ try {
     Log-Message ""
     Log-Message "Running internal setup script..."
     Log-Message "This will install dependencies and configure the environment"
+    Show-Progress "Installing npm packages and building servers"
     Log-Message ""
     
     if (Test-Path "./setup.sh") {

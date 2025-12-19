@@ -210,10 +210,77 @@ success() { echo -e "${GREEN}✓${NC} $1"; }
 warn()    { echo -e "${YELLOW}⚠${NC} $1"; }
 error()   { echo -e "${RED}✗${NC} $1"; }
 
+# UI CLI wrapper - use Node.js ui-cli.cjs if available, fallback to bash
+# This provides consistent UI across all scripts
+UI_CLI=""
+detect_ui_cli() {
+    if command -v node &> /dev/null; then
+        local script_dir
+        script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        if [[ -f "$script_dir/scripts/ui-cli.cjs" ]]; then
+            UI_CLI="node $script_dir/scripts/ui-cli.cjs"
+        elif [[ -f "./scripts/ui-cli.cjs" ]]; then
+            UI_CLI="node ./scripts/ui-cli.cjs"
+        fi
+    fi
+}
+
+# Spinner for long-running operations
+# Usage: run_with_spinner "message" command arg1 arg2...
+run_with_spinner() {
+    local message="$1"
+    shift
+    
+    # Use Node.js UI if available
+    if [[ -n "$UI_CLI" ]]; then
+        $UI_CLI spinner "$message" -- "$@"
+        return $?
+    fi
+    
+    # Fallback: bash spinner
+    local pid
+    local spin_chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    local i=0
+    
+    # Run command in background
+    "$@" &
+    pid=$!
+    
+    # Show spinner while command runs
+    while kill -0 "$pid" 2>/dev/null; do
+        local char="${spin_chars:$i:1}"
+        printf "\r${CYAN}%s${NC} %s" "$char" "$message"
+        i=$(( (i + 1) % 10 ))
+        sleep 0.1
+    done
+    
+    # Wait for command to finish and get exit code
+    wait "$pid"
+    local exit_code=$?
+    
+    # Clear spinner line
+    printf "\r%*s\r" $((${#message} + 3)) ""
+    
+    return $exit_code
+}
+
+# Simple progress indicator (non-blocking)
+show_progress() {
+    if [[ -n "$UI_CLI" ]]; then
+        $UI_CLI progress "$1"
+    else
+        echo -e "   ${YELLOW}⏳${NC} ${DIM}$1 (this may take a minute)...${NC}"
+    fi
+}
+
 step() {
-    echo ""
-    echo -e "${CYAN}${BOLD}[$1/$2] $3${NC}"
-    echo -e "${DIM}────────────────────────────────────────${NC}"
+    if [[ -n "$UI_CLI" ]]; then
+        $UI_CLI step "$1" "$2" "$3"
+    else
+        echo ""
+        echo -e "${CYAN}${BOLD}[$1/$2] $3${NC}"
+        echo -e "${DIM}────────────────────────────────────────${NC}"
+    fi
 }
 
 setup_logging() {
@@ -1246,6 +1313,9 @@ main() {
     # Set up exit trap now that we're in a valid state with all functions defined
     # Catch EXIT (normal exit), INT (Ctrl+C), and TERM (kill signal)
     trap cleanup_on_exit EXIT INT TERM
+    
+    # Detect enhanced UI early (needs Node.js available)
+    detect_ui_cli
     
     print_banner
     

@@ -12,6 +12,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -346,17 +347,17 @@ async function main(): Promise<void> {
   });
 
   // Detect transport mode from environment
-  const transportMode = process.env.MCP_TRANSPORT?.toLowerCase() || "stdio";
+  const transportMode = process.env.MCP_TRANSPORT?.toLowerCase() ?? "stdio";
 
   if (transportMode === "sse") {
     // SSE mode for Docker deployment using modern StreamableHTTPServerTransport
-    const port = parseInt(process.env.MCP_PORT || "3100", 10);
+    const port = parseInt(process.env.MCP_PORT ?? "3100", 10);
     const app = express();
     const httpServer = http.createServer(app);
 
     // Track active sessions for monitoring
     const activeSessions = new Set<string>();
-    const MAX_ACTIVE_SESSIONS = parseInt(process.env.MAX_SESSIONS || "1000", 10);
+    const MAX_ACTIVE_SESSIONS = parseInt(process.env.MAX_SESSIONS ?? "1000", 10);
 
     // Create transport with proper session management
     const transport = new StreamableHTTPServerTransport({
@@ -397,8 +398,8 @@ async function main(): Promise<void> {
       }
     });
 
-    // Connect server to transport (cast needed due to optional callback types)
-    await server.connect(transport as any);
+    // Connect server to transport
+    await server.connect(transport as Transport);
 
     httpServer.listen(port, () => {
       logger.info(`Collective Memory Server running on http://localhost:${port}/mcp (SSE mode)`);

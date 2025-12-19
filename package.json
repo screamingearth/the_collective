@@ -15,6 +15,7 @@
     "update": "node scripts/update.cjs",
     "rebuild": "node scripts/update.cjs",
     "help": "node scripts/help.cjs",
+    "lint": "npx eslint .",
     "validate": "node scripts/validate.cjs",
     "reset:memories": "node scripts/reset-memories.cjs",
     "postinstall": "patch-package",

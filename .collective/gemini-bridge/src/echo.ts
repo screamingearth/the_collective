@@ -108,7 +108,7 @@ export class Echo {
       : `${ECHO_SYSTEM_PROMPT}\n\n---\n\nUser Request:\n${mergedOptions.prompt}`;
 
     try {
-      const result = await executeGeminiQuery(fullPrompt, mergedOptions.timeout || 120000);
+      const result = await executeGeminiQuery(fullPrompt, mergedOptions.timeout ?? 120000);
       const executionTime = Date.now() - startTime;
 
       if (!result.success) {

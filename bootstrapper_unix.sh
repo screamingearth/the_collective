@@ -33,6 +33,40 @@ warn() {
     echo -e "\033[1;33m⚠ $1\033[0m"
 }
 
+show_progress() {
+    echo -e "   \033[1;33m⏳\033[0m \033[2m$1 (this may take a minute)...\033[0m"
+}
+
+# Spinner for long-running operations
+run_with_spinner() {
+    local message="$1"
+    shift
+    local pid
+    local spin_chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    local i=0
+    
+    # Run command in background
+    "$@" &
+    pid=$!
+    
+    # Show spinner while command runs
+    while kill -0 "$pid" 2>/dev/null; do
+        local char="${spin_chars:$i:1}"
+        printf "\r\033[36m%s\033[0m %s" "$char" "$message"
+        i=$(( (i + 1) % 10 ))
+        sleep 0.1
+    done
+    
+    # Wait for command and get exit code
+    wait "$pid"
+    local exit_code=$?
+    
+    # Clear spinner line
+    printf "\r%*s\r" $((${#message} + 3)) ""
+    
+    return $exit_code
+}
+
 error_handler() {
     echo ""
     error "Installation failed at line $1"
@@ -86,21 +120,21 @@ esac
 
 log "Detected: $OS_NAME ($PKG_MANAGER)"
 
+# Set up sudo if needed (global for all functions)
+SUDO=""
+if [[ $EUID -ne 0 ]]; then
+    if command -v sudo &> /dev/null; then
+        SUDO="sudo"
+    else
+        warn "sudo not found. If package installation fails, please run as root or install sudo."
+    fi
+fi
+
 # Helper: ensure_packages - cross-distro install of small toolset
 ensure_packages() {
     # Usage: ensure_packages pkg1 pkg2 ...
     local pkgs=("$@")
     local pm="$PKG_MANAGER"
-    local SUDO=""
-
-    # Prefer sudo when not root
-    if [[ $EUID -ne 0 ]]; then
-        if command -v sudo &> /dev/null; then
-            SUDO="sudo"
-        else
-            warn "sudo not found. If package installation fails, please run as root or install sudo."
-        fi
-    fi
 
     case "$pm" in
         apt)
@@ -219,12 +253,231 @@ if ! command -v curl &> /dev/null && ! command -v wget &> /dev/null; then
     esac
 fi
 
-# Check for Node.js (setup.sh will install if missing)
-if ! command -v node &> /dev/null; then
-    log "Node.js not found. It will be installed by setup.sh"
-else
-    success "Node.js already installed: $(node --version)"
-fi
+# ══════════════════════════════════════════════════════════════════════════════
+# Install Node.js v22
+# ══════════════════════════════════════════════════════════════════════════════
+
+install_nodejs() {
+    log "Installing Node.js v22 (LTS)..."
+    show_progress "Downloading and installing Node.js"
+    
+    case "$PKG_MANAGER" in
+        brew)
+            # Homebrew - install specific version
+            brew install node@22 || {
+                error "Failed to install Node.js via Homebrew"
+                return 1
+            }
+            # Link it
+            brew link --overwrite node@22 2>/dev/null || true
+            ;;
+        apt)
+            # Use NodeSource for Ubuntu/Debian to get v22
+            curl -fsSL https://deb.nodesource.com/setup_22.x | $SUDO bash - || {
+                error "Failed to add NodeSource repository"
+                return 1
+            }
+            $SUDO apt-get install -y nodejs || {
+                error "Failed to install Node.js"
+                return 1
+            }
+            ;;
+        dnf|yum)
+            # Use NodeSource for Fedora/RHEL
+            curl -fsSL https://rpm.nodesource.com/setup_22.x | $SUDO bash - || {
+                error "Failed to add NodeSource repository"
+                return 1
+            }
+            $SUDO $PKG_MANAGER install -y nodejs || {
+                error "Failed to install Node.js"
+                return 1
+            }
+            ;;
+        pacman)
+            # Arch Linux - nodejs package
+            $SUDO pacman -S --noconfirm nodejs npm || {
+                error "Failed to install Node.js"
+                return 1
+            }
+            ;;
+        *)
+            error "Unknown package manager. Cannot install Node.js automatically."
+            error "Please install Node.js v22 manually: https://nodejs.org"
+            return 1
+            ;;
+    esac
+    
+    return 0
+}
+
+check_and_install_nodejs() {
+    if ! command -v node &> /dev/null; then
+        log "Node.js not found. Installing..."
+        if install_nodejs; then
+            success "Node.js installed: $(node -v)"
+            # Update npm to latest to avoid deprecated internal package warnings
+            log "Updating npm to latest version..."
+            npm install -g npm@latest 2>/dev/null || $SUDO npm install -g npm@latest
+            success "npm updated: v$(npm -v)"
+        else
+            error "Failed to install Node.js"
+            error "Please install Node.js v22 manually: https://nodejs.org"
+            exit 1
+        fi
+    else
+        NODE_VERSION=$(node -v)
+        success "Node.js already installed: $NODE_VERSION"
+        
+        # Check for unsupported versions (v23+ lack prebuilt binaries for native modules)
+        NODE_MAJOR=$(echo "$NODE_VERSION" | sed 's/v//' | cut -d. -f1)
+        if [[ "$NODE_MAJOR" -ge 23 ]]; then
+            echo ""
+            warn "⚠️  Node.js $NODE_VERSION is not supported!"
+            warn "   Native modules (onnxruntime, DuckDB) require Node.js v20 or v22 (LTS)."
+            echo ""
+            
+            # Check if nvm is already available
+            if command -v nvm &> /dev/null || [ -s "$HOME/.nvm/nvm.sh" ]; then
+                # Source nvm if available
+                [ -s "$HOME/.nvm/nvm.sh" ] && source "$HOME/.nvm/nvm.sh"
+                
+                if command -v nvm &> /dev/null; then
+                    log "nvm detected! Installing Node.js v22..."
+                    show_progress "Installing Node.js v22 via nvm"
+                    nvm install 22 && nvm use 22 && nvm alias default 22
+                    success "Switched to Node.js $(node -v)"
+                    return 0
+                fi
+            fi
+            
+            # Offer options
+            log "You have multiple options:"
+            echo ""
+            log "  [1] Install nvm (recommended for developers)"
+            log "      Lets you switch between Node.js versions for different projects"
+            echo ""
+            log "  [2] Continue anyway (may fail)"
+            log "      Native modules will likely fail to load"
+            echo ""
+            
+            read -p "Enter choice (1 or 2): " choice
+            
+            if [[ "$choice" == "1" ]]; then
+                log ""
+                log "Installing nvm..."
+                show_progress "Downloading and installing nvm"
+                
+                # Install nvm
+                curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+                
+                # Source nvm
+                export NVM_DIR="$HOME/.nvm"
+                [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+                
+                if command -v nvm &> /dev/null; then
+                    log "Installing Node.js v22..."
+                    nvm install 22 && nvm use 22 && nvm alias default 22
+                    success "Node.js $(node -v) installed via nvm"
+                else
+                    echo ""
+                    success "nvm installed!"
+                    echo ""
+                    warn "⚠️  IMPORTANT: You need to restart your terminal for nvm to work."
+                    echo ""
+                    log "After restarting, run these commands:"
+                    log "  nvm install 22"
+                    log "  nvm use 22"
+                    log "  cd ~/Documents/the_collective"
+                    log "  ./setup.sh"
+                    echo ""
+                    exit 0
+                fi
+            else
+                log ""
+                warn "Continuing with Node.js $NODE_VERSION - native modules may fail!"
+                echo ""
+            fi
+        else
+            # Node version is supported (v20-v22) - ensure npm is up to date
+            log "Updating npm to latest version..."
+            npm install -g npm@latest 2>/dev/null || $SUDO npm install -g npm@latest 2>/dev/null || true
+            success "npm updated: v$(npm -v)"
+        fi
+    fi
+}
+
+check_and_install_nodejs
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Install VS Code (optional - skip if already installed)
+# ══════════════════════════════════════════════════════════════════════════════
+
+install_vscode() {
+    if command -v code &> /dev/null; then
+        success "VS Code already installed"
+        return 0
+    fi
+    
+    log "Installing VS Code..."
+    show_progress "Downloading and installing VS Code"
+    
+    case "$PKG_MANAGER" in
+        brew)
+            brew install --cask visual-studio-code || {
+                warn "Failed to install VS Code via Homebrew"
+                return 1
+            }
+            ;;
+        apt)
+            # Microsoft's official repo for Debian/Ubuntu
+            curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /tmp/packages.microsoft.gpg
+            $SUDO install -D -o root -g root -m 644 /tmp/packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
+            echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | $SUDO tee /etc/apt/sources.list.d/vscode.list > /dev/null
+            rm -f /tmp/packages.microsoft.gpg
+            $SUDO apt-get update
+            $SUDO apt-get install -y code || {
+                warn "Failed to install VS Code"
+                return 1
+            }
+            ;;
+        dnf|yum)
+            # Microsoft's official repo for Fedora/RHEL
+            $SUDO rpm --import https://packages.microsoft.com/keys/microsoft.asc
+            echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" | $SUDO tee /etc/yum.repos.d/vscode.repo > /dev/null
+            $SUDO $PKG_MANAGER install -y code || {
+                warn "Failed to install VS Code"
+                return 1
+            }
+            ;;
+        pacman)
+            # VS Code is in AUR, use yay/paru if available, otherwise skip
+            if command -v yay &> /dev/null; then
+                yay -S --noconfirm visual-studio-code-bin || warn "Failed to install VS Code via yay"
+            elif command -v paru &> /dev/null; then
+                paru -S --noconfirm visual-studio-code-bin || warn "Failed to install VS Code via paru"
+            else
+                warn "VS Code not in official repos. Install from https://code.visualstudio.com or via AUR."
+                return 1
+            fi
+            ;;
+        *)
+            warn "Cannot install VS Code automatically for this package manager."
+            warn "Please install from: https://code.visualstudio.com"
+            return 1
+            ;;
+    esac
+    
+    if command -v code &> /dev/null; then
+        success "VS Code installed successfully"
+        return 0
+    else
+        warn "VS Code installed but 'code' command not in PATH"
+        warn "You may need to add it to PATH or launch VS Code manually"
+        return 1
+    fi
+}
+
+install_vscode
 
 # Determine installation directory
 INSTALL_DIR="$HOME/Documents/the_collective"
