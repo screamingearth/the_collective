@@ -1,15 +1,42 @@
 # MCP Servers
 
-Model Context Protocol servers extend the_collective with external capabilities. All servers auto-start when VS Code opens.
+Model Context Protocol servers extend the_collective with external capabilities. Memory and Gemini servers auto-start via Docker when you open the workspace. GitHub integration is built-in.
 
 ## Active Servers
 
+**Auto-Start (Docker Default):**
+
 | Server | Type | Purpose |
-|--------|------|---------|
+|--------|------|----------|
 | **github** | HTTP | Issues, PRs, code search via Copilot |
-| **memory** | stdio | Semantic memory with vector search |
-| **gemini** | stdio | Google Gemini for research & validation |
-| **filesystem** | stdio | Safe workspace file operations |
+| **memory** | SSE | Semantic memory with vector search (containerized) |
+| **gemini** | SSE | Google Gemini for research & validation (containerized) |
+
+## Deployment Modes
+
+### Docker (Default - Auto-Start)
+- Memory and Gemini servers containerized with `docker compose`
+- SSE transport over HTTP
+- Auto-starts when folder opens
+- Health check endpoints: `http://localhost:3100/health` (memory), `http://localhost:3101/health` (gemini)
+
+**Docker is managed automatically.** If containers exit, restart with:
+```bash
+docker compose up -d
+
+# Verify health
+curl http://localhost:3100/health && echo "" && curl http://localhost:3101/health
+
+# View logs
+docker logs collective-memory --tail 30
+docker logs collective-gemini --tail 30
+```
+
+### Local / Stdio (Optional - Manual Launch)
+- Memory and Gemini run in VS Code process via stdio transport
+- For development or testing
+- Requires manual configuration and startup
+- Configuration: `.vscode/mcp.json`
 
 ## Setup
 
@@ -25,35 +52,25 @@ code .
 ```
 
 **CRITICAL:** You must open the **root** `the_collective` folder in VS Code. 
-*   **Why?** VS Code only looks for `.vscode/mcp.json` in the root of the opened workspace. If you open a subfolder (like `.collective/memory-server`), the MCP servers will not load, and the agents will lose their tools.
-*   **Agent Personas:** Similarly, the agent instructions in `.github/copilot-instructions.md` are only loaded if the root folder is opened.
+*   **Why?** Docker containers and agent instructions in `.github/copilot-instructions.md` are only loaded if the root folder is opened.
+*   **Subfolder warning:** If you open a subfolder (like `.collective/memory-server`), MCP servers won't load and agents will lose their tools.
 
 ## Configuration
 
-Servers are defined in `.vscode/mcp.json`:
+### Docker (Default)
 
-```jsonc
-{
-  "servers": {
-    "memory": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["${workspaceFolder}/.collective/memory-server/dist/index.js"],
-      "env": { "MEMORY_DB_PATH": "${workspaceFolder}/.mcp/collective_memory.duckdb" }
-    },
-    "gemini": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["${workspaceFolder}/.collective/gemini-bridge/dist/mcp-server.js"]
-    },
-    "filesystem": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "${workspaceFolder}"]
-    }
-  }
-}
+Servers are containerized and configured in `docker-compose.yml`. They auto-start and are accessed via HTTP:
+
+```bash
+Memory:  http://localhost:3100
+Gemini:  http://localhost:3101
 ```
+
+No VS Code configuration needed for Docker mode—containers manage themselves.
+
+### Local / Stdio (Development Only)
+
+To run Memory and Gemini in VS Code via stdio (not recommended—Docker is the standard), modify `.vscode/mcp.json` to use stdio transport instead of SSE, then restart VS Code.
 
 ### Auto-Start Settings
 
@@ -130,10 +147,10 @@ Ctrl+Shift+P → Developer: Reload Window
 
 ## Security
 
-- **Filesystem** scoped to workspace only
 - **Memory** stored locally (no cloud sync)
 - **API keys** never committed—use environment variables
 - **Gemini authentication** via OAuth (secure, no credentials stored)
+- **Filesystem operations** use VS Code built-in tools (scoped to workspace)
 
 ## See Also
 

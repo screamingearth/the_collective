@@ -2,6 +2,50 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Start Docker Containers",
+      "type": "shell",
+      "command": "docker compose up -d --build && echo 'Waiting for servers to be ready...' && sleep 8 && curl -s http://localhost:3100/health http://localhost:3101/health > /dev/null && echo 'MCP servers ready!'",
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared",
+        "showReuseMessage": false
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Stop Docker Containers",
+      "type": "shell",
+      "command": "docker compose down",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Switch to Docker Mode",
+      "type": "shell",
+      "command": "cp .vscode/mcp.docker.json .vscode/mcp.json && echo 'Switched to Docker mode. Please reload VS Code.'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Switch to stdio Mode",
+      "type": "shell",
+      "command": "cp .vscode/mcp.stdio.json .vscode/mcp.json && echo 'Switched to stdio mode. Please reload VS Code.'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Health Check (Quick)",
       "type": "shell",
       "command": "npm run check -- --quick",
@@ -17,16 +61,16 @@
       }
     },
     {
-      "label": "Start Memory Server",
+      "label": "Start Memory Server (stdio)",
       "type": "shell",
-      "command": "cd .collective/memory-server && npm run build && node dist/index.js",
+      "command": "cd .collective/memory-server && npm run build && MCP_TRANSPORT=stdio node dist/index.js",
       "isBackground": true,
       "presentation": {
-        "reveal": "never",
+        "reveal": "always",
         "panel": "dedicated"
       },
       "runOptions": {
-        "runOn": "folderOpen"
+        "runOn": "never"
       },
       "problemMatcher": {
         "pattern": {
@@ -43,16 +87,16 @@
       }
     },
     {
-      "label": "Start Gemini Bridge",
+      "label": "Start Gemini Bridge (stdio)",
       "type": "shell",
-      "command": "cd .collective/gemini-bridge && npm run build && node dist/mcp-server.js",
+      "command": "cd .collective/gemini-bridge && npm run build && MCP_TRANSPORT=stdio node dist/mcp-server.js",
       "isBackground": true,
       "presentation": {
-        "reveal": "never",
+        "reveal": "always",
         "panel": "dedicated"
       },
       "runOptions": {
-        "runOn": "folderOpen"
+        "runOn": "never"
       },
       "problemMatcher": {
         "pattern": {
@@ -82,32 +126,6 @@
       "presentation": {
         "reveal": "always",
         "panel": "shared"
-      }
-    },
-    {
-      "label": "Start Filesystem Server",
-      "type": "shell",
-      "command": "npx -y @modelcontextprotocol/server-filesystem ${workspaceFolder}",
-      "isBackground": true,
-      "presentation": {
-        "reveal": "never",
-        "panel": "dedicated"
-      },
-      "runOptions": {
-        "runOn": "folderOpen"
-      },
-      "problemMatcher": {
-        "pattern": {
-          "regexp": ".*",
-          "file": 1,
-          "location": 2,
-          "message": 3
-        },
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": ".*",
-          "endsPattern": "listening on"
-        }
       }
     },
     {

@@ -252,6 +252,73 @@ npm run clean
 cat .collective/.logs/setup.log
 ```
 
+## Docker Issues
+
+### Containers won't start
+
+**Symptoms:** `docker compose up -d` fails or containers exit immediately.
+
+**Solutions:**
+
+1. **Check logs:**
+   ```bash
+   docker logs collective-memory --tail 50
+   docker logs collective-gemini --tail 50
+   ```
+
+2. **Verify ports are available:**
+   ```bash
+   lsof -i :3100
+   lsof -i :3101
+   ```
+   If ports are in use, either kill the process or change compose ports.
+
+3. **Clean rebuild:**
+   ```bash
+   docker compose down
+   docker system prune -f
+   docker compose build --no-cache
+   docker compose up -d
+   ```
+
+### Gemini bridge not authenticated in Docker
+
+**Symptoms:** Logs show "⚠️ Gemini not authenticated"
+
+**Solutions (Choose One):**
+
+1. **API Key (Recommended - 5x faster):**
+   ```bash
+   export GEMINI_API_KEY=your-key  # Get free at aistudio.google.com/apikey
+   docker compose up -d
+   docker logs collective-gemini --tail 20
+   # Should show "✓ Gemini ready (API key (direct HTTP))"
+   ```
+
+2. **OAuth (Slower subprocess mode):**
+   ```bash
+   cd .collective/gemini-bridge
+   npm run auth  # Opens browser for Google login
+   # This creates ~/.gemini/google_accounts.json
+   
+   cd ../..
+   docker compose up -d
+   docker logs collective-gemini --tail 20
+   # Should show "✓ Gemini ready (OAuth (gemini-cli subprocess))"
+   ```
+
+**Performance:** API key ~3-5s, OAuth ~10-20s per query
+
+### Memory server slow in Docker
+
+**Cause:** Models downloading on first run (~50-500MB).
+
+**Solution:** Check logs and wait:
+```bash
+docker logs collective-memory -f
+# Look for "MemoryStore initialized successfully"
+```
+
 ## Still stuck?
 
 1. **Check existing issues:** [GitHub Issues](https://github.com/screamingearth/the_collective/issues)
@@ -261,5 +328,6 @@ cat .collective/.logs/setup.log
    - Node.js version (`node --version`)
    - The full error message
    - Contents of `.collective/.logs/setup.log`
+   - For Docker issues: output of `docker logs collective-memory --tail 50`
 
 3. **Community help:** Tag your issue with `question` label

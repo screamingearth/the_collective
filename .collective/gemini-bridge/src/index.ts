@@ -16,8 +16,6 @@ export type {
     GeminiStreamEvent
 } from "./types.js";
 export {
-    buildArgs, checkAuthStatus, extractTextFromEvents, getGeminiCliPath,
-    parseJsonResponse,
-    parseStreamEvents, spawnGemini
+    checkAuthStatus, ensureSettings, executeGeminiQuery, getAuthMethodDescription, parseJsonResponse
 } from "./utils.js";
 

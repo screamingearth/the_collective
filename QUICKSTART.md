@@ -115,7 +115,7 @@ If the agents seem to be missing their tools (Memory, GitHub, Gemini), the MCP s
 
 1. Open the **Extensions** window in the sidebar (or press `Ctrl+Shift+X`).
 2. Look for the **"MCP Servers - Installed"** section.
-3. Click the **cog icon** next to each server (memory, gemini, filesystem).
+3. Click the **cog icon** next to each server (memory, gemini).
 4. Verify the status is "Running". If not, click **Start** to launch them manually.
 5. You can also run the command `MCP: List Servers` from the Command Palette (`Ctrl+Shift+P`) to see a detailed status.
 
@@ -141,6 +141,37 @@ npm run auth     # Opens browser for Google OAuth
 npm run build
 ```
 See [docs/GEMINI_BRIDGE.md](docs/GEMINI_BRIDGE.md) for details.
+
+### Docker Deployment (Optional)
+To run Memory and Gemini servers in Docker containers:
+
+```bash
+# First, authenticate Gemini if you want to use Gemini tools
+cd .collective/gemini-bridge
+npm run auth
+cd ../..
+
+# Start containers
+docker compose up -d
+
+# Verify health
+curl http://localhost:3100/health && echo "" && curl http://localhost:3101/health
+
+# Stop containers
+docker compose down
+```
+
+**Authentication:**
+- **Memory server:** Always ready (uses local database in `.mcp/`)
+- **Gemini bridge:** Two options (API key recommended for speed):
+  - **API Key (fast):** Set `GEMINI_API_KEY` before starting:
+    ```bash
+    export GEMINI_API_KEY=your-key  # Get free key at aistudio.google.com/apikey
+    docker compose up -d
+    ```
+  - **OAuth (slower):** Run `npm run auth` before `docker compose up` (uses gemini-cli subprocess)
+
+Docker servers run independently from local VS Code mode. See [docs/MCP_SERVERS.md](docs/MCP_SERVERS.md) for details.
 
 ---
 

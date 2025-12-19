@@ -11,11 +11,15 @@
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
+import { randomUUID } from "crypto";
+import express from "express";
+import http from "http";
 import { MemoryStore, type MemoryMetadata } from "./memory-store.js";
 import { createLogger } from "./types.js";
 
@@ -341,10 +345,109 @@ async function main(): Promise<void> {
     return handleToolCall(name, args as ToolArgs, memoryStore);
   });
 
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  // Detect transport mode from environment
+  const transportMode = process.env.MCP_TRANSPORT?.toLowerCase() || "stdio";
 
-  logger.info("Collective Memory Server running on stdio");
+  if (transportMode === "sse") {
+    // SSE mode for Docker deployment using modern StreamableHTTPServerTransport
+    const port = parseInt(process.env.MCP_PORT || "3100", 10);
+    const app = express();
+    const httpServer = http.createServer(app);
+
+    // Track active sessions for monitoring
+    const activeSessions = new Set<string>();
+    const MAX_ACTIVE_SESSIONS = parseInt(process.env.MAX_SESSIONS || "1000", 10);
+
+    // Create transport with proper session management
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => {
+        if (activeSessions.size >= MAX_ACTIVE_SESSIONS) {
+          logger.warn(`Max session limit reached (${MAX_ACTIVE_SESSIONS}), rejecting new session`);
+          throw new Error("Server at capacity");
+        }
+        return randomUUID();
+      },
+      onsessioninitialized: (sessionId: string) => {
+        activeSessions.add(sessionId);
+        logger.info(`Session initialized: ${sessionId} (${activeSessions.size}/${MAX_ACTIVE_SESSIONS})`);
+      },
+      onsessionclosed: (sessionId: string) => {
+        activeSessions.delete(sessionId);
+        logger.info(`Session closed: ${sessionId} (${activeSessions.size}/${MAX_ACTIVE_SESSIONS})`);
+      },
+    });
+
+    // Middleware to parse JSON
+    app.use(express.json());
+
+    // Health check endpoint for Docker
+    app.get("/health", (_req, res) => {
+      res.status(200).json({ status: "healthy", service: "collective-memory" });
+    });
+
+    // Universal MCP endpoint - handles GET (SSE), POST (messages), and DELETE (close)
+    app.all("/mcp", async (req: express.Request, res: express.Response) => {
+      try {
+        await transport.handleRequest(req, res, req.body);
+      } catch (error) {
+        logger.error(`Error handling MCP request: ${error}`);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Internal server error" });
+        }
+      }
+    });
+
+    // Connect server to transport (cast needed due to optional callback types)
+    await server.connect(transport as any);
+
+    httpServer.listen(port, () => {
+      logger.info(`Collective Memory Server running on http://localhost:${port}/mcp (SSE mode)`);
+    });
+
+    // Graceful shutdown handlers
+    async function gracefulShutdown(signal: string): Promise<void> {
+      logger.info(`${signal} received, starting graceful shutdown...`);
+
+      // Stop accepting new connections
+      httpServer.close(() => {
+        logger.info("HTTP server closed, no more new connections");
+      });
+
+      // Close transport
+      try {
+        await transport.close();
+        logger.info("MCP transport closed");
+      } catch (err) {
+        logger.error(`Error closing transport: ${err}`);
+      }
+
+      logger.info("Graceful shutdown complete");
+      process.exit(0);
+    }
+
+    process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+    process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+    // Prevent crash on unhandled errors - keep server running indefinitely
+    process.on("uncaughtException", (error: Error) => {
+      logger.error(`❌ UNCAUGHT EXCEPTION (server continuing): ${error.message}`);
+      logger.error(error.stack ?? "");
+      // Don't exit - keep the server running
+    });
+
+    process.on("unhandledRejection", (reason: unknown) => {
+      logger.error(`❌ UNHANDLED REJECTION (server continuing): ${String(reason)}`);
+      if (reason instanceof Error) {
+        logger.error(reason.stack ?? "");
+      }
+      // Don't exit - keep the server running
+    });
+  } else {
+    // stdio mode for local VS Code
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    logger.info("Collective Memory Server running on stdio");
+  }
 }
 
 main().catch((error: unknown) => {

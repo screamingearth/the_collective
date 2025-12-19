@@ -93,9 +93,9 @@ Technology moves fast. The patterns in a codebase might be outdated. The "right"
 ### Tool Specifications
 
 - **Model:** gemini-2.5-flash (128k context)
-- **Speed:** 2-5 seconds typical response
+- **Speed:** 2-5 seconds typical response (with API key), 10-20s (OAuth subprocess)
 - **Free tier:** 60 req/min, 1000 req/day
-- **Auth:** Google account (no API key needed)
+- **Auth:** API key (get free at aistudio.google.com/apikey) OR Google account OAuth
 
 ### Usage Example
 

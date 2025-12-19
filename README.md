@@ -94,7 +94,7 @@ $s = iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/m
 
 ## 🚀 features
 
-- **Local-first** // Semantic vector database never leaves your machine. no telemetry, no vendor lock-in
+- **Local-first** // Semantic vector database never leaves your machine
 - **Cognitive Diversity** // Use multiple LLM models for different perspectives
 - **Real-Time Collaboration** // Watch agents debate, build, and refine solutions
 - **Extensible Architecture** // Add custom agents, tools, memories, and workflows

@@ -1,0 +1,61 @@
+# >the_collective - Docker Compose Configuration
+# Purpose: Orchestrate Memory Server and Gemini Bridge as containerized MCP servers
+# Usage: docker compose up -d (starts in background)
+
+services:
+  memory-server:
+    build:
+      context: .collective/memory-server
+      dockerfile: Dockerfile
+    container_name: collective-memory
+    ports:
+      - "3100:3100"
+    volumes:
+      # Mount database directory for persistence
+      - ./.mcp:/data
+    environment:
+      - NODE_ENV=production
+      - MEMORY_DB_PATH=/data/collective_memory.duckdb
+      - MCP_TRANSPORT=sse
+      - MCP_PORT=3100
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3100/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - collective
+
+  gemini-bridge:
+    build:
+      context: .collective/gemini-bridge
+      dockerfile: Dockerfile
+    container_name: collective-gemini
+    ports:
+      - "3101:3101"
+    volumes:
+      # Mount gemini CLI OAuth directory (google_accounts.json, etc.)
+      # For OAuth: Run 'npm run auth' before 'docker compose up'
+      # For API key: Set GEMINI_API_KEY env var (faster, recommended)
+      - ${HOME}/.gemini:/root/.gemini:ro
+    environment:
+      - NODE_ENV=production
+      - MCP_TRANSPORT=sse
+      - MCP_PORT=3101
+      # Optional: pass API key from host into container for auth fallback
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3101/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - collective
+
+networks:
+  collective:
+    driver: bridge

@@ -19,7 +19,7 @@
  */
 
 import { exec } from "child_process";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
 import { promisify } from "util";
@@ -71,21 +71,56 @@ async function checkGeminiCli(): Promise<CheckResult> {
 }
 
 function checkAuthentication(): CheckResult {
-  const credsPath = join(homedir(), ".gemini", "oauth_creds.json");
-
-  if (existsSync(credsPath)) {
+  // Check for API key first (preferred fast path)
+  if (process.env.GEMINI_API_KEY?.trim() || process.env.GOOGLE_API_KEY?.trim()) {
     return {
       name: "Authentication",
       passed: true,
-      message: "OAuth credentials found",
+      message: "API key configured (fast HTTP mode)",
     };
+  }
+
+  // Check for .env file with API key (in gemini-bridge root)
+  // import.meta.dirname is src/ or dist/, so go up one level to gemini-bridge/
+  const envPath = join(import.meta.dirname ?? __dirname, "..", ".env");
+  if (existsSync(envPath)) {
+    try {
+      const content = readFileSync(envPath, "utf-8");
+      if (content.includes("GEMINI_API_KEY=")) {
+        return {
+          name: "Authentication",
+          passed: true,
+          message: "API key found in .env file (fast HTTP mode)",
+        };
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  // Check for gemini-cli OAuth (fallback subprocess mode)
+  const accountsPath = join(homedir(), ".gemini", "google_accounts.json");
+  if (existsSync(accountsPath)) {
+    try {
+      const content = readFileSync(accountsPath, "utf-8");
+      const data = JSON.parse(content) as { active?: string };
+      if (data.active) {
+        return {
+          name: "Authentication",
+          passed: true,
+          message: `OAuth configured (${data.active}) - subprocess mode`,
+        };
+      }
+    } catch {
+      // Ignore parse errors
+    }
   }
 
   return {
     name: "Authentication",
     passed: false,
     message: "Not authenticated with Gemini",
-    fix: "Run: npm run auth (then follow browser flow)",
+    fix: "Set GEMINI_API_KEY env var, or run: npm run auth",
   };
 }
 

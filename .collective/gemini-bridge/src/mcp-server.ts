@@ -11,9 +11,12 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { randomUUID } from "crypto";
+import express from "express";
+import http from "http";
 import { z } from "zod";
-import type { GeminiJsonResponse } from "./types.js";
-import { buildArgs, checkAuthStatus, ensureSettings, spawnGemini } from "./utils.js";
+import { checkAuthStatus, ensureSettings, executeGeminiQuery, getAuthMethodDescription } from "./utils.js";
 
 /**
  * System instructions for Gemini - defines behavior as research tool for >the_collective
@@ -49,52 +52,16 @@ your role: research assistant and independent validator.
 respond with comprehensive, well-organized, well-cited information. functionality over personality.`;
 
 /**
- * Parse JSON response from gemini-cli
- */
-function parseJsonResponse(output: string): GeminiJsonResponse | null {
-  try {
-    const lines = output.trim().split("\n");
-    for (const line of lines) {
-      if (line.trim().startsWith("{")) {
-        return JSON.parse(line) as GeminiJsonResponse;
-      }
-    }
-  } catch {
-    // Not JSON, return null
-  }
-  return null;
-}
-
-/**
- * Execute gemini-cli with prompt
+ * Execute gemini query using the SDK (instant, no subprocess overhead)
+ * Expected latency: <500ms per query
  */
 async function executeGemini(
   prompt: string,
   timeout: number
 ): Promise<{ success: boolean; response?: string; error?: string }> {
-  const args = buildArgs({
-    prompt,
-    model: "gemini-3-flash-preview",
-    outputFormat: "json",
-  });
-
   try {
-    const result = await spawnGemini(args, { timeout });
-
-    if (result.exitCode !== 0) {
-      return {
-        success: false,
-        error: result.stderr || `Process exited with code ${result.exitCode}`,
-      };
-    }
-
-    const json = parseJsonResponse(result.stdout);
-    if (json?.response) {
-      return { success: true, response: json.response };
-    }
-
-    // Fallback to raw stdout if JSON parsing fails
-    return { success: true, response: result.stdout };
+    const result = await executeGeminiQuery(prompt, timeout);
+    return result;
   } catch (err) {
     const error = err as Error;
     return { success: false, error: error.message };
@@ -109,14 +76,14 @@ async function main(): Promise<void> {
   await ensureSettings();
 
   // Check auth status on startup (non-blocking)
-  const authStatus = await checkAuthStatus();
+  const authStatus = checkAuthStatus();
   if (!authStatus.authenticated) {
     console.error(
-      "⚠️ Warning: Gemini CLI may not be authenticated. " +
-      "If Gemini tools fail, run: cd .collective/gemini-bridge && npm run auth"
+      "⚠️  Gemini not authenticated. Set GEMINI_API_KEY or run: npm run auth"
     );
   } else {
-    console.error("✓ Gemini CLI authenticated and ready");
+    const method = getAuthMethodDescription();
+    console.error(`✓ Gemini ready (${method})`);
   }
 
   const server = new McpServer({
@@ -252,11 +219,124 @@ async function main(): Promise<void> {
     }
   );
 
-  // Start server
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  // Detect transport mode from environment
+  const transportMode = process.env.MCP_TRANSPORT?.toLowerCase() || "stdio";
 
-  console.error("Gemini Bridge MCP server running on stdio");
+  if (transportMode === "sse") {
+    // SSE mode for Docker deployment using modern StreamableHTTPServerTransport
+    const port = parseInt(process.env.MCP_PORT || "3101", 10);
+    const app = express();
+    const httpServer = http.createServer(app);
+
+    // Track active sessions for monitoring
+    const activeSessions = new Set<string>();
+    const MAX_ACTIVE_SESSIONS = parseInt(process.env.MAX_SESSIONS || "1000", 10);
+
+    // Create transport with proper session management
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => {
+        if (activeSessions.size >= MAX_ACTIVE_SESSIONS) {
+          console.error(`Max session limit reached (${MAX_ACTIVE_SESSIONS}), rejecting new session`);
+          throw new Error("Server at capacity");
+        }
+        return randomUUID();
+      },
+      onsessioninitialized: (sessionId: string) => {
+        activeSessions.add(sessionId);
+        console.error(`Session initialized: ${sessionId} (${activeSessions.size}/${MAX_ACTIVE_SESSIONS})`);
+      },
+      onsessionclosed: (sessionId: string) => {
+        activeSessions.delete(sessionId);
+        console.error(`Session closed: ${sessionId} (${activeSessions.size}/${MAX_ACTIVE_SESSIONS})`);
+      },
+    });
+
+    // Middleware to parse JSON
+    app.use(express.json());
+
+    // Health check endpoint for Docker
+    app.get("/health", (_req: express.Request, res: express.Response) => {
+      res.status(200).json({ status: "healthy", service: "collective-gemini" });
+    });
+
+    // Universal MCP endpoint - handles GET (SSE), POST (messages), and DELETE (close)
+    app.all("/mcp", async (req: express.Request, res: express.Response) => {
+      try {
+        await transport.handleRequest(req, res, req.body);
+      } catch (error) {
+        console.error(`Error handling MCP request: ${error}`);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Internal server error" });
+        }
+      }
+    });
+
+    // Connect server to transport (cast needed due to optional callback types)
+    await server.connect(transport as any);
+
+    httpServer.listen(port, () => {
+      console.error(`Gemini Bridge running on http://localhost:${port}/mcp (SSE mode)`);
+    });
+
+    // Graceful shutdown handlers
+    async function gracefulShutdown(signal: string): Promise<void> {
+      console.error(`${signal} received, starting graceful shutdown...`);
+
+      // Stop accepting new connections
+      httpServer.close(() => {
+        console.error("HTTP server closed, no more new connections");
+      });
+
+      // Close transport
+      try {
+        await transport.close();
+        console.error("MCP transport closed");
+      } catch (err) {
+        console.error(`Error closing transport: ${err}`);
+      }
+
+      console.error("Graceful shutdown complete");
+      process.exit(0);
+    }
+
+    process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+    process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+    // Prevent crash on unhandled errors - keep server running indefinitely
+    process.on("uncaughtException", (error: Error) => {
+      console.error(`❌ UNCAUGHT EXCEPTION (server continuing): ${error.message}`);
+      console.error(error.stack);
+      // Don't exit - keep the server running
+    });
+
+    process.on("unhandledRejection", (reason: unknown) => {
+      console.error(`❌ UNHANDLED REJECTION (server continuing): ${String(reason)}`);
+      if (reason instanceof Error) {
+        console.error(reason.stack);
+      }
+      // Don't exit - keep the server running
+    });
+  } else {
+    // stdio mode for local VS Code
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error("Gemini Bridge MCP server running on stdio");
+
+    // Prevent crash on unhandled errors - keep server running indefinitely
+    process.on("uncaughtException", (error: Error) => {
+      console.error("❌ UNCAUGHT EXCEPTION (server continuing):", error.message);
+      console.error(error.stack);
+      // Don't exit - keep the server running
+    });
+
+    process.on("unhandledRejection", (reason: unknown) => {
+      console.error("❌ UNHANDLED REJECTION (server continuing):", reason);
+      if (reason instanceof Error) {
+        console.error(reason.stack);
+      }
+      // Don't exit - keep the server running
+    });
+  }
 }
 
 main().catch((error: unknown) => {

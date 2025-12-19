@@ -1048,48 +1048,100 @@ setup_gemini_optional() {
     echo -e "${CYAN}${BOLD}Optional: Gemini Research Tools${NC}"
     echo -e "${DIM}Enable cognitive diversity via Google's Gemini (different AI model)${NC}"
     echo ""
-    # Use printf for better cross-platform compatibility instead of echo -e with read
+    
     printf "%s" "$(printf "${BLUE}Enable Gemini tools? [y/N]: ${NC}")"
     read -r -n 1 REPLY
     echo
     
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        info "Setting up Gemini authentication..."
-        info "A browser window will open for Google OAuth authentication"
-        info "If the browser doesn't open automatically, visit the URL shown in the terminal"
-        echo ""
-        
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        info "Skipping Gemini setup (you can set GEMINI_API_KEY later or run 'npm run auth')"
+        return 0
+    fi
+    
+    echo ""
+    echo -e "${CYAN}Authentication Options:${NC}"
+    echo -e "  ${BOLD}1. API Key${NC} (recommended) - Fast, simple, no browser needed"
+    echo -e "     Get a free key at: ${BLUE}https://aistudio.google.com/apikey${NC}"
+    echo ""
+    echo -e "  ${BOLD}2. OAuth${NC} - Uses your Google account via browser login"
+    echo ""
+    
+    printf "%s" "$(printf "${BLUE}Enter your Gemini API key (or press Enter for OAuth): ${NC}")"
+    read -r API_KEY
+    echo
+    
+    if [[ -n "$API_KEY" ]]; then
+        # API key provided - save it to .env file
         cd .collective/gemini-bridge || {
             error "Failed to enter gemini-bridge directory"
-            exit 1
+            return 1
         }
         
-        # Run auth with full output visible (OAuth is interactive)
-        # Use generous timeout since user needs to complete browser auth
-        # Note: timeout command may not exist on macOS by default
-        if command -v timeout &> /dev/null; then
-            if timeout "$GEMINI_AUTH_TIMEOUT" npm run auth; then
-                success "Gemini tools authentication successful"
-            else
-                warn "Gemini authentication did not complete (you can run it later with: cd .collective/gemini-bridge && npm run auth)"
-            fi
-        else
-            # No timeout available - run without time limit
-            if npm run auth; then
-                success "Gemini tools authentication successful"
-            else
-                warn "Gemini authentication did not complete (you can run it later with: cd .collective/gemini-bridge && npm run auth)"
-            fi
+        # Validate key format (should be alphanumeric, typically 39 chars)
+        if [[ ${#API_KEY} -lt 20 ]]; then
+            warn "API key seems short - make sure you copied the full key"
         fi
         
-        cd ../.. || {
-            error "Failed to return to root directory"
-            exit 1
-        }
-        success "Gemini tools setup attempted"
-    else
-        info "Skipping Gemini setup (you can run 'cd .collective/gemini-bridge && npm run auth' later)"
+        # Save to .env file
+        echo "GEMINI_API_KEY=$API_KEY" > .env
+        success "API key saved to .collective/gemini-bridge/.env"
+        
+        # Quick validation - try a simple API call
+        info "Validating API key..."
+        if command -v curl &> /dev/null; then
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$API_KEY" \
+                -H "Content-Type: application/json" \
+                -d '{"contents":[{"parts":[{"text":"Hi"}]}]}' \
+                --connect-timeout 10 --max-time 30 2>/dev/null)
+            
+            if [[ "$HTTP_STATUS" == "200" ]]; then
+                success "API key validated successfully!"
+            elif [[ "$HTTP_STATUS" == "400" ]] || [[ "$HTTP_STATUS" == "401" ]] || [[ "$HTTP_STATUS" == "403" ]]; then
+                warn "API key may be invalid (HTTP $HTTP_STATUS). Double-check your key."
+                warn "You can update it later in: .collective/gemini-bridge/.env"
+            else
+                warn "Could not validate key (HTTP $HTTP_STATUS). Will try at runtime."
+            fi
+        else
+            info "Skipping validation (curl not available)"
+        fi
+        
+        cd ../.. || return 1
+        success "Gemini tools configured with API key (fast mode)"
+        return 0
     fi
+    
+    # No API key - proceed with OAuth
+    info "Setting up Gemini via OAuth..."
+    info "A browser window will open for Google authentication"
+    info "If the browser doesn't open, visit the URL shown in the terminal"
+    echo ""
+    
+    cd .collective/gemini-bridge || {
+        error "Failed to enter gemini-bridge directory"
+        return 1
+    }
+    
+    # Run auth with timeout
+    if command -v timeout &> /dev/null; then
+        if timeout "$GEMINI_AUTH_TIMEOUT" npm run auth; then
+            success "Gemini OAuth authentication successful"
+        else
+            warn "OAuth did not complete. You can retry later with:"
+            warn "  cd .collective/gemini-bridge && npm run auth"
+            warn "Or set GEMINI_API_KEY environment variable"
+        fi
+    else
+        if npm run auth; then
+            success "Gemini OAuth authentication successful"
+        else
+            warn "OAuth did not complete. You can retry later."
+        fi
+    fi
+    
+    cd ../.. || return 1
+    success "Gemini tools setup complete"
 }
 
 reinit_git_optional() {

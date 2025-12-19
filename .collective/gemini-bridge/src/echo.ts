@@ -13,12 +13,8 @@ import type {
   EchoStatus
 } from "./types.js";
 import {
-  buildArgs,
   checkAuthStatus,
-  extractTextFromEvents,
-  parseJsonResponse,
-  parseStreamEvents,
-  spawnGemini,
+  executeGeminiQuery,
 } from "./utils.js";
 
 /**
@@ -111,59 +107,25 @@ export class Echo {
       ? `${mergedOptions.systemInstructions}\n\n${ECHO_SYSTEM_PROMPT}\n\n---\n\nUser Request:\n${mergedOptions.prompt}`
       : `${ECHO_SYSTEM_PROMPT}\n\n---\n\nUser Request:\n${mergedOptions.prompt}`;
 
-    const args = buildArgs({
-      prompt: fullPrompt,
-      cwd: mergedOptions.cwd,
-      includeDirectories: mergedOptions.includeDirectories,
-      model: mergedOptions.model,
-      outputFormat: mergedOptions.outputFormat,
-      yolo: mergedOptions.yolo,
-    });
-
     try {
-      const result = await spawnGemini(args, {
-        cwd: mergedOptions.cwd,
-        timeout: mergedOptions.timeout,
-      });
-
+      const result = await executeGeminiQuery(fullPrompt, mergedOptions.timeout || 120000);
       const executionTime = Date.now() - startTime;
 
-      if (result.exitCode !== 0) {
+      if (!result.success) {
         return {
           success: false,
-          error: result.stderr || `Process exited with code ${result.exitCode}`,
-          exitCode: result.exitCode,
+          error: result.error,
+          exitCode: 1,
           executionTime,
         };
       }
 
-      // Parse output based on format
-      if (mergedOptions.outputFormat === "json") {
-        const json = parseJsonResponse(result.stdout);
-        return {
-          success: true,
-          response: json?.response ?? result.stdout,
-          json: json ?? undefined,
-          exitCode: result.exitCode,
-          executionTime,
-        };
-      } else if (mergedOptions.outputFormat === "stream-json") {
-        const events = parseStreamEvents(result.stdout);
-        return {
-          success: true,
-          response: extractTextFromEvents(events),
-          events,
-          exitCode: result.exitCode,
-          executionTime,
-        };
-      } else {
-        return {
-          success: true,
-          response: result.stdout,
-          exitCode: result.exitCode,
-          executionTime,
-        };
-      }
+      return {
+        success: true,
+        response: result.response ?? "",
+        exitCode: 0,
+        executionTime,
+      };
     } catch (err) {
       const error = err as Error;
       return {

@@ -351,7 +351,7 @@ When Gemini tools respond:
 
 | Issue | Resolution |
 |-------|------------|
-| Auth error | User needs: `cd gemini-bridge && npm run auth` |
+| Auth error | Set GEMINI_API_KEY (fast) or run `npm run auth` (OAuth) |
 | Tool failure | Retry with 2s backoff, max 3 attempts |
 | Persistent failure | Proceed without Gemini, note explicitly to user |
 

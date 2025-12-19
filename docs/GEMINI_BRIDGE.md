@@ -121,19 +121,123 @@ Server auto-starts via `.vscode/mcp.json`:
 
 ## Authentication
 
-### Option 1: Google OAuth (Recommended)
+### Option 1: API Key (Recommended - Fast)
+
+Get a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
 
 ```bash
+# Add to .env file in gemini-bridge/
+echo "GEMINI_API_KEY=your-key-here" > .collective/gemini-bridge/.env
+
+# Or set environment variable
+export GEMINI_API_KEY="your-key-here"
+```
+
+**Performance:** ~3-5s per query (direct HTTP)  
+**Free tier:** 60 req/min, 1000 req/day
+
+### Option 2: Google OAuth (Fallback)
+
+```bash
+cd .collective/gemini-bridge
 npm run auth
 # Follow browser prompt
-# Free: 60 req/min, 1000 req/day
 ```
 
-### Option 2: API Key
+**Performance:** ~10-20s per query (subprocess overhead)  
+**Free tier:** 60 req/min, 1000 req/day  
+**Note:** Uses gemini-cli subprocess - slower but no API key needed
+
+### Docker Mode: Auth Options
+
+When running the Gemini Bridge in Docker (via `docker compose`), you have two ways to provide credentials to the container:
+
+#### 1) API Key (Recommended - Faster)
+
+- Get a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+- Set it before starting Docker:
 
 ```bash
-export GEMINI_API_KEY="your-key-from-aistudio.google.com"
+export GEMINI_API_KEY=YOUR_KEY
+docker compose up -d
 ```
+
+- The compose file propagates the variable into the container:
+
+```yaml
+services:
+  gemini-bridge:
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+```
+
+**Performance:** ~3-5s per query (5x faster than OAuth)
+
+#### 2) OAuth (Fallback)
+
+- Authenticate once on the host:
+
+```bash
+cd .collective/gemini-bridge
+npm install
+npm run auth
+```
+
+- The compose file mounts your host credentials directory:
+
+```yaml
+services:
+  gemini-bridge:
+    volumes:
+      - ${HOME}/.gemini:/root/.gemini:ro
+```
+
+The container detects OAuth credentials in `~/.gemini/google_accounts.json` and uses gemini-cli subprocess.
+
+**Performance:** ~10-20s per query (subprocess overhead)
+
+- Set your API key in the shell before starting compose:
+
+```bash
+export GEMINI_API_KEY=YOUR_KEY
+docker compose up -d
+```
+
+- The compose file propagates the variable into the container:
+
+```yaml
+services:
+  gemini-bridge:
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+```
+
+The server detects the API key and treats it as authenticated (`authMethod: "api-key"`).
+
+### Verify Authentication (Docker)
+
+```bash
+docker logs collective-gemini --tail 30
+```
+
+You should see one of:
+
+```
+✓ Gemini ready (API key (direct HTTP))
+Gemini Bridge running on http://localhost:3101 (SSE mode)
+```
+
+or
+
+```
+✓ Gemini ready (OAuth (gemini-cli subprocess))
+Gemini Bridge running on http://localhost:3101 (SSE mode)
+```
+
+If you see a warning about authentication:
+
+- Set `GEMINI_API_KEY` in the shell before `docker compose up`, or
+- Run `npm run auth` on the host to set up OAuth credentials
 
 ## Troubleshooting
 
