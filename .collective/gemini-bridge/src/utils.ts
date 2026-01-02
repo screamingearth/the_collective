@@ -155,15 +155,15 @@ async function tryApiCallWithTools(
   const visitedFiles = new Set<string>();
 
   // Build conversation history
-  const contents: Array<{
+  const contents: {
     role: string;
-    parts: Array<{
+    parts: {
       text?: string;
       functionCall?: { name: string; args: Record<string, unknown> };
       thoughtSignature?: string;
       functionResponse?: { name: string; response: { result: string } };
-    }>;
-  }> = [
+    }[];
+  }[] = [
       {
         role: "user",
         parts: [{ text: prompt }],
@@ -184,7 +184,7 @@ async function tryApiCallWithTools(
     try {
       const body: {
         contents: typeof contents;
-        tools?: Array<{ functionDeclarations: GeminiTool[] }>;
+        tools?: { functionDeclarations: GeminiTool[] }[];
       } = {
         contents,
       };
@@ -226,15 +226,15 @@ async function tryApiCallWithTools(
       }
 
       const data = (await response.json()) as {
-        candidates?: Array<{
+        candidates?: {
           content: {
-            parts: Array<{
+            parts: {
               text?: string;
               functionCall?: { name: string; args: Record<string, unknown> };
               thoughtSignature?: string;
-            }>;
+            }[];
           };
-        }>;
+        }[];
         error?: { message: string };
       };
 
@@ -275,9 +275,9 @@ async function tryApiCallWithTools(
         });
 
         // Execute each tool call
-        const functionResponses: Array<{
+        const functionResponses: {
           functionResponse: { name: string; response: { result: string } };
-        }> = [];
+        }[] = [];
 
         for (const fc of functionCalls) {
           const toolCall = fc.functionCall!;

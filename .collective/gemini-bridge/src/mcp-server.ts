@@ -317,7 +317,9 @@ const GEMINI_TOOLS: GeminiTool[] = [
 
 /**
  * Tool executor for Gemini's autonomous exploration
+ * Note: This is async to satisfy ToolExecutor interface, though internal calls are sync
  */
+// eslint-disable-next-line @typescript-eslint/require-await
 const toolExecutor: ToolExecutor = async (toolCall: ToolCall): Promise<string> => {
   switch (toolCall.name) {
     case "read_workspace_file":
