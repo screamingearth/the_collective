@@ -1,34 +1,12 @@
 {
   "servers": {
     "memory": {
-      "type": "stdio",
-      "command": "node",
-      "args": [
-        "${workspaceFolder}/.collective/memory-server/dist/index.js"
-      ],
-      "env": {
-        "MCP_TRANSPORT": "stdio",
-        "MEMORY_DB_PATH": "${workspaceFolder}/.mcp/collective_memory.duckdb"
-      }
+      "type": "sse",
+      "url": "http://localhost:3100/mcp"
     },
     "gemini": {
-      "type": "stdio",
-      "command": "node",
-      "args": [
-        "${workspaceFolder}/.collective/gemini-bridge/dist/mcp-server.js"
-      ],
-      "env": {
-        "MCP_TRANSPORT": "stdio",
-        "WORKSPACE_ROOT": "${workspaceFolder}"
-      }
-    },
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "${workspaceFolder}"
-      ]
+      "type": "sse",
+      "url": "http://localhost:3101/mcp"
     }
   }
 }

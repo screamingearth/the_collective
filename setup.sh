@@ -38,6 +38,19 @@ mkdir -p "$LOG_DIR" 2>/dev/null || true
 
 LOG_FILE="$LOG_DIR/setup.log"
 
+# Clean up old log files (keep only the 5 most recent)
+# This prevents logs from accumulating indefinitely
+if [[ -d "$LOG_DIR" ]]; then
+    # Count existing logs
+    log_count=$(find "$LOG_DIR" -name "setup.log*" -type f 2>/dev/null | wc -l)
+    
+    if [[ $log_count -gt 5 ]]; then
+        # Remove the oldest logs, keeping only 5
+        find "$LOG_DIR" -name "setup.log*" -type f -printf '%T@ %p\n' 2>/dev/null | \
+        sort -rn | tail -n +6 | cut -d' ' -f2- | xargs rm -f 2>/dev/null || true
+    fi
+fi
+
 # Validate log file is writable before proceeding
 if ! touch "$LOG_FILE" 2>/dev/null; then
     echo "WARNING: Cannot write to $LOG_FILE - logging disabled" >&2
@@ -742,6 +755,16 @@ setup_mcp_mode() {
 start_docker_containers() {
     if [[ "$MCP_MODE" != "docker" ]]; then
         return 0
+    fi
+    
+    info "Configuring Docker MCP mode..."
+    
+    # Apply Docker MCP configuration
+    if [[ -f ".vscode/mcp.docker.json" ]]; then
+        cp .vscode/mcp.docker.json .vscode/mcp.json
+        success "Docker MCP configuration applied"
+    else
+        warn ".vscode/mcp.docker.json not found - using fallback"
     fi
     
     info "Starting Docker containers..."
@@ -1549,6 +1572,14 @@ reinit_git_optional() {
         
         # Backup git history before removal
         if [[ -d ".git" ]]; then
+            # Clean up any previous backup attempts first
+            # This prevents accumulating stale backups from multiple setup runs
+            if ls .git.backup.* 1> /dev/null 2>&1; then
+                info "Cleaning up previous git backups..."
+                rm -rf .git.backup.* || warn "Could not clean all previous backups (non-critical)"
+            fi
+            
+            # Create new backup
             BACKUP_NAME=".git.backup.$(date +%s)"
             mv .git "$BACKUP_NAME" || {
                 error "Failed to backup .git directory"
@@ -1575,28 +1606,36 @@ reinit_git_optional() {
         read -r COMMIT_MSG
         echo
         
-        # Security: Validate and truncate commit message length
+        # Use default if nothing provided
         if [[ -z "$COMMIT_MSG" ]]; then
             COMMIT_MSG="Initial commit from the_collective template"
-        elif [[ ${#COMMIT_MSG} -gt 500 ]]; then
+        fi
+        
+        # Security: Validate and sanitize commit message length
+        if [[ ${#COMMIT_MSG} -gt 500 ]]; then
             warn "Commit message too long (${#COMMIT_MSG} chars), truncating to 500 characters"
             COMMIT_MSG="${COMMIT_MSG:0:500}"
         fi
         
-        # Security: Reject null bytes (command injection vector)
-        if [[ "$COMMIT_MSG" == *$'\x00'* ]]; then
-            error "Invalid commit message - contains null bytes"
-            return 1
-        fi
+        # Try to commit with custom message
+        # Use git commit --message= for robust, cross-platform handling
+        # This prevents flag injection if message starts with dash
+        # Also trim whitespace to catch edge case of spaces-only messages
+        COMMIT_MSG=$(echo "$COMMIT_MSG" | xargs)
         
-        # Security: Use git commit -F - to pass message via stdin (prevents injection)
-        git commit -F - <<EOF
-$COMMIT_MSG
-EOF
-        
-        if [[ $? -ne 0 ]]; then
-            error "Failed to create initial commit"
-            return 1
+        if git commit --message="$COMMIT_MSG" 2>/dev/null; then
+            success "Initial commit created: '$COMMIT_MSG'"
+        else
+            # Fallback: commit with default message if custom message fails
+            warn "Custom commit message failed, using default message..."
+            if git commit --message="Initial commit from the_collective template"; then
+                success "Initial commit created with default message"
+            else
+                # If even the default fails, this is a bigger problem
+                error "Failed to create initial commit (both custom and default messages failed)"
+                error "You can manually commit later with: git add . && git commit -m 'message'"
+                warn "Continuing setup anyway - git commit not critical for bootstrap"
+            fi
         fi
         
         # Optionally set default branch

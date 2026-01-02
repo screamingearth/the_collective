@@ -342,6 +342,31 @@ async function install(options) {
   if (options.backup && !options.dryRun) {
     ui.step(4, 8, "Creating backups...");
 
+    // Clean up any previous backup directories first
+    // This prevents accumulating stale backups from multiple install attempts
+    const existingBackups = fs.readdirSync(installDir)
+      .filter((f) => f.startsWith(".collective-backup-"));
+
+    if (existingBackups.length > 0 && !options.verbose) {
+      // Quietly remove old backups unless verbose
+      for (const backup of existingBackups) {
+        try {
+          fs.rmSync(path.join(installDir, backup), { recursive: true, force: true });
+        } catch {
+          // Ignore errors, non-critical
+        }
+      }
+    } else if (existingBackups.length > 0 && options.verbose) {
+      ui.info(`Removing ${existingBackups.length} previous backup(s)...`);
+      for (const backup of existingBackups) {
+        try {
+          fs.rmSync(path.join(installDir, backup), { recursive: true, force: true });
+        } catch {
+          ui.warn(`Could not remove backup: ${backup}`);
+        }
+      }
+    }
+
     backupDir = path.join(installDir, `.collective-backup-${Date.now()}`);
     fs.mkdirSync(backupDir, { recursive: true });
 
