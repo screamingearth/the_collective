@@ -10,52 +10,76 @@
   
 <h3>vision:// further enable humans to harness the power of AI and bring their ideas to life</h3>
 
->*\>the_collective is a team of AI agents that work together inside VS Code. Instead of one AI assistant, you get specialised personalities that debate, research, and build things collaboratively using powerful tools.*
+\>the_collective is a team of AI agents that work together inside VS Code. instead of one AI assistant, you get specialised personalities that debate, research, and build things collaboratively using powerful tools.
 
-**No AI expertise required.** If you can install VS Code and run a single command, you're good to go.
+**no AI expertise required:** if you can handle installing vscode and running a single terminal command, you're good to go.
 
 </div><br>
 
-## 🚀 Quick Install
-
-**One command, zero prerequisites.** The bootstrapper installs everything (Git, Node.js, VS Code, Docker containers) automatically.
-
 ### 🍎 macOS / Linux / WSL
 ```bash
-curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_unix.sh | bash
+curl -fsSL https://raw.githubusercontent.com/screamingearth/the_collective/main/setup.sh | bash
+cd the_collective
 ```
 
-### 🪟 Windows (PowerShell)
-```powershell
-$s = iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/main/bootstrapper_win.ps1; if ($?) { $s.Content | iex }
+### 🪟 Windows
+> *if you don't have Git or Node.js installed and the command line is spooky, don't worry! just follow these steps:*
+>
+>\>*this installation process is experimental, manual instructions [here](./QUICKSTART.md)*
+
+Open VS Code and use the default Copilot Chat to install dependencies:
+
+1. Open Copilot Chat (`ctrl+shift+I` or click the chat icon)
+2. Say: ```Autonomously install Node.js 20 or later, Git Bash for Windows, and ensure VS Code is in PATH ```
+3. Do the things, restart vscode, go to explorer (`ctrl+shift+E`), open ```>the_collective```
+4. Say: ```install screamingearth/the_collective```
+
+Restart VS Code, then select the `>the_collective` chat mode in Copilot Chat.
+> *hey guys, I'd like to make...*
+
+### 🧐 verify it works
+
+open the terminal in vs code inside ```>the_collective``` workspace and run:
+```bash
+npm run check
 ```
 
-> **Troubleshooting:** If a command fails, see [QUICKSTART.md](./QUICKSTART.md) for manual installation steps and fallbacks.
+expected output:
+
+```
+✅ All checks passed! Framework is ready.
+```
+then say,
+
+```>the_collective://``` *"hey guys, please test out your tools and make sure they work"*
+
+
+**[→ detailed setup guide →](./QUICKSTART.md)**
 
 ---
 
-### 🧐 Verify It Works
+## 📦 adding to existing projects
 
-1. **Open the Root Folder:** Restart VS Code and select **Open Folder...**. Navigate to your installation (e.g., `Documents/the_collective` on Windows) and select the **root** directory.
-   > **CRITICAL:** You must open the root folder directly. This allows VS Code to access `.vscode/mcp.json` for tool integration and `.github/copilot-instructions.md` for agent personas.
+already have a project? install the_collective alongside your existing code:
 
-2. Open the integrated terminal and run:
-   ```bash
-   npm run check
-   ```
-   *Expected output:* `✅ All checks passed! Framework is ready.`
+```bash
+npx the_collective install
+```
 
-3. Open **Copilot Chat** and say:
-   
-   ```>the_collective://``` hey guys, please test out your tools and make sure they work
+this will:
+- add the `.collective/` framework to your project
+- merge MCP server configs with your existing `.vscode/` settings
+- preserve your existing files (with backups)
 
-   *Expected outcome:* The agents should respond and stretch their legs a little.
+**other commands:**
+```bash
+npx the_collective doctor     # check installation health
+npx the_collective update     # update to latest version
+npx the_collective uninstall  # clean removal
+npx the_collective mode docker|local  # switch modes
+```
 
-<br>
-
-> *disclaimer: >the_collective is an experimental open-source framework under active development. while I strive for quality, it likely contains many bugs. use at your own risk. and let me know how it goes!*
-
-**[→ Detailed Setup Guide & Troubleshooting →](./QUICKSTART.md)**
+---
 
 ## 🤖 the team
 
@@ -65,59 +89,61 @@ $s = iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/m
 | **prometheus** | builder | implementation & architecture | methodical, technical |
 | **cassandra** | breaker | security & risk analysis | skeptical, thorough |
 | **apollo** | polisher | optimization & quality | perfectionist, elegant |
----
+<br>
+
 **>the_collective is best utilized by Claude models:**
-*   **Haiku 4.5** (Fast / Chat)
-*   **Sonnet 4.5** (Default / Coding)
-*   **Opus 4.5** (Deep Reasoning)
----
-> BYOK: you can configure >the_collective to use your own API keys. use vscode's built-in BYOK features by going to the vscode chat sidebar, click your current model, and select "Manage Models".
->
->you can also see [GEMINI_BRIDGE.md](./docs/GEMINI_BRIDGE.md) to change what model >the_collective interacts with via the bridge server.<br>
->gemini-3-flash-preview by default.
+
+\>Haiku 4.5 (fast)
+
+\>Sonnet 4.5 (default)
+
+\>Opus 4.5 (deep reasoning)
+
+<h5>but of course, you can use whatever you want!</h5>
 
 <br>
 
 ## 🧠 how it works
 
-**memory system** // local vector database (DuckDB + semantic embeddings) with retriever-reranker pipeline. your preferences, decisions, architectural choices, and project context persist across sessions. encrypted locally, never sent to cloud.
+**memory system** // Local vector database (DuckDB + semantic embeddings) with retriever-reranker pipeline. your preferences, decisions, architectural choices, and project context persist across sessions. encrypted locally, never sent to cloud.
 
-**gemini bridge** // custom MCP server wrapping gemini-cli into specialized tools for general queries, decision validation, and massive codebase analysis. leverages gemini-3-flash-preview free tier for cost-free offloading. />the_collective uses it autonomously to double-check logic or process information beyond local context limits.
+**agents** // One language model, four specialized personas. address them directly in chat (`cassandra, review this`) or use team mode to watch them collaborate in real-time.
 
-**agents** // one language model, four specialized personas. address them directly in chat (`cassandra, check for vulnerabilities`) or use team mode to watch them collaborate in real-time. 
+**team mode** // Switch to `>the_collective` in Copilot chat. Watch Nyx orchestrate while Prometheus builds, Cassandra breaks things, and Apollo polishes. Friction creates quality.
 
-**customiseable skills** // easily accessible in chat with slash commands. try it out with ```/review```, ```/debug```, ```/implement```, or ```/test```. edit or add more in ```/.github/prompts/```.
-
-**team mode** // switch to `>the_collective` in Copilot chat. Watch Nyx orchestrate while Prometheus builds, Cassandra breaks things, and Apollo polishes. Friction creates quality.
+**docker mode** // MCP servers run in containers for isolation. starts automatically when you open the workspace. switch with `npx the_collective mode docker|local`.
 
 <br>
 
 ## 🚀 features
 
-- **Local-first** // Semantic vector database never leaves your machine
-- **Cognitive Diversity** // Use multiple LLM models for different perspectives
-- **Real-Time Collaboration** // Watch agents debate, build, and refine solutions
-- **Extensible Architecture** // Add custom agents, tools, memories, and workflows
+- **local memory** // semantic vector database never leaves your machine
+- **zero tracking** // Apache 2.0 licensed, no telemetry, no vendor lock-in
+- **cognitive diversity** // use multiple LLM models for different perspectives
+- **real-time collaboration** // watch agents debate, build, and refine solutions
+- **extensible architecture** // add custom agents, tools, memories, and workflows
+- **dual-licensed** // Apache 2.0 for integration, MPL 2.0 for core framework
+- **open-source** // fully transparent, community-driven development
 
 <br>
 
-## 📋 Requirements
+## 📋 requirements
 
-- **VS Code 1.107+** with **GitHub Copilot** (free tier or paid)
-- **Node.js 20+** (Auto-installed by bootstrapper)
-- **Docker Engine** (Containers auto-start via VSCode Containers extension)
+- **VS Code 1.107+** with **GitHub Copilot**
+- **Node.js 20+** (auto-installed on macOS/Linux)
 - **macOS, Linux, or Windows 10/11**
 
 **[→ System requirements & troubleshooting](./QUICKSTART.md)**
 
 <br>
 
-## 📖 Documentation
+## 📖 documentation
 
-- **[/docs/](./docs/)** — Architecture, MCP servers, memory system
-- **[QUICKSTART.md](./QUICKSTART.md)** — Setup, requirements, troubleshooting
-- **[CONTRIBUTING.md](./CONTRIBUTING.md)** — Development guide & guidelines
-- **[NOTICE](./NOTICE)** — Legal notices & attributions
+- **[/docs/](./docs/)** — architecture, MCP servers, memory system
+- **[NOTICE](./NOTICE)** — legal notices & attributions
+- **[QUICKSTART.md](./QUICKSTART.md)** — setup, requirements, troubleshooting
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** — development guide & guidelines
+- **[THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md)** — open-source attributions & licenses - thank you FOSS developers 🖤
 
 
 <br>
@@ -129,16 +155,45 @@ $s = iwr -useb https://raw.githubusercontent.com/screamingearth/the_collective/m
 This project is **Dual-Licensed** to protect the core framework while allowing easy integration.
 
 ### 🧠 The Core (MPL 2.0)
-The intelligence engine (`/.collective/`) and the Agent Personas are licensed under the **[Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/)**.
+The intelligence engine (`/.collective/`) and the Agent Personas (System Prompts) are licensed under the **[Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/)**. 
 *   **Commercial Use:** ✅ Allowed.
-*   **Modifications:** 📝 If you modify the core framework or agent prompts, you **must** open-source those specific changes and follow the terms of the MPL 2.0. See [NOTICE](./NOTICE) for details.
+*   **Modifications:** 📝 If you modify the core framework or agent prompts, you **must** open-source those specific changes and include required documentation.
 
 ### 🔌 The Shell (Apache 2.0)
 The setup scripts, documentation, and integration code are licensed under the **[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)**.
 *   You are free to use, modify, and distribute these scripts as you see fit.
 
-### 💼 Commercial Use
-You can build and sell products *using* >the_collective, but you cannot resell >the_collective itself as a standalone product. See [NOTICE](./NOTICE) for details.
+### 🛡️ Attribution
+
+">the_collective" is the name of this framework. The agent names (Nyx, Prometheus, Cassandra, Apollo) are inspired by mythology and are not trademarked - feel free to use those names for your own custom agents. 
+
+What matters: if you use code from this project, respect the licenses (MPL 2.0 for core, Apache 2.0 for integration) and give proper attribution. See [NOTICE](./NOTICE) for details.
+
+### 💼 Commercial use - YES ✅
+
+*you can absolutely sell stuff made with >the_collective*
+
+**allowed:**
+- Building a SaaS service powered by >the_collective ✅
+- Selling applications that use >the_collective ✅
+- Integrating >the_collective into proprietary software ✅
+
+**not allowed:**
+- Selling >the_collective itself as your product ❌
+- Claiming you created >the_collective agents ❌
+- Rebranding and reselling >the_collective as proprietary ❌ 
+
+### 📦 Third-party packages
+
+See [THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md) for all open-source attributions and licenses of dependencies.
+
+## 🤝 contributing
+
+Contributions welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for:
+- Development setup
+- Code of conduct
+- PR guidelines
+- Issue labels & triage
 
 <br>
 

@@ -69,9 +69,9 @@ function main() {
 
   section("🔍 Validation & Testing");
   command("check", "Run health check on the framework", [
-    { flag: "--strict", desc: "Fail on warnings (for CI)" },
+    { flag: "--strict", desc: "Fail on warnings, audit moderate+ vulns (CI mode)" },
     { flag: "--memory", desc: "Check memory system only" },
-    { flag: "--quick", desc: "Skip slow checks" },
+    { flag: "--quick", desc: "Skip slow checks (db count, security audit)" },
   ]);
   command("validate", "Run linting and formatting checks", [
     { flag: "--fix", desc: "Auto-fix issues where possible" },

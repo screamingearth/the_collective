@@ -186,38 +186,72 @@ export class MemoryStore {
   }
 
   private async initializeEmbedder(): Promise<void> {
-    try {
-      const embedder = await pipeline("feature-extraction", EMBEDDER_MODEL);
-      if (!embedder) {
-        throw new Error("Embedder initialization returned null");
+    const maxRetries = 3;
+    const baseDelay = 2000; // 2 seconds
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        this.logger.info(`Loading bi-encoder (attempt ${attempt}/${maxRetries})...`);
+        const embedder = await pipeline("feature-extraction", EMBEDDER_MODEL);
+        if (!embedder) {
+          throw new Error("Embedder initialization returned null");
+        }
+        this.embedder = embedder as EmbedderFunction;
+        this.logger.info(`Bi-encoder loaded: ${EMBEDDER_MODEL}`);
+        return;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        const isNetworkError = message.includes("fetch") || message.includes("network") || message.includes("ENOTFOUND");
+
+        if (attempt < maxRetries && isNetworkError) {
+          const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+          this.logger.warn(`Embedder load failed (attempt ${attempt}/${maxRetries}): ${message}`);
+          this.logger.info(`Retrying in ${delay / 1000}s...`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        } else {
+          throw new Error(`Failed to initialize embedder after ${attempt} attempts: ${message}`);
+        }
       }
-      this.embedder = embedder as EmbedderFunction;
-      this.logger.info(`Bi-encoder loaded: ${EMBEDDER_MODEL}`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      throw new Error(`Failed to initialize embedder: ${message}`);
     }
   }
 
   /**
    * Initialize the cross-encoder reranker for Stage 2 precision.
    * If initialization fails, we gracefully degrade to bi-encoder only.
+   * Uses retry with exponential backoff for network errors.
    */
   private async initializeReranker(): Promise<void> {
-    try {
-      // The MS-MARCO model is a cross-encoder trained for passage reranking
-      const reranker = await pipeline("text-classification", RERANKER_MODEL);
-      if (!reranker) {
-        throw new Error("Reranker initialization returned null");
+    const maxRetries = 3;
+    const baseDelay = 2000;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        this.logger.info(`Loading cross-encoder (attempt ${attempt}/${maxRetries})...`);
+        // The MS-MARCO model is a cross-encoder trained for passage reranking
+        const reranker = await pipeline("text-classification", RERANKER_MODEL);
+        if (!reranker) {
+          throw new Error("Reranker initialization returned null");
+        }
+        this.reranker = reranker as RerankerFunction;
+        this.rerankerConfig = { enabled: true, model: RERANKER_MODEL };
+        this.logger.info(`Cross-encoder loaded: ${RERANKER_MODEL}`);
+        return;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        const isNetworkError = message.includes("fetch") || message.includes("network") || message.includes("ENOTFOUND");
+
+        if (attempt < maxRetries && isNetworkError) {
+          const delay = baseDelay * Math.pow(2, attempt - 1);
+          this.logger.warn(`Reranker load failed (attempt ${attempt}/${maxRetries}): ${message}`);
+          this.logger.info(`Retrying in ${delay / 1000}s...`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        } else {
+          // Graceful degradation - reranker is optional for precision
+          this.logger.warn(`Reranker initialization failed (will use bi-encoder only): ${message}`);
+          this.rerankerConfig = { enabled: false, model: RERANKER_MODEL };
+          return;
+        }
       }
-      this.reranker = reranker as RerankerFunction;
-      this.rerankerConfig = { enabled: true, model: RERANKER_MODEL };
-      this.logger.info(`Cross-encoder loaded: ${RERANKER_MODEL}`);
-    } catch (error) {
-      // Graceful degradation - reranker is optional for precision
-      const message = error instanceof Error ? error.message : "Unknown error";
-      this.logger.warn(`Reranker initialization failed (will use bi-encoder only): ${message}`);
-      this.rerankerConfig = { enabled: false, model: RERANKER_MODEL };
     }
   }
 

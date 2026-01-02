@@ -14,6 +14,27 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { EchoStatus, GeminiJsonResponse } from "./types.js";
 
+// ============================================================================
+// Tool Calling Types
+// ============================================================================
+
+export interface GeminiTool {
+  name: string;
+  description: string;
+  parameters: {
+    type: "object";
+    properties: Record<string, { type: string; description?: string }>;
+    required?: string[];
+  };
+}
+
+export interface ToolCall {
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+export type ToolExecutor = (toolCall: ToolCall) => Promise<string>;
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -81,102 +102,255 @@ function hasOAuthCredentials(): boolean {
 
 /**
  * Execute Gemini query using API key via direct HTTP
- * Expected latency: ~100-500ms (no subprocess overhead)
+ * Expected latency: ~100-500ms per call (no subprocess overhead)
+ * With tools: 2-30s depending on tool usage
  */
 async function executeViaApiKey(
   prompt: string,
   timeout: number,
-  apiKey: string
+  apiKey: string,
+  tools?: GeminiTool[],
+  toolExecutor?: ToolExecutor
 ): Promise<{ success: boolean; response?: string; error?: string }> {
   // Try gemini-3-flash-preview first (requires v1beta)
-  const result = await tryApiCall(prompt, timeout, apiKey, DEFAULT_MODEL, GEMINI_API_URL_V1BETA);
+  const result = await tryApiCallWithTools(
+    prompt,
+    timeout,
+    apiKey,
+    DEFAULT_MODEL,
+    GEMINI_API_URL_V1BETA,
+    tools,
+    toolExecutor
+  );
 
   // If gemini-3 fails, fallback to gemini-2.5-flash (v1 stable)
   if (!result.success && result.error?.includes("404")) {
-    console.log("[gemini] gemini-3-flash-preview not available, falling back to gemini-2.5-flash");
-    return tryApiCall(prompt, timeout, apiKey, FALLBACK_MODEL, GEMINI_API_URL_V1);
+    console.error("[gemini] gemini-3-flash-preview not available, falling back to gemini-2.5-flash");
+    return tryApiCallWithTools(
+      prompt,
+      timeout,
+      apiKey,
+      FALLBACK_MODEL,
+      GEMINI_API_URL_V1,
+      tools,
+      toolExecutor
+    );
   }
 
   return result;
 }
 
-async function tryApiCall(
+async function tryApiCallWithTools(
   prompt: string,
   timeout: number,
   apiKey: string,
   model: string,
-  apiUrl: string
+  apiUrl: string,
+  tools?: GeminiTool[],
+  toolExecutor?: ToolExecutor
 ): Promise<{ success: boolean; response?: string; error?: string }> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  const startTime = Date.now();
+  const MAX_TOOL_CALLS = 200; // YOLO mode - let's see how deep the rabbit hole goes
+  let toolCallCount = 0;
+  const visitedFiles = new Set<string>();
 
-  try {
-    const body: any = {
-      contents: [
-        {
-          parts: [{ text: prompt }],
-        },
-      ],
-    };
-
-    // Note: thinking_level not yet available in API (as of Dec 2024)
-    // Will be added when Google releases it to the public API
-
-    const response = await fetch(
-      `${apiUrl}/${model}:generateContent?key=${apiKey}`,
+  // Build conversation history
+  const contents: Array<{
+    role: string;
+    parts: Array<{
+      text?: string;
+      functionCall?: { name: string; args: Record<string, unknown> };
+      thoughtSignature?: string;
+      functionResponse?: { name: string; response: { result: string } };
+    }>;
+  }> = [
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      }
-    );
+        role: "user",
+        parts: [{ text: prompt }],
+      },
+    ];
 
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[gemini] HTTP ${response.status}: ${errorText}`);
-
-      if (response.status === 400) {
-        return { success: false, error: `Invalid request: ${response.statusText}` };
-      }
-      if (response.status === 401 || response.status === 403) {
-        return { success: false, error: "Invalid API key. Check your GEMINI_API_KEY." };
-      }
-      if (response.status === 429) {
-        return { success: false, error: "Rate limit exceeded. Wait and try again." };
-      }
-
-      return { success: false, error: `API error ${response.status}: ${response.statusText}` };
-    }
-
-    const data = (await response.json()) as {
-      candidates?: { content: { parts: { text: string }[] } }[];
-      error?: { message: string };
-    };
-
-    if (data.error) {
-      return { success: false, error: data.error.message };
-    }
-
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) {
-      return { success: false, error: "No text in response" };
-    }
-
-    return { success: true, response: text };
-  } catch (err) {
-    clearTimeout(timeoutId);
-    const error = err as Error;
-
-    if (error.name === "AbortError") {
+  // Tool calling loop
+  while (toolCallCount < MAX_TOOL_CALLS) {
+    const elapsedTime = Date.now() - startTime;
+    if (elapsedTime >= timeout) {
       return { success: false, error: `Request timed out after ${timeout}ms` };
     }
-    return { success: false, error: error.message };
+
+    const remainingTimeout = timeout - elapsedTime;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), remainingTimeout);
+
+    try {
+      const body: {
+        contents: typeof contents;
+        tools?: Array<{ functionDeclarations: GeminiTool[] }>;
+      } = {
+        contents,
+      };
+
+      // Include tools if provided and we haven't hit limit
+      if (tools && tools.length > 0 && toolExecutor) {
+        body.tools = [{ functionDeclarations: tools }];
+      }
+
+      const response = await fetch(
+        `${apiUrl}/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[gemini] HTTP ${response.status}: ${errorText}`);
+
+        if (response.status === 400) {
+          return { success: false, error: `Invalid request: ${response.statusText}` };
+        }
+        if (response.status === 401 || response.status === 403) {
+          return { success: false, error: "Invalid API key. Check your GEMINI_API_KEY." };
+        }
+        if (response.status === 429) {
+          return { success: false, error: "Rate limit exceeded. Wait and try again." };
+        }
+
+        return { success: false, error: `API error ${response.status}: ${response.statusText}` };
+      }
+
+      const data = (await response.json()) as {
+        candidates?: Array<{
+          content: {
+            parts: Array<{
+              text?: string;
+              functionCall?: { name: string; args: Record<string, unknown> };
+              thoughtSignature?: string;
+            }>;
+          };
+        }>;
+        error?: { message: string };
+      };
+
+      if (data.error) {
+        return { success: false, error: data.error.message };
+      }
+
+      const candidate = data.candidates?.[0];
+      if (!candidate?.content?.parts) {
+        return { success: false, error: "No content in response" };
+      }
+
+      // Check if Gemini wants to call a tool
+      const parts = candidate.content.parts;
+      const functionCalls = parts.filter((p) => p.functionCall);
+
+      if (functionCalls.length > 0 && toolExecutor) {
+        // Execute tool calls
+        toolCallCount++;
+        console.error(`[gemini] Tool call iteration ${toolCallCount}/${MAX_TOOL_CALLS}`);
+
+        // Add model response with function calls - PRESERVE thoughtSignature!
+        contents.push({
+          role: "model",
+          parts: functionCalls.map((fc) => {
+            const part: {
+              functionCall: { name: string; args: Record<string, unknown> };
+              thoughtSignature?: string;
+            } = {
+              functionCall: fc.functionCall!,
+            };
+            // Include thoughtSignature if present (required for Gemini 3 models)
+            if (fc.thoughtSignature) {
+              part.thoughtSignature = fc.thoughtSignature;
+            }
+            return part;
+          }),
+        });
+
+        // Execute each tool call
+        const functionResponses: Array<{
+          functionResponse: { name: string; response: { result: string } };
+        }> = [];
+
+        for (const fc of functionCalls) {
+          const toolCall = fc.functionCall!;
+          console.error(`[gemini] Executing tool: ${toolCall.name}`);
+
+          // Prevent reading same file multiple times
+          if (toolCall.name === "read_workspace_file") {
+            const filePath = toolCall.args.path as string;
+            if (visitedFiles.has(filePath)) {
+              console.error(`[gemini] Skipping already-read file: ${filePath}`);
+              functionResponses.push({
+                functionResponse: {
+                  name: toolCall.name,
+                  response: { result: `[Already read: ${filePath}]` },
+                },
+              });
+              continue;
+            }
+            visitedFiles.add(filePath);
+          }
+
+          try {
+            const result = await toolExecutor({ name: toolCall.name, arguments: toolCall.args });
+            functionResponses.push({
+              functionResponse: {
+                name: toolCall.name,
+                response: { result },
+              },
+            });
+          } catch (err) {
+            const error = err as Error;
+            console.error(`[gemini] Tool execution error: ${error.message}`);
+            functionResponses.push({
+              functionResponse: {
+                name: toolCall.name,
+                response: { result: `[ERROR: ${error.message}]` },
+              },
+            });
+          }
+        }
+
+        // Add function responses to conversation
+        contents.push({
+          role: "user",
+          parts: functionResponses,
+        });
+
+        // Continue loop to get next response
+        continue;
+      }
+
+      // No tool calls - get final text response
+      const textPart = parts.find((p) => p.text);
+      if (textPart?.text) {
+        return { success: true, response: textPart.text };
+      }
+
+      return { success: false, error: "No text in final response" };
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const error = err as Error;
+
+      if (error.name === "AbortError") {
+        return { success: false, error: `Request timed out after ${timeout}ms` };
+      }
+      return { success: false, error: error.message };
+    }
   }
+
+  return {
+    success: false,
+    error: `Tool call limit exceeded (${MAX_TOOL_CALLS} calls). Query too complex.`,
+  };
 }
 
 // ============================================================================
@@ -277,7 +451,7 @@ async function executeViaSubprocess(
 
     // If gemini-3 fails with model error, fallback to gemini-2.5-flash
     if (result.exitCode !== 0 && (result.stderr.includes("model") || result.stderr.includes("not found"))) {
-      console.log("[gemini] gemini-3-flash-preview not available via CLI, trying gemini-2.5-flash");
+      console.error("[gemini] gemini-3-flash-preview not available via CLI, trying gemini-2.5-flash");
       args = ["-m", FALLBACK_MODEL, "-p", prompt];
       result = await spawnGemini(args, { timeout });
     }
@@ -321,6 +495,7 @@ async function executeViaSubprocess(
 /**
  * Execute Gemini query using the best available auth method
  * Priority: API key (fast HTTP) > OAuth (subprocess)
+ * Note: OAuth path doesn't support tool calling yet
  */
 export async function executeGeminiQuery(
   prompt: string,
@@ -342,6 +517,28 @@ export async function executeGeminiQuery(
     success: false,
     error: "No authentication available. Set GEMINI_API_KEY or run: cd .collective/gemini-bridge && npm run auth",
   };
+}
+
+/**
+ * Execute Gemini query with tool calling support (hybrid approach)
+ * If tools provided, Gemini can autonomously explore codebase
+ * Requires API key (OAuth path doesn't support tool calling)
+ */
+export async function executeGeminiQueryWithTools(
+  prompt: string,
+  tools: GeminiTool[],
+  toolExecutor: ToolExecutor,
+  timeout = 120000
+): Promise<{ success: boolean; response?: string; error?: string }> {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return {
+      success: false,
+      error: "Tool calling requires API key. Set GEMINI_API_KEY or OAuth doesn't support tools.",
+    };
+  }
+
+  return executeViaApiKey(prompt, timeout, apiKey, tools, toolExecutor);
 }
 
 /**

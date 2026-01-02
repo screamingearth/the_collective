@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "memory": {
+      "type": "sse",
+      "url": "http://localhost:3100/mcp"
+    },
+    "gemini": {
+      "type": "sse",
+      "url": "http://localhost:3101/mcp"
+    }
+  }
+}

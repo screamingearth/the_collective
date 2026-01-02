@@ -2,9 +2,23 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Validate Workspace",
+      "type": "shell",
+      "command": "node -e \"const fs=require('fs');const path=require('path');const cwd=process.cwd();const markers=['.collective','collective.config.json'];const hasMarker=markers.some(m=>fs.existsSync(path.join(cwd,m)));if(!hasMarker){console.log('⚠ Warning: You may have opened a subdirectory instead of the project root.');console.log('Expected markers: '+markers.join(', '));const parent=path.dirname(cwd);if(markers.some(m=>fs.existsSync(path.join(parent,m)))){console.log('→ Try opening: '+parent);}}else{console.log('✓ Workspace looks correct')}\"",
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared",
+        "showReuseMessage": false
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Start Docker Containers",
       "type": "shell",
-      "command": "docker compose up -d --build && node -e \"console.log('Waiting for servers...'); setTimeout(() => { const http = require('http'); let done = 0; ['3100','3101'].forEach(p => http.get('http://localhost:'+p+'/health', r => { if(++done === 2) console.log('MCP servers ready!'); }).on('error', () => console.log('Port '+p+' not ready'))); }, 8000)\"",
+      "command": "node -e \"const fs=require('fs');const mcp=JSON.parse(fs.readFileSync('.vscode/mcp.json'));if(mcp.servers.memory?.type==='sse'){console.log('Starting Docker containers...');require('child_process').exec('docker compose up -d --build',{stdio:'inherit'},(e,o)=>{if(e)console.error('Failed to start:',e);else{console.log('Waiting for health checks...');setTimeout(()=>{const http=require('http');let done=0;['3100','3101'].forEach(p=>http.get('http://localhost:'+p+'/health',r=>{if(++done===2)console.log('✓ MCP servers ready!')}).on('error',()=>console.log('Port '+p+' not ready')))},8000)}})}else{console.log('Local mode detected, skipping Docker auto-start')}\"",
       "presentation": {
         "reveal": "silent",
         "panel": "shared",

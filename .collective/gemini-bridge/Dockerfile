@@ -4,6 +4,10 @@
 
 FROM node:22-alpine AS builder
 
+# Install build dependencies for native modules (python3, make, g++)
+# Required by tree-sitter-bash and other native dependencies
+RUN apk add --no-cache python3 make g++
+
 WORKDIR /app
 
 # Copy package files first (layer caching optimization)

@@ -1,5 +1,12 @@
 # Changelog
 
+## 🔧 Updated files (15 added, 29 modified) in config, docs, github, scripts: better dockermode, better error handling, bugfixing
+> 2026-01-02 17:16 · `dev` · fe86998
+
+**44 files changed**
+
+
+
 ## ✨ Update docs & deps. better validation: vitest, husky. better setup process. core memories reinforced.
 > 2025-12-18 21:38 · `dev` · de359ed
 

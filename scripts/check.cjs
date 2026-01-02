@@ -4,16 +4,16 @@
  * A comprehensive validation script that ensures your framework is ready to go.
  *
  * Usage:
- *   npm run check                    # Full dev check (tolerant, shows warnings)
- *   npm run check -- --strict        # CI mode (strict, fails on any issue)
+ *   npm run check                    # Full dev check (tolerant, shows warnings, audit high+ vulns)
+ *   npm run check -- --strict        # CI mode (strict, fails on any issue, audit moderate+ vulns)
  *   npm run check -- --memory        # Memory system only
- *   npm run check -- --quick         # Fast check (skip slow operations)
+ *   npm run check -- --quick         # Fast check (skip slow operations, skip audit)
  *   npm run check -- --help          # Show help
  *
  * Flags:
- *   --strict, -s    Fail on warnings (for CI pipelines)
+ *   --strict, -s    Fail on warnings, audit moderate+ (for CI pipelines)
  *   --memory, -m    Only check memory system
- *   --quick, -q     Skip slow checks (db count, etc.)
+ *   --quick, -q     Skip slow checks (db count, security audit)
  *   --quiet         Minimal output
  *   --help, -h      Show this help message
  * ============================================================================
@@ -35,7 +35,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { spawnSync } = require("child_process");
+const { spawnSync, execSync } = require("child_process");
 const {
   colors: c,
   banner: drawBanner,
@@ -46,7 +46,12 @@ const {
   info: logInfo,
   section: logSection,
   log: baseLog,
+  IS_WINDOWS,
 } = require("./lib/ui.cjs");
+
+const ROOT = path.resolve(__dirname, "..");
+const MEMORY_SERVER = path.join(ROOT, ".collective/memory-server");
+const GEMINI_BRIDGE = path.join(ROOT, ".collective/gemini-bridge");
 
 // Setup logging
 const logDir = path.join(process.cwd(), ".collective/.logs");
@@ -93,9 +98,9 @@ function showHelp() {
   drawBox(
     "Flags",
     [
-      "--strict, -s    Fail on warnings (for CI pipelines)",
+      "--strict, -s    Fail on warnings, audit moderate+ vulns (CI mode)",
       "--memory, -m    Only check memory system",
-      "--quick, -q     Skip slow checks (db count verification)",
+      "--quick, -q     Skip slow checks (db count, security audit)",
       "--quiet         Minimal output",
       "--help, -h      Show this help",
     ],
@@ -396,6 +401,67 @@ function checkMemoryDatabase() {
   }
 }
 
+function checkSecurityAudit() {
+  section("Security Audit", "🔒");
+
+  const npmCmd = IS_WINDOWS ? "npm.cmd" : "npm";
+  const auditLevel = flags.strict ? "moderate" : "high";
+
+  // Helper to run audit in a directory
+  function auditPackage(name, dir) {
+    const cwd = dir || process.cwd();
+    const pkgPath = path.join(cwd, "package.json");
+
+    if (!fs.existsSync(pkgPath)) {
+      warn(`${name}: Missing package.json`);
+      return;
+    }
+
+    if (!fs.existsSync(path.join(cwd, "node_modules"))) {
+      warn(`${name}: node_modules not installed (skipping audit)`);
+      return;
+    }
+
+    try {
+      // Run audit with appropriate level
+      execSync(`${npmCmd} audit --audit-level=${auditLevel}`, {
+        cwd,
+        encoding: "utf8",
+        stdio: "pipe",
+      });
+
+      success(`${name}: No ${auditLevel}+ vulnerabilities`);
+      writeLog(`AUDIT ${name}: passed`);
+    } catch (e) {
+      // npm audit exits with code 1 when vulnerabilities found
+      // Output is in stdout even on error
+      const output = (e.stdout || e.stderr || "").toString();
+
+      // Parse vulnerability count from output
+      // Example: "1 high severity vulnerability"
+      const match = output.match(/(\d+)\s+(moderate|high|critical)/i);
+      const vulnCount = match ? `${match[1]} ${match[2]}` : "unknown count";
+
+      // In standard mode (high threshold), only fail on high/critical
+      // In strict mode (moderate threshold), fail on moderate or higher
+      const hint = `Fix: cd ${path.relative(process.cwd(), cwd) || "."} && npm audit fix`;
+
+      if (flags.strict) {
+        error(`${name}: ${vulnCount} vulnerabilities`, hint);
+      } else {
+        warn(`${name}: ${vulnCount} vulnerabilities`, hint);
+      }
+
+      writeLog(`AUDIT ${name}: ${vulnCount} vulnerabilities - ${output.split("\n")[0] || "see npm audit"}`);
+    }
+  }
+
+  // Audit all three packages
+  auditPackage("Root", null);
+  auditPackage("Memory Server", MEMORY_SERVER);
+  auditPackage("Gemini Bridge", GEMINI_BRIDGE);
+}
+
 function checkDependencies() {
   section("Dependencies", "📦");
   const pkgPath = path.join(process.cwd(), "package.json");
@@ -450,6 +516,11 @@ function runFullCheck() {
   checkAgentDefinitions();
   checkMemoryDatabase();
   checkDependencies();
+
+  // Security audit (skip in quick mode unless strict)
+  if (!flags.quick || flags.strict) {
+    checkSecurityAudit();
+  }
 
   printSummary();
 }

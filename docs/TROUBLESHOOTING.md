@@ -227,23 +227,84 @@ You can verify progress by watching the VS Code task output for "Start Memory Se
 1. **CRITICAL: Open the Root Folder:** Ensure you have opened the `the_collective` **root** folder in VS Code (File → Open Folder...). 
    - If you open a subfolder (like `.collective/memory-server`), VS Code will **not** load `.vscode/mcp.json` or `.github/copilot-instructions.md`.
 
-2. **Restart VS Code** (the MCP servers need a restart to load)
+2. **Check your MCP mode:**
+   
+   The system supports two transport modes:
+   
+   - **Docker Mode (Default):** Servers run in containers (SSE transport)
+     - Config: `.vscode/mcp.json` → `"type": "sse"`, `"url": "http://localhost:3100/mcp"`
+     - Containers auto-start on folder open
+   
+   - **Stdio Mode:** Servers run as VS Code child processes (stdio transport)
+     - Config: `.vscode/mcp.json` → `"type": "stdio"`, `"command": "node"`
+     - VS Code spawns servers automatically
+   
+   **Switch modes via CLI:**
+   ```bash
+   npx the_collective mode docker  # SSE transport (default)
+   npx the_collective mode stdio   # stdio transport
+   ```
+   
+   Or via VS Code: Run task "Switch to Docker Mode" / "Switch to stdio Mode" → Reload window
 
-3. **Check MCP configuration:**
+3. **Restart VS Code** (the MCP servers need a restart to load)
+
+4. **Check MCP configuration:**
    ```bash
    cat .vscode/mcp.json
+   # Docker mode should show: "type": "sse", "url": "http://localhost:3100/mcp"
+   # Stdio mode should show: "type": "stdio", "command": "node"
    ```
 
-4. **Verify servers are running:**
+5. **Verify servers are running:**
+   
+   **Docker mode:**
+   ```bash
+   docker ps --filter "name=collective-"
+   curl http://localhost:3100/health
+   curl http://localhost:3101/health
+   ```
+   
+   **Stdio mode:**
    - Open View → Terminal
    - Check "Tasks" output panels for Memory Server and Gemini Bridge
 
-5. **Start servers manually:**
+6. **Start servers manually:**
+   
+   **Docker mode:**
+   ```bash
+   docker compose up -d
+   docker logs collective-memory --tail 20
+   docker logs collective-gemini --tail 20
+   ```
+   
+   **Stdio mode:**
    ```bash
    npm run check  # This shows server status
    ```
 
 ## Diagnostic Commands
+
+### CLI Doctor (Recommended)
+
+If you installed >the_collective into an existing project, use the CLI doctor for comprehensive diagnostics:
+
+```bash
+# Run diagnostics with auto-fix
+npx the_collective doctor
+
+# Just diagnose, no fixes
+npx the_collective doctor --dry-run
+
+# Check specific component
+npx the_collective doctor --check memory
+npx the_collective doctor --check gemini
+npx the_collective doctor --check mcp
+```
+
+### npm Scripts
+
+If you cloned the repo directly:
 
 ```bash
 # Full health check
@@ -264,6 +325,20 @@ cat .collective/.logs/setup.log
 ```
 
 ## Docker Issues
+
+### Understanding Transport Modes
+
+**MCP (Model Context Protocol)** supports multiple transport layers:
+
+- **stdio (Standard Input/Output):** Direct process-to-process communication. VS Code spawns the server as a child process.
+  - **Pros:** Simple, no network config, automatic lifecycle
+  - **Cons:** Requires rebuild when code changes, more memory per window
+  
+- **SSE (Server-Sent Events over HTTP):** Network-based communication. Servers run independently (e.g., in Docker).
+  - **Pros:** Servers persist across VS Code restarts, easier debugging, production-ready
+  - **Cons:** Requires Docker, port management, manual container lifecycle
+
+**>the_collective defaults to Docker/SSE mode** but supports local/stdio mode for development.
 
 ### Containers won't start
 

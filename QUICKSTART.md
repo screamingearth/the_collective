@@ -10,8 +10,19 @@ Before you begin, ensure you have:
 - **VS Code 1.107+** (December 2025) // [Download](https://code.visualstudio.com/)
 - **GitHub Copilot** // Chat access with free or paid plan
 - **Node.js v20 or v22 (LTS)** // [Download](https://nodejs.org/) (Avoid v23, v25)
+- **Docker** (recommended for MCP servers) // See below for auto-install
 - **Disk Space:** ~2GB (dependencies + vector database + ML models)
 - **RAM:** 4GB+ recommended
+
+### Docker Installation
+
+**The setup script will detect and offer to install Docker automatically:**
+
+- **macOS**: Docker Desktop via Homebrew
+- **Linux**: Docker Engine via package manager (apt/dnf/pacman)
+- **Windows**: Docker Desktop ([manual download required](https://docs.docker.com/desktop/install/windows-install/))
+
+Alternatively, you can choose **local mode** during setup, which runs MCP servers natively without Docker.
 
 ---
 
@@ -39,7 +50,42 @@ Once opened, say "hey nyx" in Copilot Chat.
 
 ---
 
-## 🔧 Troubleshooting & Fallbacks
+## � Installing into Existing Projects
+
+Already have a project? Add the_collective without starting fresh:
+
+```bash
+cd your-project
+npx the_collective install
+```
+
+**What happens:**
+1. Runs pre-flight checks (Node version, Docker, ports)
+2. Creates `.collective/` with memory server and gemini bridge
+3. Merges `.github/copilot-instructions.md` (preserves your existing content)
+4. Merges `.vscode/mcp.json` and `tasks.json`
+5. Adds agent personas to `.github/agents/`
+6. Creates `collective.config.json` for version tracking
+
+**Options:**
+```bash
+npx the_collective install --dry-run      # Preview changes
+npx the_collective install --mode=local   # Skip Docker
+npx the_collective install --no-backup    # Don't create backups
+npx the_collective install --force        # Overwrite without prompting
+```
+
+**CLI Commands:**
+```bash
+npx the_collective doctor     # Diagnose issues, auto-fix
+npx the_collective update     # Update to latest version
+npx the_collective uninstall  # Clean removal (preserves .mcp/ by default)
+npx the_collective mode docker|local  # Switch deployment modes
+```
+
+---
+
+## �🔧 Troubleshooting & Fallbacks
 
 If the bootstrapper fails due to firewall issues or a minimal environment, use these methods.
 

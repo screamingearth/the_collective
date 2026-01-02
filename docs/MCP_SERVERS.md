@@ -1,6 +1,15 @@
 # MCP Servers
 
-Model Context Protocol servers extend the_collective with external capabilities. Memory and Gemini servers auto-start via Docker when you open the workspace. GitHub integration is built-in.
+Model Context Protocol servers extend the_collective with external capabilities. Memory and Gemini servers run in Docker containers (default) or locally via stdio. GitHub integration is built-in.
+
+## Prerequisites
+
+**Docker Required (Default Mode):**
+- **macOS**: Docker Desktop (auto-installed via Homebrew during setup)
+- **Linux**: Docker Engine (auto-installed via package manager during setup)
+- **Windows**: Docker Desktop ([download manually](https://docs.docker.com/desktop/install/windows-install/))
+
+The `setup.sh` script detects Docker and offers to install it automatically on macOS/Linux.
 
 ## Active Servers
 
@@ -57,20 +66,71 @@ code .
 
 ## Configuration
 
-### Docker (Default)
+### Docker Mode (Default, Recommended)
 
-Servers are containerized and configured in `docker-compose.yml`. They auto-start and are accessed via HTTP:
+Servers run as containers, configured in `docker-compose.yml`:
 
 ```bash
-Memory:  http://localhost:3100
-Gemini:  http://localhost:3101
+Memory Server:  http://localhost:3100 (SSE transport)
+Gemini Bridge:  http://localhost:3101 (SSE transport)
 ```
 
-No VS Code configuration needed for Docker mode—containers manage themselves.
+**Benefits:**
+- Auto-start with `docker compose up -d`
+- Isolated environments
+- Easy updates (just rebuild containers)
+- No VS Code restart needed for server updates
 
-### Local / Stdio (Development Only)
+**Requirements:**
+- Docker Desktop (macOS/Windows) or Docker Engine (Linux)
+- 2GB disk space for images
+- Ports 3100-3101 available
 
-To run Memory and Gemini in VS Code via stdio (not recommended—Docker is the standard), modify `.vscode/mcp.json` to use stdio transport instead of SSE, then restart VS Code.
+**Volume Mounts:**
+- **Memory server:** `./.mcp` (database persistence)
+- **Gemini bridge:** `~/.gemini` (OAuth credentials)
+
+**Networking Notes:**
+- Containers communicate with each other via Docker bridge network
+- If you add MCP servers that need to reach host services, use:
+  - **macOS/Windows:** `host.docker.internal` instead of `localhost`
+  - **Linux:** Add `--network="host"` to docker-compose.yml service config
+
+### Stdio Mode (Alternative)
+
+Servers run natively via Node.js, launched by VS Code:
+
+```bash
+Memory Server:  stdio (VS Code spawns process)
+Gemini Bridge:  stdio (VS Code spawns process)
+```
+
+**Benefits:**
+- Lighter weight (no Docker overhead)
+- Direct debugging via VS Code
+- No port conflicts
+
+**Drawbacks:**
+- Requires VS Code restart after code changes
+- Locks database file during VS Code session
+
+### Configuration Files
+
+- `.vscode/mcp.docker.json` — Docker mode config (SSE transport)
+- `.vscode/mcp.stdio.json` — Stdio mode config (stdio transport)
+- `.vscode/mcp.json` — Active config (copied from above)
+
+**Switching modes:**
+```bash
+npx the_collective mode docker   # Switch to Docker (SSE)
+npx the_collective mode stdio    # Switch to Node.js (stdio)
+```
+
+Or use VS Code tasks: "Switch to Docker Mode" / "Switch to stdio Mode"
+
+## Docker Mode Details
+
+### Starting Containers
 
 ### Auto-Start Settings
 

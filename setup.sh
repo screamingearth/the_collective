@@ -174,6 +174,10 @@ done
 
 # Timeouts (in seconds)
 GEMINI_AUTH_TIMEOUT=600  # 10 minutes for OAuth browser flow
+DOCKER_INSTALL_TIMEOUT=300  # 5 minutes for Docker installation
+
+# MCP Server Mode
+MCP_MODE=""  # Will be set to "docker" or "local" based on user choice
 
 # -----------------------------------------------------------------------------
 # Helper Functions
@@ -529,6 +533,290 @@ check_build_tools() {
     else
         success "Python found ($(python3 --version 2>/dev/null || python --version))"
     fi
+}
+
+# -----------------------------------------------------------------------------
+# Docker Management
+# -----------------------------------------------------------------------------
+
+check_docker() {
+    if command -v docker &> /dev/null && docker --version &> /dev/null 2>&1; then
+        # Check if Docker daemon is running
+        if docker info &> /dev/null; then
+            return 0
+        else
+            warn "Docker installed but daemon not running"
+            return 1
+        fi
+    fi
+    return 1
+}
+
+install_docker() {
+    info "Installing Docker..."
+    
+    if [[ "$IS_WINDOWS" -eq 1 ]]; then
+        error "Please install Docker Desktop for Windows manually:"
+        error "  https://docs.docker.com/desktop/install/windows-install/"
+        echo ""
+        info "After installing, restart your computer and re-run setup.sh"
+        exit 1
+    elif [[ "$OS" == "macos" ]]; then
+        info "Installing Docker Desktop via Homebrew..."
+        
+        if [[ "$PKG_MANAGER" != "brew" ]]; then
+            error "Homebrew not found - install it first:"
+            error "  /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+            exit 1
+        fi
+        
+        brew install --cask docker || {
+            error "Failed to install Docker Desktop"
+            error "Try manually: https://docs.docker.com/desktop/install/mac-install/"
+            exit 1
+        }
+        
+        success "Docker Desktop installed"
+        warn "Please start Docker Desktop from Applications and wait for it to finish starting"
+        warn "Then re-run: ./setup.sh"
+        exit 0
+        
+    elif [[ "$OS" == "debian" ]]; then
+        info "Installing Docker Engine (Debian/Ubuntu)..."
+        
+        # Remove old versions
+        sudo apt-get remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
+        
+        # Install dependencies
+        sudo apt-get update
+        sudo apt-get install -y ca-certificates curl gnupg
+        
+        # Add Docker's official GPG key
+        sudo install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        sudo chmod a+r /etc/apt/keyrings/docker.gpg
+        
+        # Set up repository
+        echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+          sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        
+        # Install Docker Engine
+        sudo apt-get update
+        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        
+        # Add user to docker group
+        sudo usermod -aG docker "$USER"
+        
+        success "Docker Engine installed"
+        warn "You need to log out and back in for group changes to take effect"
+        warn "Then re-run: ./setup.sh"
+        exit 0
+        
+    elif [[ "$OS" == "fedora" ]] || [[ "$OS" == "rhel" ]]; then
+        info "Installing Docker Engine (Fedora/RHEL)..."
+        
+        # Remove old versions
+        sudo dnf remove -y docker docker-client docker-client-latest docker-common docker-latest \
+                         docker-latest-logrotate docker-logrotate docker-selinux docker-engine-selinux \
+                         docker-engine 2>/dev/null || true
+        
+        # Install dnf-plugins-core
+        sudo dnf -y install dnf-plugins-core
+        
+        # Add Docker repository (different URLs for Fedora vs RHEL/CentOS)
+        if [[ "$OS" == "fedora" ]]; then
+            sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+        else
+            sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+        fi
+        
+        # Install Docker Engine
+        sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        
+        # Start Docker
+        sudo systemctl start docker
+        sudo systemctl enable docker
+        
+        # Add user to docker group
+        sudo usermod -aG docker "$USER"
+        
+        success "Docker Engine installed"
+        warn "You need to log out and back in for group changes to take effect"
+        warn "Then re-run: ./setup.sh"
+        exit 0
+        
+    elif [[ "$OS" == "arch" ]]; then
+        info "Installing Docker Engine (Arch Linux)..."
+        
+        sudo pacman -S --noconfirm docker docker-compose
+        
+        # Enable and start Docker service
+        sudo systemctl enable --now docker
+        
+        # Add user to docker group
+        sudo usermod -aG docker "$USER"
+        
+        success "Docker Engine installed"
+        warn "You need to log out and back in for group changes to take effect"
+        warn "Then re-run: ./setup.sh"
+        exit 0
+    else
+        error "Automatic Docker installation not supported for your OS"
+        error "Please install Docker manually: https://docs.docker.com/engine/install/"
+        exit 1
+    fi
+}
+
+setup_mcp_mode() {
+    echo ""
+    echo -e "${CYAN}${BOLD}MCP Server Configuration${NC}"
+    echo -e "${DIM}Choose how to run Memory and Gemini MCP servers${NC}"
+    echo ""
+    echo -e "  ${BOLD}1. Docker Mode${NC} (recommended) - Containerized, auto-start"
+    echo -e "     ${DIM}Requires: Docker Desktop (macOS/Windows) or Docker Engine (Linux)${NC}"
+    echo ""
+    echo -e "  ${BOLD}2. Local Mode${NC} - Runs natively in VS Code via stdio"
+    echo -e "     ${DIM}Lighter weight, but requires manual rebuild on changes${NC}"
+    echo ""
+    
+    # Check if Docker is available
+    local docker_available=0
+    if check_docker; then
+        docker_available=1
+        success "Docker detected and running"
+    else
+        warn "Docker not detected"
+    fi
+    
+    # Auto-select if docker-compose.yml exists and Docker is running
+    if [[ -f "docker-compose.yml" ]] && [[ $docker_available -eq 1 ]]; then
+        info "docker-compose.yml found and Docker is running"
+        printf "%s" "$(printf "${BLUE}Use Docker mode? [Y/n]: ${NC}")"
+        read -r -n 1 REPLY
+        echo
+        
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            MCP_MODE="docker"
+            return 0
+        fi
+    fi
+    
+    # Ask user
+    printf "%s" "$(printf "${BLUE}Choose mode (1=Docker, 2=Local) [1]: ${NC}")"
+    read -r MODE_CHOICE
+    echo
+    
+    if [[ "$MODE_CHOICE" == "2" ]]; then
+        MCP_MODE="local"
+        info "Selected: Local mode"
+        return 0
+    fi
+    
+    # Docker mode selected
+    MCP_MODE="docker"
+    
+    # Check if Docker is available
+    if [[ $docker_available -eq 0 ]]; then
+        warn "Docker not found or not running"
+        echo ""
+        printf "%s" "$(printf "${YELLOW}Install Docker now? [Y/n]: ${NC}")"
+        read -r -n 1 INSTALL_REPLY
+        echo
+        
+        if [[ ! $INSTALL_REPLY =~ ^[Nn]$ ]]; then
+            install_docker
+        else
+            error "Docker mode requires Docker to be installed"
+            info "Switch to local mode or install Docker manually:"
+            info "  macOS: brew install --cask docker"
+            info "  Linux: https://docs.docker.com/engine/install/"
+            exit 1
+        fi
+    fi
+    
+    info "Selected: Docker mode"
+}
+
+start_docker_containers() {
+    if [[ "$MCP_MODE" != "docker" ]]; then
+        return 0
+    fi
+    
+    info "Starting Docker containers..."
+    
+    # Create .gemini directory if it doesn't exist (for OAuth)
+    mkdir -p "$HOME/.gemini" || warn "Could not create ~/.gemini directory"
+    
+    # Build and start containers
+    if docker compose up -d --build; then
+        success "Docker containers started"
+        
+        # Wait for health checks
+        info "Waiting for containers to be healthy (max 30s)..."
+        local waited=0
+        local max_wait=30
+        
+        while [[ $waited -lt $max_wait ]]; do
+            local memory_healthy=$(docker inspect --format='{{.State.Health.Status}}' collective-memory 2>/dev/null || echo "starting")
+            local gemini_healthy=$(docker inspect --format='{{.State.Health.Status}}' collective-gemini 2>/dev/null || echo "starting")
+            
+            if [[ "$memory_healthy" == "healthy" ]] && [[ "$gemini_healthy" == "healthy" ]]; then
+                success "All containers healthy"
+                info "Memory server: http://localhost:3100"
+                info "Gemini bridge: http://localhost:3101"
+                return 0
+            fi
+            
+            sleep 2
+            waited=$((waited + 2))
+        done
+        
+        warn "Containers started but health check timeout"
+        info "Check logs: docker compose logs"
+    else
+        error "Failed to start Docker containers"
+        info "Check logs: docker compose logs"
+        exit 1
+    fi
+}
+
+configure_mcp_local() {
+    if [[ "$MCP_MODE" != "local" ]]; then
+        return 0
+    fi
+    
+    info "Configuring local MCP mode..."
+    
+    # Check if .vscode/mcp.local.json exists
+    if [[ ! -f ".vscode/mcp.local.json" ]]; then
+        warn ".vscode/mcp.local.json not found - creating default config"
+        
+        mkdir -p .vscode
+        cat > .vscode/mcp.local.json <<'EOF'
+{
+  "mcpServers": {
+    "memory": {
+      "command": "node",
+      "args": ["${workspaceFolder}/.collective/memory-server/dist/index.js"],
+      "env": {
+        "MEMORY_DB_PATH": "${workspaceFolder}/.mcp/collective_memory.duckdb"
+      }
+    },
+    "gemini": {
+      "command": "node",
+      "args": ["${workspaceFolder}/.collective/gemini-bridge/dist/mcp-server.js"]
+    }
+  }
+}
+EOF
+    fi
+    
+    # Copy to mcp.json
+    cp .vscode/mcp.local.json .vscode/mcp.json
+    success "Local MCP configuration applied"
+    info "VS Code will start MCP servers automatically"
 }
 
 check_running_processes() {
@@ -1397,8 +1685,11 @@ main() {
     # Determine total steps based on whether we need to install Node
     if check_node; then
         success "Node.js v$(get_node_version) detected"
-        TOTAL_STEPS=6
+        TOTAL_STEPS=8
         STEP=0
+
+        step "$((++STEP))" "$TOTAL_STEPS" "Configuring MCP server mode"
+        setup_mcp_mode
 
         step "$((++STEP))" "$TOTAL_STEPS" "Installing dependencies"
         install_dependencies
@@ -1412,6 +1703,14 @@ main() {
         step "$((++STEP))" "$TOTAL_STEPS" "Verifying VS Code configuration"
         setup_vscode_config
 
+        if [[ "$MCP_MODE" == "docker" ]]; then
+            step "$((++STEP))" "$TOTAL_STEPS" "Starting Docker containers"
+            start_docker_containers
+        else
+            step "$((++STEP))" "$TOTAL_STEPS" "Configuring local MCP servers"
+            configure_mcp_local
+        fi
+
         step "$((++STEP))" "$TOTAL_STEPS" "Gemini tools (optional)"
         setup_gemini_optional
 
@@ -1424,8 +1723,11 @@ main() {
             warn "Node.js not found"
         fi
 
-        TOTAL_STEPS=7
+        TOTAL_STEPS=9
         STEP=0
+
+        step "$((++STEP))" "$TOTAL_STEPS" "Configuring MCP server mode"
+        setup_mcp_mode
 
         step "$((++STEP))" "$TOTAL_STEPS" "Installing Node.js"
         install_node
@@ -1451,6 +1753,14 @@ main() {
 
         step "$((++STEP))" "$TOTAL_STEPS" "Verifying VS Code configuration"
         setup_vscode_config
+
+        if [[ "$MCP_MODE" == "docker" ]]; then
+            step "$((++STEP))" "$TOTAL_STEPS" "Starting Docker containers"
+            start_docker_containers
+        else
+            step "$((++STEP))" "$TOTAL_STEPS" "Configuring local MCP servers"
+            configure_mcp_local
+        fi
 
         step "$((++STEP))" "$TOTAL_STEPS" "Gemini tools (optional)"
         setup_gemini_optional

@@ -59,6 +59,8 @@ Technology moves fast. The patterns in a codebase might be outdated. The "right"
 
 **Gemini integration via MCP tools.** These tools provide access to Google's Gemini (gemini-3-flash-preview) for research, code analysis, and validation. Gemini is a **different AI model** - this provides cognitive diversity.
 
+**HYBRID MODE:** Set `enableTools: true` to let Gemini autonomously explore the codebase (10-30s). Fast path: provide `includeFiles` explicitly (2-5s).
+
 ### Available Tools
 
 **`mcp_gemini_query`** - General research
@@ -66,44 +68,129 @@ Technology moves fast. The patterns in a codebase might be outdated. The "right"
 - Best practices research
 - Technology comparisons
 - Current approach validation
+- **Fast path:** `includeFiles: ['setup.sh', 'package.json']` (2-5s)
+- **Thorough path:** `enableTools: true` (10-30s, Gemini explores autonomously)
 
 **`mcp_gemini_analyze_code`** - Code review
 - Explain logic
 - Identify issues
 - Suggest improvements
 - Security review from different perspective
+- **Fast path:** `includeFiles: ['src/types.ts', 'src/utils.ts']` (2-5s)
+- **Thorough path:** `enableTools: true` (Gemini reads dependencies, follows imports)
 
 **`mcp_gemini_validate`** - Second opinions
 - Validate proposals
 - Challenge assumptions
 - Provide alternatives
 - Independent assessment
+- **Fast path:** `includeFiles: ['docker-compose.yml', 'setup.sh']` (2-5s)
+- **Thorough path:** `enableTools: true` (Gemini searches for relevant implementations)
+
+### Hybrid Exploration Mode
+
+When `enableTools: true`, Gemini gets autonomous exploration tools:
+- **grep_search**: Search codebase for patterns, imports, functions
+- **read_workspace_file**: Read specific files
+- **list_directory**: Explore project structure
+
+**Safeguards:**
+- Max 10 tool calls per query
+- 30 second timeout
+- Visited files tracking (won't re-read)
+- Workspace security boundaries
+
+**When to use:**
+- Complex architecture questions where relevant files unclear
+- "How does X work?" without knowing implementation location
+- Security audits needing comprehensive exploration
+- When you'd otherwise need multiple grep_search calls yourself
+
+### Anti-Hallucination Protocol
+
+**Before EVERY Gemini tool call, ask yourself:**
+1. What files does Gemini need to see to answer accurately?
+2. Does my prompt reference code that Gemini doesn't have access to?
+3. Am I asking about architecture without showing the actual implementation?
+
+**Examples of GOOD usage:**
+
+```typescript
+// ✅ CORRECT - includes relevant files
+mcp_gemini_validate({
+  proposal: "Change Docker volume mount from ${HOME} to ${HOME:-${USERPROFILE}}",
+  context: "Need cross-platform support for Windows PowerShell",
+  includeFiles: ["docker-compose.yml", "setup.sh"],
+  criteria: "Cross-platform compatibility, security, maintainability"
+})
+
+// ✅ CORRECT - includes dependencies
+mcp_gemini_analyze_code({
+  code: readFile("src/mcp-server.ts"),
+  question: "Any security issues with file reading logic?",
+  language: "typescript",
+  includeFiles: ["src/types.ts", "src/utils.ts", "package.json"]
+})
+
+// ✅ CORRECT - includes project structure
+mcp_gemini_query({
+  prompt: "What's the best way to add npm audit to our validation workflow?",
+  includeFiles: ["scripts/check.cjs", "scripts/validate.cjs", "package.json"]
+})
+```
+
+**Examples of BAD usage (WILL HALLUCINATE):**
+
+```typescript
+// ❌ WRONG - no file context, Gemini will guess
+mcp_gemini_validate({
+  proposal: "Add Docker auto-install to setup.sh",
+  context: "User wants automated Docker installation"
+  // Missing: includeFiles: ["setup.sh", "docker-compose.yml"]
+})
+
+// ❌ WRONG - asking about code without showing it
+mcp_gemini_query({
+  prompt: "Is our memory server architecture scalable?"
+  // Missing: includeFiles: [".collective/memory-server/src/*.ts"]
+})
+
+// ❌ WRONG - analyzing code without its dependencies
+mcp_gemini_analyze_code({
+  code: readFile("src/mcp-server.ts"),
+  question: "Any issues?"
+  // Missing: includeFiles for imported modules
+})
+```
 
 ### When to Use Gemini Tools
 
-| Situation | Tool |
-|-----------|------|
-| **Architecture decisions** | `mcp_gemini_validate` - independent second opinion |
-| **Technology choices** | `mcp_gemini_query` - research alternatives |
-| **Security concerns** | `mcp_gemini_analyze_code` - different model's security review |
-| **"Best way to do X"** | `mcp_gemini_query` - current best practices |
-| **Stuck on a problem** | `mcp_gemini_validate` - fresh perspective |
-| **Code review** | `mcp_gemini_analyze_code` - independent analysis |
+| Situation | Tool | Required Files |
+|-----------|------|----------------|
+| **Architecture decisions** | `mcp_gemini_validate` | Implementation files, config, docs |
+| **Technology choices** | `mcp_gemini_query` | package.json, current implementation |
+| **Security concerns** | `mcp_gemini_analyze_code` | Code + all imported dependencies |
+| **"Best way to do X"** | `mcp_gemini_query` | Relevant scripts, configs, docs |
+| **Stuck on a problem** | `mcp_gemini_validate` | All context files related to problem |
+| **Code review** | `mcp_gemini_analyze_code` | Code + types + utils + tests |
 
 ### Tool Specifications
 
-- **Model:** gemini-3-flash-preview (128k context)
+- **Model:** gemini-3-flash-preview (2M context window)
 - **Speed:** 2-5 seconds typical response (with API key), 10-20s (OAuth subprocess)
 - **Free tier:** 60 req/min, 1000 req/day
 - **Auth:** API key (get free at aistudio.google.com/apikey) OR Google account OAuth
+- **File limit:** ~50 files per query (context window limit)
+- **File size:** Individual files should be <500KB for best performance
 
 ### Usage Example
 
 ```
-**Nyx:** let me check current JWT best practices...
+**Nyx:** let me check current JWT best practices with full context...
 [invokes: mcp_gemini_query with prompt about JWT security]
+[includes: includeFiles: [".collective/gemini-bridge/src/utils.ts", "package.json"]]
 **Nyx:** [synthesizes Gemini's research with team knowledge]
-**Nyx:** [to user] here's our recommendation based on 2024 best practices...
+**Nyx:** [to user] here's our recommendation based on 2025 best practices...
 ```
 
 ### Error Handling
@@ -113,6 +200,12 @@ If Gemini tools fail:
 2. Retry once after 2s delay
 3. Proceed without if unavailable - note limitation to user
 4. Gemini is valuable but not required - don't block on it
+
+**If Gemini gives suspicious advice:**
+1. Check if you included relevant files - hallucinations are 90% due to missing context
+2. Re-invoke with more complete `includeFiles` array
+3. Validate against actual codebase using grep/semantic search
+4. When in doubt, trust your own codebase inspection over Gemini's guess
 
 ## Tool Arsenal (USE ALL OF THESE)
 

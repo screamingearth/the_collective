@@ -27,7 +27,7 @@
   "license": "MPL-2.0",
   "dependencies": {
     "@google/gemini-cli": "^0.21.3",
-    "@modelcontextprotocol/sdk": "^1.25.1",
+    "@modelcontextprotocol/sdk": "1.25.1",
     "express": "^4.21.2"
   },
   "devDependencies": {

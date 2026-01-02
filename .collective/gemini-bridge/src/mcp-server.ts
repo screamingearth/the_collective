@@ -15,9 +15,20 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { randomUUID } from "crypto";
 import express from "express";
+import * as fs from "fs";
 import http from "http";
+import * as path from "path";
 import { z } from "zod";
-import { checkAuthStatus, ensureSettings, executeGeminiQuery, getAuthMethodDescription } from "./utils.js";
+import {
+  checkAuthStatus,
+  ensureSettings,
+  executeGeminiQuery,
+  executeGeminiQueryWithTools,
+  getAuthMethodDescription,
+  type GeminiTool,
+  type ToolCall,
+  type ToolExecutor,
+} from "./utils.js";
 
 /**
  * System instructions for Gemini - defines behavior as research tool for >the_collective
@@ -35,6 +46,20 @@ your role: research assistant and independent validator.
 - **question assumptions**: if something seems off, point it out
 - **be practical**: actionable information over theory
 
+## tool usage (when available)
+
+when you need more context about the codebase, you have tools available:
+- **read_workspace_file**: read specific files when you need to see implementations
+- **grep_search**: search codebase for patterns, imports, function names
+- **list_directory**: explore directory structure
+
+use tools strategically:
+- start with provided context (if includeFiles were given)
+- use grep_search to find relevant files
+- read specific files only when needed
+- don't read files you've already seen
+- max 10 tool calls per query - be efficient
+
 ## communication style
 
 - lowercase (matches the team's vibe)
@@ -48,21 +73,281 @@ your role: research assistant and independent validator.
 - **cognitive diversity**: you're a different model - genuinely different perspective
 - **independent validation**: don't just agree with the team
 - **research depth**: 2M context, google search grounding for current info
+- **autonomous exploration**: can explore codebase when you need more context
 - **parallel processing**: you research while they implement
 
 respond with comprehensive, well-organized, well-cited information. functionality over personality.`;
 
 /**
- * Execute gemini query using the SDK (instant, no subprocess overhead)
- * Expected latency: <500ms per query
+ * Load project-specific context from GEMINI.md if it exists
+ * Returns empty string if file doesn't exist
+ */
+function loadGeminiContext(): string {
+  const workspaceRoot = process.env.WORKSPACE_ROOT ?? process.cwd();
+  const contextPath = path.join(workspaceRoot, "GEMINI.md");
+
+  try {
+    if (fs.existsSync(contextPath)) {
+      const content = fs.readFileSync(contextPath, "utf-8");
+      console.error("✓ Loaded project context from GEMINI.md");
+      return content;
+    }
+  } catch (err) {
+    const error = err as Error;
+    console.error(`⚠️ Failed to load GEMINI.md: ${error.message}`);
+  }
+
+  return "";
+}
+
+/**
+ * Build the complete system prompt including project context
+ */
+function buildSystemPrompt(): string {
+  const projectContext = loadGeminiContext();
+
+  if (projectContext) {
+    return `${projectContext}\n\n---\n\n# Core Instructions\n\n${GEMINI_SYSTEM_PROMPT}`;
+  }
+
+  return GEMINI_SYSTEM_PROMPT;
+}
+
+// Cache the system prompt (loaded once at startup)
+let cachedSystemPrompt: string | null = null;
+
+function getSystemPrompt(): string {
+  cachedSystemPrompt ??= buildSystemPrompt();
+  return cachedSystemPrompt;
+}
+
+/**
+ * Read workspace files and construct context string
+ * Workspace root is determined by environment variable or current directory
+ */
+function readWorkspaceFiles(files: string[]): string {
+  const workspaceRoot = process.env.WORKSPACE_ROOT ?? process.cwd();
+  const fileContents: string[] = [];
+
+  for (const file of files) {
+    try {
+      // Resolve absolute path from workspace root
+      const absolutePath = path.isAbsolute(file)
+        ? file
+        : path.join(workspaceRoot, file);
+
+      // Security check: resolve symlinks and ensure file is within workspace
+      // fs.realpathSync resolves symlinks to their actual target path
+      const realPath = fs.realpathSync(absolutePath);
+      const realWorkspace = fs.realpathSync(workspaceRoot);
+      if (!realPath.startsWith(realWorkspace)) {
+        fileContents.push(`[ERROR: ${file} - path outside workspace]`);
+        continue;
+      }
+
+      // Read file
+      const content = fs.readFileSync(realPath, "utf-8");
+      const relativePath = path.relative(workspaceRoot, realPath);
+      fileContents.push(`// File: ${relativePath}\n${content}`);
+    } catch (err) {
+      const error = err as Error;
+      fileContents.push(`[ERROR: ${file} - ${error.message}]`);
+    }
+  }
+
+  return fileContents.length > 0
+    ? `\n\n## Workspace Files\n\n${fileContents.join("\n\n---\n\n")}`
+    : "";
+}
+
+/**
+ * List directory contents with security checks
+ */
+function listWorkspaceDirectory(dirPath: string): string {
+  const workspaceRoot = process.env.WORKSPACE_ROOT ?? process.cwd();
+
+  try {
+    // Resolve absolute path
+    const absolutePath = path.isAbsolute(dirPath)
+      ? dirPath
+      : path.join(workspaceRoot, dirPath);
+
+    // Security check: ensure within workspace
+    const realPath = fs.realpathSync(absolutePath);
+    const realWorkspace = fs.realpathSync(workspaceRoot);
+    if (!realPath.startsWith(realWorkspace)) {
+      return `[ERROR: ${dirPath} - path outside workspace]`;
+    }
+
+    // Read directory
+    const entries = fs.readdirSync(realPath, { withFileTypes: true });
+    const formatted = entries.map(entry => {
+      const type = entry.isDirectory() ? "dir" : "file";
+      return `${type}: ${entry.name}`;
+    }).join("\n");
+
+    return `Directory: ${path.relative(workspaceRoot, realPath)}\n${formatted}`;
+  } catch (err) {
+    const error = err as Error;
+    return `[ERROR: ${dirPath} - ${error.message}]`;
+  }
+}
+
+/**
+ * Search workspace files using grep-like pattern matching
+ */
+function grepWorkspace(pattern: string, includePattern?: string): string {
+  const workspaceRoot = process.env.WORKSPACE_ROOT ?? process.cwd();
+  const results: string[] = [];
+  const maxResults = 20; // Limit results to prevent token explosion
+
+  try {
+    // Simple recursive search (in production, use proper glob library)
+    function searchDir(dir: string, depth = 0): void {
+      if (depth > 5 || results.length >= maxResults) {
+        return;
+      } // Max depth and results
+
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        if (results.length >= maxResults) {
+          break;
+        }
+
+        // Skip common ignored directories
+        if (entry.isDirectory()) {
+          if (["node_modules", ".git", "dist", "build"].includes(entry.name)) {
+            continue;
+          }
+          searchDir(path.join(dir, entry.name), depth + 1);
+        } else {
+          const filePath = path.join(dir, entry.name);
+
+          // Filter by include pattern if provided
+          if (includePattern && !filePath.includes(includePattern)) {
+            continue;
+          }
+
+          try {
+            const content = fs.readFileSync(filePath, "utf-8");
+            const lines = content.split("\n");
+
+            lines.forEach((line, idx) => {
+              if (results.length >= maxResults) {
+                return;
+              }
+              if (line.toLowerCase().includes(pattern.toLowerCase())) {
+                const relativePath = path.relative(workspaceRoot, filePath);
+                results.push(`${relativePath}:${idx + 1}: ${line.trim()}`);
+              }
+            });
+          } catch {
+            // Skip files that can't be read
+          }
+        }
+      }
+    }
+
+    searchDir(workspaceRoot);
+
+    if (results.length === 0) {
+      return `No matches found for pattern: ${pattern}`;
+    }
+
+    const truncated = results.length >= maxResults ? " (truncated)" : "";
+    return `Search results for "${pattern}"${truncated}:\n${results.join("\n")}`;
+  } catch (err) {
+    const error = err as Error;
+    return `[ERROR: ${error.message}]`;
+  }
+}
+
+/**
+ * Tool definitions for Gemini's autonomous exploration
+ */
+const GEMINI_TOOLS: GeminiTool[] = [
+  {
+    name: "read_workspace_file",
+    description: "Read contents of a file from the workspace. Use when you need to see specific implementations, configurations, or documentation.",
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Relative path from workspace root (e.g., 'src/index.ts', 'package.json')",
+        },
+      },
+      required: ["path"],
+    },
+  },
+  {
+    name: "grep_search",
+    description: "Search workspace files for text patterns. Use to find functions, classes, imports, or specific code patterns.",
+    parameters: {
+      type: "object",
+      properties: {
+        pattern: {
+          type: "string",
+          description: "Text pattern to search for (case-insensitive)",
+        },
+        include_pattern: {
+          type: "string",
+          description: "Optional: filter to files matching this pattern (e.g., '.ts', 'src/')",
+        },
+      },
+      required: ["pattern"],
+    },
+  },
+  {
+    name: "list_directory",
+    description: "List contents of a directory. Use to explore project structure.",
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Directory path relative to workspace root (use '.' for root)",
+        },
+      },
+      required: ["path"],
+    },
+  },
+];
+
+/**
+ * Tool executor for Gemini's autonomous exploration
+ */
+const toolExecutor: ToolExecutor = async (toolCall: ToolCall): Promise<string> => {
+  switch (toolCall.name) {
+    case "read_workspace_file":
+      return readWorkspaceFiles([toolCall.arguments.path as string]);
+    case "grep_search":
+      return grepWorkspace(
+        toolCall.arguments.pattern as string,
+        toolCall.arguments.include_pattern as string | undefined
+      );
+    case "list_directory":
+      return listWorkspaceDirectory(toolCall.arguments.path as string);
+    default:
+      return `[ERROR: Unknown tool ${toolCall.name}]`;
+  }
+};
+
+/**
+ * Execute gemini query with optional tool calling support
+ * Expected latency: 2-5s without tools, 10-30s with autonomous exploration
  */
 async function executeGemini(
   prompt: string,
-  timeout: number
+  timeout: number,
+  enableTools = false
 ): Promise<{ success: boolean; response?: string; error?: string }> {
   try {
-    const result = await executeGeminiQuery(prompt, timeout);
-    return result;
+    if (enableTools) {
+      return await executeGeminiQueryWithTools(prompt, GEMINI_TOOLS, toolExecutor, timeout);
+    }
+    return await executeGeminiQuery(prompt, timeout);
   } catch (err) {
     const error = err as Error;
     return { success: false, error: error.message };
@@ -75,6 +360,9 @@ async function executeGemini(
 async function main(): Promise<void> {
   // Ensure settings are configured
   await ensureSettings();
+
+  // Load project context early (caches on first call)
+  getSystemPrompt();
 
   // Check auth status on startup (non-blocking)
   const authStatus = checkAuthStatus();
@@ -98,27 +386,46 @@ async function main(): Promise<void> {
     {
       description:
         "Query Gemini for research, documentation lookup, or general questions. " +
-        "Uses gemini-3-flash-preview (1M+ context, 2-5s response time). " +
-        "Free tier: 60 req/min, 1000 req/day.",
+        "Uses gemini-3-flash-preview (2M context, 2-5s response time). " +
+        "Free tier: 60 req/min, 1000 req/day. " +
+        "HYBRID MODE: Set enableTools=true to let Gemini explore codebase autonomously (10-30s). " +
+        "Fast path: Provide includeFiles for quick 2-5s response. " +
+        "Thorough path: Enable tools for autonomous exploration when you're unsure what files are relevant.",
       inputSchema: z.object({
         prompt: z.string().describe("The research question or query"),
         context: z
           .string()
           .optional()
           .describe("Optional additional context to include"),
+        includeFiles: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Workspace files to include for context (relative paths from workspace root). " +
+            "Example: ['setup.sh', 'scripts/check.cjs', '.github/copilot-instructions.md']. " +
+            "Fast path: provide these for 2-5s response. Leave empty with enableTools=true for autonomous exploration."
+          ),
+        enableTools: z
+          .boolean()
+          .default(false)
+          .describe(
+            "Enable autonomous codebase exploration (10-30s). Gemini can search files, read implementations, " +
+            "and explore directories to build full context. Use when you're unsure what files are relevant."
+          ),
         timeout: z
           .number()
           .default(120000)
           .describe("Timeout in milliseconds (default: 120000)"),
       }),
     },
-    async ({ prompt, context, timeout }) => {
+    async ({ prompt, context, includeFiles, enableTools, timeout }) => {
+      const filesContext = includeFiles ? readWorkspaceFiles(includeFiles) : "";
       const userPrompt = context
-        ? `Context:\n${context}\n\nQuestion:\n${prompt}`
-        : prompt;
-      const fullPrompt = `${GEMINI_SYSTEM_PROMPT}\n\n---\n\n${userPrompt}`;
+        ? `Context:\n${context}${filesContext}\n\nQuestion:\n${prompt}`
+        : `${filesContext ? filesContext + "\n\n" : ""}Question:\n${prompt}`;
+      const fullPrompt = `${getSystemPrompt()}\n\n---\n\n${userPrompt}`;
 
-      const result = await executeGemini(fullPrompt, timeout);
+      const result = await executeGemini(fullPrompt, timeout ?? 120000, enableTools);
 
       return {
         content: [
@@ -140,7 +447,8 @@ async function main(): Promise<void> {
     {
       description:
         "Analyze code with Gemini. Explain logic, identify issues, suggest improvements. " +
-        "Uses gemini-3-flash-preview with 1M+ context window.",
+        "Uses gemini-3-flash-preview with 2M context window. " +
+        "HYBRID MODE: Set enableTools=true to let Gemini explore dependencies autonomously.",
       inputSchema: z.object({
         code: z.string().describe("The code to analyze"),
         question: z.string().describe("What you want to know about the code"),
@@ -148,19 +456,34 @@ async function main(): Promise<void> {
           .string()
           .optional()
           .describe("Programming language (optional, helps with context)"),
+        includeFiles: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Related workspace files for context (relative paths). " +
+            "Example: ['src/types.ts', 'src/utils.ts'] when analyzing a file that imports them. " +
+            "Fast path: provide these explicitly. Or enable tools for Gemini to explore."
+          ),
+        enableTools: z
+          .boolean()
+          .default(false)
+          .describe(
+            "Enable autonomous dependency exploration. Gemini can read imported files and follow dependency chains."
+          ),
         timeout: z
           .number()
           .default(120000)
           .describe("Timeout in milliseconds (default: 120000)"),
       }),
     },
-    async ({ code, question, language, timeout }) => {
+    async ({ code, question, language, includeFiles, enableTools, timeout }) => {
+      const filesContext = includeFiles ? readWorkspaceFiles(includeFiles) : "";
       const userPrompt = language
-        ? `Analyze this ${language} code:\n\n\`\`\`${language}\n${code}\n\`\`\`\n\nQuestion: ${question}`
-        : `Analyze this code:\n\n\`\`\`\n${code}\n\`\`\`\n\nQuestion: ${question}`;
-      const fullPrompt = `${GEMINI_SYSTEM_PROMPT}\n\n---\n\n${userPrompt}`;
+        ? `Analyze this ${language} code:\n\n\`\`\`${language}\n${code}\n\`\`\`${filesContext}\n\nQuestion: ${question}`
+        : `Analyze this code:\n\n\`\`\`\n${code}\n\`\`\`${filesContext}\n\nQuestion: ${question}`;
+      const fullPrompt = `${getSystemPrompt()}\n\n---\n\n${userPrompt}`;
 
-      const result = await executeGemini(fullPrompt, timeout);
+      const result = await executeGemini(fullPrompt, timeout ?? 120000, enableTools);
 
       return {
         content: [
@@ -182,7 +505,8 @@ async function main(): Promise<void> {
     {
       description:
         "Get a second opinion from Gemini on a proposal, approach, or decision. " +
-        "Useful for independent validation from a different model.",
+        "Useful for independent validation from a different model. " +
+        "HYBRID MODE: Set enableTools=true to let Gemini explore relevant implementation files.",
       inputSchema: z.object({
         proposal: z
           .string()
@@ -192,19 +516,34 @@ async function main(): Promise<void> {
           .string()
           .optional()
           .describe("Specific criteria to validate against (optional)"),
+        includeFiles: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Implementation files relevant to the proposal (relative paths). " +
+            "Example: ['docker-compose.yml', 'setup.sh'] when validating Docker setup. " +
+            "Fast path: provide explicitly. Or enable tools for Gemini to explore."
+          ),
+        enableTools: z
+          .boolean()
+          .default(false)
+          .describe(
+            "Enable autonomous exploration of related files. Gemini can search for relevant implementations and configurations."
+          ),
         timeout: z
           .number()
           .default(120000)
           .describe("Timeout in milliseconds (default: 120000)"),
       }),
     },
-    async ({ proposal, context, criteria, timeout }) => {
+    async ({ proposal, context, criteria, includeFiles, enableTools, timeout }) => {
+      const filesContext = includeFiles ? readWorkspaceFiles(includeFiles) : "";
       const userPrompt = criteria
-        ? `Validate this proposal:\n\n${proposal}\n\nContext:\n${context}\n\nCriteria:\n${criteria}\n\nProvide an independent assessment considering potential issues, alternatives, and improvements.`
-        : `Validate this proposal:\n\n${proposal}\n\nContext:\n${context}\n\nProvide an independent assessment considering potential issues, alternatives, and improvements.`;
-      const fullPrompt = `${GEMINI_SYSTEM_PROMPT}\n\n---\n\n${userPrompt}`;
+        ? `Validate this proposal:\n\n${proposal}\n\nContext:\n${context}${filesContext}\n\nCriteria:\n${criteria}\n\nProvide an independent assessment considering potential issues, alternatives, and improvements.`
+        : `Validate this proposal:\n\n${proposal}\n\nContext:\n${context}${filesContext}\n\nProvide an independent assessment considering potential issues, alternatives, and improvements.`;
+      const fullPrompt = `${getSystemPrompt()}\n\n---\n\n${userPrompt}`;
 
-      const result = await executeGemini(fullPrompt, timeout);
+      const result = await executeGemini(fullPrompt, timeout ?? 120000, enableTools);
 
       return {
         content: [
@@ -250,6 +589,19 @@ async function main(): Promise<void> {
         activeSessions.delete(sessionId);
         console.error(`Session closed: ${sessionId} (${activeSessions.size}/${MAX_ACTIVE_SESSIONS})`);
       },
+    });
+
+    // DNS Rebinding Protection Middleware
+    // Manually backported from MCP SDK 1.24.0 to mitigate CVE-2025-66414
+    // Validates Host header to prevent DNS rebinding attacks
+    app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+      const host = req.headers.host;
+      if (host && !host.startsWith('localhost:') && !host.startsWith('127.0.0.1:') && host !== 'localhost' && host !== '127.0.0.1') {
+        console.error(`DNS rebinding protection: rejected request with suspicious Host header: ${host}`);
+        res.status(400).json({ error: "Invalid Host header" });
+        return;
+      }
+      next();
     });
 
     // Middleware to parse JSON

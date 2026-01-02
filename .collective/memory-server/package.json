@@ -35,7 +35,7 @@
   "license": "MPL-2.0",
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
-    "@modelcontextprotocol/sdk": "^1.25.1",
+    "@modelcontextprotocol/sdk": "1.25.1",
     "duckdb": "^1.4.3",
     "express": "^4.21.2",
     "uuid": "^13.0.0"

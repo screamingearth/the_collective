@@ -378,6 +378,19 @@ async function main(): Promise<void> {
       },
     });
 
+    // DNS Rebinding Protection Middleware
+    // Manually backported from MCP SDK 1.24.0 to mitigate CVE-2025-66414
+    // Validates Host header to prevent DNS rebinding attacks
+    app.use((req, res, next) => {
+      const host = req.headers.host;
+      if (host && !host.startsWith('localhost:') && !host.startsWith('127.0.0.1:') && host !== 'localhost' && host !== '127.0.0.1') {
+        logger.warn(`DNS rebinding protection: rejected request with suspicious Host header: ${host}`);
+        res.status(400).json({ error: "Invalid Host header" });
+        return;
+      }
+      next();
+    });
+
     // Middleware to parse JSON
     app.use(express.json());
 

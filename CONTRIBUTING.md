@@ -6,6 +6,10 @@ We welcome improvements, bug fixes, and new features.
 
 ## Setup
 
+**Prerequisites:**
+- Docker Desktop (macOS/Windows) or Docker Engine (Linux) — auto-installed by setup script
+- Git, Node.js 20+ — auto-installed by setup script
+
 **macOS / Linux:**
 ```bash
 git clone https://github.com/YOUR_USERNAME/the_collective.git
@@ -20,15 +24,27 @@ cd the_collective
 ./setup.sh        # Run in Git Bash or WSL
 ```
 
+**Development modes:**
+- **Docker mode (default):** MCP servers run in containers (SSE transport)
+- **Local mode:** MCP servers run via stdio (lighter, requires rebuild on changes)
+- **Switch modes:**
+  ```bash
+  npx the_collective mode docker  # SSE transport (default)
+  npx the_collective mode local   # stdio transport
+  ```
+
 ## Making Changes
 
 **Agent behavior:** Edit `.github/agents/*.agent.md`  
 **Memory system:** Edit `.collective/memory-server/src/`  
 **Gemini integration:** Edit `.collective/gemini-bridge/src/`  
 **Core instructions:** Edit `.github/copilot-instructions.md`   
-**Documentation:** Edit `.md` files in root or `.github/`
+**CLI & scripts:** Edit `scripts/*.cjs` and `scripts/lib/*.cjs`  
+**Documentation:** Edit `.md` files in root or `docs/`
 
-Restart VS Code after changes.
+**After code changes:**
+- **Docker mode:** Rebuild containers: `docker compose up -d --build`
+- **Local mode:** Restart VS Code to reload MCP servers
 
 ## Before You Push
 

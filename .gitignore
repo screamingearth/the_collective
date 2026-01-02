@@ -21,7 +21,6 @@ jspm_packages/
 .npm
 pnpm-lock.yaml
 yarn.lock
-package-lock.json.backup
 
 # === Build Output & TypeScript ===
 dist/
@@ -67,6 +66,8 @@ test-results/
 !.vscode/launch.json
 !.vscode/tasks.json
 !.vscode/mcp.json
+!.vscode/mcp.docker.json
+!.vscode/mcp.stdio.json
 .idea/
 .vscode-test/
 *.code-workspace

@@ -16,13 +16,22 @@ Complete guides for the_collective framework.
 
 **CRITICAL:** Always open the **root** `the_collective` folder in VS Code. This ensures `.vscode/mcp.json` and `.github/copilot-instructions.md` are loaded correctly.
 
-**Commands from workspace root:**
+**Framework commands (from workspace root):**
 ```bash
 ./setup.sh              # First-time setup (builds everything)
 npm run check           # Verify all systems
 npm run commit          # Commit with changelog
 npm run help            # Show all available commands
 npm run reset:memories  # Clear memory database
+```
+
+**CLI commands (works anywhere):**
+```bash
+npx the_collective install    # Add to existing project
+npx the_collective uninstall  # Remove from project
+npx the_collective update     # Update to latest version
+npx the_collective doctor     # Diagnose and fix issues
+npx the_collective mode docker|local  # Switch modes
 ```
 
 **Package-specific commands** (require `cd` first):
@@ -68,10 +77,15 @@ cd .collective/gemini-bridge && npm run doctor    # Check Gemini auth, API
 - **Apollo:** Optimization and quality certification
 
 ### MCP Servers
+
+**Transport Modes:** MCP servers can run in **Docker mode** (SSE over HTTP, auto-start) or **Local mode** (stdio, VS Code spawned).
+
 - **github** (HTTP) — Issues, PRs, code search
-- **memory** (stdio) — Semantic memory with vector search
-- **gemini** (stdio) — Google Gemini for research & validation
+- **memory** (Docker: SSE | Local: stdio) — Semantic memory with vector search
+- **gemini** (Docker: SSE | Local: stdio) — Google Gemini for research & validation
 - **filesystem** (stdio) — Safe workspace file operations
+
+**Switch modes:** Use VS Code tasks "Switch to Docker Mode" or "Switch to stdio Mode", then reload window.
 
 ### Cognitive Diversity
 The team uses Gemini tools for independent validation—a different AI model catches blind spots that shared architecture might miss.

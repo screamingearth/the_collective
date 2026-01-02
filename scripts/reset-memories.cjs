@@ -170,10 +170,15 @@ ${c.bold}Current Memory Database:${c.reset}
     }
   }
 
-  // Delete the database
+  // Delete the database and WAL file
   log("\n🗑️  Deleting memory database...");
   try {
     fs.unlinkSync(DB_PATH);
+    // Also delete WAL file if it exists
+    const walPath = DB_PATH + ".wal";
+    if (fs.existsSync(walPath)) {
+      fs.unlinkSync(walPath);
+    }
     success("Memory database deleted!");
   } catch (err) {
     if (err.code === "EBUSY" || err.code === "EACCES") {

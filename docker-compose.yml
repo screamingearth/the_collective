@@ -1,6 +1,11 @@
 # >the_collective - Docker Compose Configuration
 # Purpose: Orchestrate Memory Server and Gemini Bridge as containerized MCP servers
 # Usage: docker compose up -d (starts in background)
+#
+# WINDOWS USERS (PowerShell):
+#   If you get errors about ${HOME}, either:
+#   1. Use Git Bash instead of PowerShell
+#   2. Copy .env.example to .env and set HOME=C:/Users/YOUR_USERNAME
 
 services:
   memory-server:
@@ -41,16 +46,21 @@ services:
       # For API key: Set GEMINI_API_KEY env var (faster, recommended)
       #
       # Cross-platform path handling:
-      # - Linux/macOS: ${HOME}/.gemini maps correctly
-      # - Windows: ${USERPROFILE}/.gemini (set GEMINI_HOME env var if issues)
+      # - Linux/macOS: Uses $HOME
+      # - Windows: Falls back to $USERPROFILE (PowerShell/CMD)
+      # - Git Bash: Works with either (sets $HOME automatically)
       # Note: rw required for gemini-cli 0.21+ (writes chat history to tmp/)
-      - ${GEMINI_HOME:-${HOME:-${USERPROFILE}}}/.gemini:/root/.gemini:rw
+      - ${HOME:-${USERPROFILE}}/.gemini:/root/.gemini:rw
+      # Mount project root for autonomous exploration (read-only for security)
+      - .:/workspace:ro
     env_file:
-      - .collective/gemini-bridge/.env
+      - path: .collective/gemini-bridge/.env
+        required: false
     environment:
       - NODE_ENV=production
       - MCP_TRANSPORT=sse
       - MCP_PORT=3101
+      - WORKSPACE_ROOT=/workspace
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3101/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" ]
